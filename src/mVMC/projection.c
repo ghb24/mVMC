@@ -29,31 +29,31 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 #include "math.h"
 #include "projection.h"
 
-inline double LogProjVal(const int *projCnt) {
+inline double complex LogProjVal(const int *projCnt) {
   int idx;
-  double z=0;
+  double complex z=0.0+0.0*I;
   for(idx=0;idx<NProj;idx++) {
-    z += creal(Proj[idx]) * (double)(projCnt[idx]);
+    z += Proj[idx] * (double)(projCnt[idx]);
   }
   return z;
 }
 
-inline double LogProjRatio(const int *projCntNew, const int *projCntOld) {
+inline double complex LogProjRatio(const int *projCntNew, const int *projCntOld) {
   int idx;
-  double z=0;
+  double complex z=0.0+0.0*I;
   for(idx=0;idx<NProj;idx++) {
-    z += creal(Proj[idx]) * (double)(projCntNew[idx]-projCntOld[idx]); //TBC we assume gutzwiller and jastrow is real
+    z += Proj[idx] * (double)(projCntNew[idx]-projCntOld[idx]); 
   }
   return z;
 }
 
-inline double ProjRatio(const int *projCntNew, const int *projCntOld) {
+inline double complex ProjRatio(const int *projCntNew, const int *projCntOld) {
   int idx;
-  double z=0;
+  double complex z=0.0+0.0*I;
   for(idx=0;idx<NProj;idx++) {
-    z += creal(Proj[idx]) * (double)(projCntNew[idx]-projCntOld[idx]); // TVC
+    z += Proj[idx] * (double)(projCntNew[idx]-projCntOld[idx]); 
   }
-  return exp(z);
+  return cexp(z);
 }
 void MakeProjCnt(int *projCnt, const int *eleNum) {
   const int *n0=eleNum; //up-spin

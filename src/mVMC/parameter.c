@@ -36,7 +36,7 @@ void InitParameter() {
   int i;
   //printf("AllComplexFlag=%d \n",AllComplexFlag);
   #pragma omp parallel for default(shared) private(i)
-  for(i=0;i<NProj;i++) Proj[i] = 0.0;
+  for(i=0;i<NProj;i++) Proj[i] = 0.0+0.0*I;
   if(AllComplexFlag==0){
     for(i=0;i<NSlater;i++){
       if(OptFlag[2*i+2*NProj] > 0){ //TBC
@@ -149,20 +149,32 @@ void SyncModifiedParameter(MPI_Comm comm) {
 
 /* shift Gutzwiller-Jastrow factor */
 void shiftGJ() {
-  double shift=0.0;
+  double complex shift=0.0+0.0*I;
   const int n = NGutzwillerIdx+NJastrowIdx;
   int i;
+  //double xmax,ratio;
 
   if(NGutzwillerIdx==0||NJastrowIdx==0) return;
+/*
+  xmax = cabs(Proj[0]);
+  for(i=1;i<n;i++){
+    if(xmax < cabs(Proj[i])) xmax = cabs(Proj[i]);
+  }
+  ratio = D_AmpMax/xmax;
+  #pragma omp parallel for default(shared) private(i)
+  for(i=0;i<n;i++) Proj[i] *= ratio;
+*/
 
   for(i=0;i<n;i++) {
-    shift += creal(Proj[i]); // TBC
+    shift += Proj[i];
+   // shift += creal(Proj[i]); 
   }
   shift /= (double)n;
 
   for(i=0;i<n;i++) {
     Proj[i] -= shift;
   }
+
 
   return;
 }

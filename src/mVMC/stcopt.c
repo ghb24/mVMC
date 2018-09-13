@@ -169,6 +169,14 @@ int StochasticOpt(MPI_Comm comm) {
   }
   MPI_Bcast(&info, 1, MPI_INT, 0, comm);
 
+/*
+  for(si=0;si<nSmat;si++){
+    pi = smatToParaIdx[si];
+    printf("si is %f and pi is %f \n", si, pi);
+  }
+*/
+
+ // printf("flag is %f \n", AllComplexFlag);
   /* update variational parameters */
   if(info==0 && rank==0) {
     //#pragma omp parallel for default(shared) private(si,pi)
@@ -180,6 +188,7 @@ int StochasticOpt(MPI_Comm comm) {
         para[pi/2]     += r[si];  // real
       }else{
         para[(pi-1)/2] += r[si]*I; // imag
+       // printf("imag part is %f \n", r[si]);
       }
     }
   }

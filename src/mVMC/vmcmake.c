@@ -47,7 +47,8 @@ void VMCMakeSample(MPI_Comm comm) {
   double complex logIpOld,logIpNew; /* logarithm of inner product <phi|L|x> */ // is this ok ? TBC
   int projCntNew[NProj];
   double complex pfMNew[NQPFull];
-  double x,w; // TBC x will be complex number
+  double complex  x;  
+  double w;
 
   int qpStart,qpEnd;
   int rejectFlag;
@@ -122,14 +123,15 @@ void VMCMakeSample(MPI_Comm comm) {
 
         /* Metroplis */
         x = LogProjRatio(projCntNew,TmpEleProjCnt);
-        w = exp(2.0*(x+creal(logIpNew-logIpOld)));
+        //printf("x imag is %f \n", cimag(x));
+        w = cexp(x+creal(logIpNew-logIpOld));
         if( !isfinite(w) ) w = -1.0; /* should be rejected */
 
-        if(w > genrand_real2()) { /* accept */
+        if(pow(cabs(w),2) > genrand_real2()) { /* accept */
           // UpdateMAll will change SlaterElm, InvM (including PfM)
           StartTimer(63);
           UpdateMAll(mi,s,TmpEleIdx,qpStart,qpEnd);
-          //            UpdateMAll(mi,s,TmpEleIdx,qpStart,qpEnd);
+          //UpdateMAll(mi,s,TmpEleIdx,qpStart,qpEnd);
           StopTimer(63);
 
           for(i=0;i<NProj;i++) TmpEleProjCnt[i] = projCntNew[i];
@@ -179,10 +181,10 @@ void VMCMakeSample(MPI_Comm comm) {
 
         /* Metroplis */
         x = LogProjRatio(projCntNew,TmpEleProjCnt);
-        w = exp(2.0*(x+creal(logIpNew-logIpOld))); //TBC
+        w = cexp(x+creal(logIpNew-logIpOld)); 
         if( !isfinite(w) ) w = -1.0; /* should be rejected */
 
-        if(w > genrand_real2()) { /* accept */
+        if(pow(cabs(w),2) > genrand_real2()) { /* accept */
           StartTimer(68);
           UpdateMAllTwo_fcmp(mi, s, mj, t, ri, rj, TmpEleIdx,qpStart,qpEnd);
           StopTimer(68);
@@ -313,7 +315,7 @@ void copyToBurnSample(const int *eleIdx, const int *eleCfg, const int *eleNum, c
 void saveEleConfig(const int sample, const double complex logIp,
                    const int *eleIdx, const int *eleCfg, const int *eleNum, const int *eleProjCnt) {
   int i,offset;
-  double x;
+  double complex x;
   const int nsize=Nsize;
   const int nsite2 = Nsite2;
   const int nProj = NProj;
@@ -510,7 +512,7 @@ void VMC_BF_MakeSample(MPI_Comm comm)
   int projBFCntNew[16 * Nsite * Nrange]; // For BackFlow
   int msaTmp[NQPFull * Nsite], icount[NQPFull]; // For BackFlow
   double complex pfMNew[NQPFull];
-  double x, w; // TBC x will be complex number
+  double complex x, w; // TBC x will be complex number
 
   int qpStart, qpEnd;
   int rejectFlag;
@@ -586,10 +588,10 @@ void VMC_BF_MakeSample(MPI_Comm comm)
 
         /* Metroplis */
         x = LogProjRatio(projCntNew, TmpEleProjCnt);
-        w = exp(2.0 * (x + (logIpNew - logIpOld)));
+        w = cexp((x + (logIpNew - logIpOld)));
         if (!isfinite(w)) w = -1.0; /* should be rejected */
 
-        if (w > genrand_real2()) { /* accept */
+        if (cabs(w) > genrand_real2()) { /* accept */
           // UpdateMAll will change SlaterElm, InvM (including PfM)
           StartTimer(63);
           UpdateMAll_BF_fcmp(icount, msaTmp, PfM, TmpEleIdx, qpStart, qpEnd);
@@ -648,10 +650,10 @@ void VMC_BF_MakeSample(MPI_Comm comm)
 
         /* Metroplis */
         x = LogProjRatio(projCntNew, TmpEleProjCnt);
-        w = exp(2.0 * (x + (logIpNew - logIpOld))); //TBC
+        w = cexp(2.0 * (x + (logIpNew - logIpOld))); //TBC
         if (!isfinite(w)) w = -1.0; /* should be rejected */
 
-        if (w > genrand_real2()) { /* accept */
+        if (cabs(w) > genrand_real2()) { /* accept */
           StartTimer(68);
           UpdateMAllTwo_fcmp(mi, s, mj, t, ri, rj, TmpEleIdx, qpStart, qpEnd);
           StopTimer(68);

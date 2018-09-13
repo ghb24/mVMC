@@ -183,8 +183,9 @@ void VMCMainCal(MPI_Comm comm) {
       srOptO[1] = 0.0+0.0*I;//   real 
 #pragma loop noalias
       for(i=0;i<nProj;i++){ 
-        srOptO[(i+1)*2]     = (double)(eleProjCnt[i]); // even real
-        srOptO[(i+1)*2+1]   = 0.0+0.0*I;               // odd  comp
+        srOptO[(i+1)*2]     = (double)(eleProjCnt[i]);    // even real
+       // srOptO[(i+1)*2+1]   = 0.0+0.0*I;  // odd  comp
+        srOptO[(i+1)*2+1]   = (double)(eleProjCnt[i])*I;  // odd  comp
       }
 
       StartTimer(42);

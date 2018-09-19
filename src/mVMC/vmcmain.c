@@ -364,6 +364,7 @@ int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, MakeSample.\n", step);
 #endif
+    InitFilePhysCal(0, rank);
     if(AllComplexFlag==0 && iFlgOrbitalGeneral==0){ // real & sz=0
       // only for real TBC
       StartTimer(69);
@@ -397,6 +398,19 @@ int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
       }
     } 
     StopTimer(3);
+
+    NVMCCalMode=1;
+    if(NProjBF ==0) {
+      if(iFlgOrbitalGeneral==0){
+        VMCMainCal(comm_child1);
+      }else{
+        VMCMainCal_fsz(comm_child1);
+      }
+    }else{
+      VMC_BF_MainCal(comm_child1);
+    }
+    NVMCCalMode=0;
+
     StartTimer(4);
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, MainCal.\n", step);
@@ -416,6 +430,7 @@ int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
     printf("Debug: step %d, AverageWE.\n", step);
 #endif
     WeightAverageWE(comm_parent);
+    WeightAverageGreenFunc(comm_parent);
     StartTimer(25);//DEBUG
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, SROpt.\n", step);
@@ -431,6 +446,7 @@ int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
     StartTimer(22);
     /* output zvo_out and zvo_var */
     if(rank==0) outputData();
+    CloseFilePhysCal(rank);
     StopTimer(22);
 
 #ifdef _DEBUG_DUMP_SROPTO_STORE
@@ -651,6 +667,18 @@ void outputData() {
   } else { /* binary output */
     fwrite(Para, sizeof(double), NPara, FileVar);
   }
+
+  /* zvo_cisajs.dat every timestep */
+  if (NCisAjs > 0) {
+     for (i = 0; i < NCisAjs; i++) fprintf(FileCisAjs, "% .18e  % .18e 0.0", creal(PhysCisAjs[i]), cimag(PhysCisAjs[i]));
+     fprintf(FileCisAjs, "\n");
+  }  
+  
+  /* zvo_cisajscktaltdc.dat every timestep */
+    if (NCisAjsCktAltDC > 0) {
+      for (i = 0; i < NCisAjsCktAltDC; i++) fprintf(FileCisAjsCktAltDC, "% .18e  % .18e 0.0", creal(PhysCisAjsCktAltDC[i]), cimag(PhysCisAjsCktAltDC[i]));
+      fprintf(FileCisAjsCktAltDC, "\n");
+    }  
 
   if (NVMCCalMode == 1) {
     /* zvo_cisajs.dat */

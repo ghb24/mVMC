@@ -178,9 +178,17 @@ int StochasticOpt(MPI_Comm comm) {
     for(si=0;si<nSmat;si++) {
       pi = smatToParaIdx[si];
       if(pi%2==0){
-        para[pi/2]     += r[si]*I;  
+        if(RealEvolve==0){
+          para[pi/2] += r[si];  
+        }else{
+          para[pi/2] += r[si]*I;  
+        }
       }else{
-        para[(pi-1)/2] += r[si]; 
+        if(RealEvolve==0){
+          para[(pi-1)/2] += r[si]*I;                                                                           
+        }else{
+          para[(pi-1)/2] += r[si];                                                                         
+        }
       }
     }
   }

@@ -359,7 +359,39 @@ void SetMemory() {
         SROptO_Store      = (double complex*)malloc( sizeof(double complex)*(2*SROptSize*NVMCSample) );
       }
     }
+
     SROptData = (double complex*)malloc( sizeof(double complex)*(NSROptItrSmp*(2+NPara)) );
+    
+    if(RealEvolve==1){
+      PhysCisAjs  = (double complex*)malloc(sizeof(double complex)
+                    *(NCisAjs+NCisAjsCktAlt+NCisAjsCktAltDC+NCisAjs));
+      PhysCisAjsCktAlt   = PhysCisAjs       + NCisAjs;
+      PhysCisAjsCktAltDC = PhysCisAjsCktAlt + NCisAjsCktAlt;
+      LocalCisAjs = PhysCisAjsCktAltDC + NCisAjsCktAltDC;
+
+      if(NLanczosMode>0){
+        QQQQ = (double complex*)malloc(sizeof(double complex)
+          *(NLSHam*NLSHam*NLSHam*NLSHam + NLSHam*NLSHam) );
+        LSLQ = QQQQ + NLSHam*NLSHam*NLSHam*NLSHam;
+        //for real
+        QQQQ_real = (double*)malloc(sizeof(double)
+        *(NLSHam*NLSHam*NLSHam*NLSHam + NLSHam*NLSHam) );
+        LSLQ_real = QQQQ_real + NLSHam*NLSHam*NLSHam*NLSHam;
+
+        if(NLanczosMode>1){
+          QCisAjsQ = (double complex*)malloc(sizeof(double complex)
+          *(NLSHam*NLSHam*NCisAjs + NLSHam*NLSHam*NCisAjsCktAltDC + NLSHam*NCisAjs) );
+          QCisAjsCktAltQ = QCisAjsQ + NLSHam*NLSHam*NCisAjs;
+          LSLCisAjs = QCisAjsCktAltQ + NLSHam*NLSHam*NCisAjsCktAltDC;
+        //for real
+        QCisAjsQ_real = (double *)malloc(sizeof(double )
+          *(NLSHam*NLSHam*NCisAjs + NLSHam*NLSHam*NCisAjsCktAltDC + NLSHam*NCisAjs) );
+          QCisAjsCktAltQ_real = QCisAjsQ_real + NLSHam*NLSHam*NCisAjs;
+          LSLCisAjs_real = QCisAjsCktAltQ_real + NLSHam*NLSHam*NCisAjsCktAltDC;
+
+        }
+      }
+    }
   }
 
   /***** Physical Quantity *****/
@@ -384,8 +416,8 @@ void SetMemory() {
           *(NLSHam*NLSHam*NCisAjs + NLSHam*NLSHam*NCisAjsCktAltDC + NLSHam*NCisAjs) );
         QCisAjsCktAltQ = QCisAjsQ + NLSHam*NLSHam*NCisAjs;
         LSLCisAjs = QCisAjsCktAltQ + NLSHam*NLSHam*NCisAjsCktAltDC;
-        //for real
-        QCisAjsQ_real = (double *)malloc(sizeof(double )
+      //for real
+      QCisAjsQ_real = (double *)malloc(sizeof(double )
         *(NLSHam*NLSHam*NCisAjs + NLSHam*NLSHam*NCisAjsCktAltDC + NLSHam*NCisAjs) );
         QCisAjsCktAltQ_real = QCisAjsQ_real + NLSHam*NLSHam*NCisAjs;
         LSLCisAjs_real = QCisAjsCktAltQ_real + NLSHam*NLSHam*NCisAjsCktAltDC;
@@ -416,6 +448,17 @@ void FreeMemory() {
   if(NVMCCalMode==0){
     free(SROptData);
     free(SROptOO);
+    if(RealEvolve==1){
+      free(PhysCisAjs);
+      if(NLanczosMode>0){
+        free(QQQQ);
+        free(QQQQ_real);
+        if(NLanczosMode>1){
+          free(QCisAjsQ);
+          free(QCisAjsQ_real);
+        }
+      }
+    }
   }
 
   free(QPFullWeight);

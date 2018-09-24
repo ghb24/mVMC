@@ -39,6 +39,11 @@ char CParaFileHead[D_FileNameMax]; /* prefix for optimized variational parameter
 int NVMCCalMode; /* calculation mode
                     0: optimization of variational paraneters,
                     1: calculation of expectation values */
+
+int RealEvolve; /* evolution in real or imaginary time
+                   0: imaginary time (SR)
+                   1: real time (tVMC) */
+
 int NLanczosMode; /* mode of the single Lanczos step
                      0: none, 1: only energy, 2: Green functions */
 

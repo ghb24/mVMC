@@ -588,6 +588,7 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
 #endif /* _mpi_use */
 
   NVMCCalMode = bufInt[IdxVMCCalcMode];
+  RealEvolve = bufInt[IdxEvolveMode];
   NLanczosMode = bufInt[IdxLanczosMode];
   NDataIdxStart = bufInt[IdxDataIdxStart];
   NDataQtySmp = bufInt[IdxDataQtySmp];
@@ -1434,6 +1435,7 @@ int GetFileName(
 /// \param bufDouble buffer for double values
 void SetDefaultValuesModPara(int *bufInt, double *bufDouble) {
   bufInt[IdxVMCCalcMode] = 0;
+  bufInt[IdxEvolveMode] = 0;
   bufInt[IdxLanczosMode] = 0;
   bufInt[IdxDataIdxStart] = 0;
   bufInt[IdxDataQtySmp] = 1;
@@ -1541,6 +1543,8 @@ int GetInfoFromModPara(int *bufInt, double *bufDouble) {
             sscanf(ctmp2, "%s %lf\n", ctmp, &dtmp);
             if (CheckWords(ctmp, "NVMCCalMode") == 0) {
               bufInt[IdxVMCCalcMode] = (int) dtmp;
+            } else if (CheckWords(ctmp, "RealEvolve") == 0) {
+              bufInt[IdxEvolveMode] = (int) dtmp;
             } else if (CheckWords(ctmp, "NLanczosMode") == 0) {
               bufInt[IdxLanczosMode] = (int) dtmp;
             } else if (CheckWords(ctmp, "NDataIdxStart") == 0) {

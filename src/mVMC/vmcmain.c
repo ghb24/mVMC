@@ -284,7 +284,6 @@ int main(int argc, char* argv[])
   if(rank0==0) InitFile(fileDefList, rank0);
 
   StopTimer(1);
-
   if(NVMCCalMode==0) {
     StartTimer(2);
     /*-- VMC Parameter Optimization --*/
@@ -335,6 +334,8 @@ int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
   int tmp_i;//DEBUG
   int iprogress;
   MPI_Comm_rank(comm_parent, &rank);
+  
+  if(RealEvolve==1) InitFilePhysCal(0, rank);  
 
   for(step=0;step<NSROptItrStep;step++) {
     //printf("0 DUBUG make:step=%d TwoSz=%d\n",step,TwoSz);
@@ -398,6 +399,7 @@ int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
     } 
     StopTimer(3);
     StartTimer(4);
+
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, MainCal.\n", step);
 #endif
@@ -416,6 +418,7 @@ int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
     printf("Debug: step %d, AverageWE.\n", step);
 #endif
     WeightAverageWE(comm_parent);
+    if(RealEvolve==1) WeightAverageGreenFunc(comm_parent); 
     StartTimer(25);//DEBUG
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, SROpt.\n", step);
@@ -515,6 +518,8 @@ int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
     OutputOptData();
     fprintf(stdout, "End: Output opt params.\n");
   }
+
+  //if(RealEvolve==1) CloseFilePhysCal(rank);
 
   return 0;
 }
@@ -652,6 +657,18 @@ void outputData() {
     fwrite(Para, sizeof(double), NPara, FileVar);
   }
 
+  /* zvo_cisajs.dat at every timestep during real evolution*/
+  if(RealEvolve==1 && NCisAjs > 0) {
+    for (i = 0; i < NCisAjs; i++) fprintf(FileCisAjs, "% .18e  % .18e 0.0", creal(PhysCisAjs[i]), cimag(PhysCisAjs[i]));
+    fprintf(FileCisAjs, "\n");
+  }  
+  
+  /* zvo_cisajscktaltdc.dat at every timestep during real evolution*/
+  if(RealEvolve==1 && NCisAjsCktAltDC > 0) {
+    for (i = 0; i < NCisAjsCktAltDC; i++) fprintf(FileCisAjsCktAltDC, "% .18e  % .18e 0.0", creal(PhysCisAjsCktAltDC[i]), cimag(PhysCisAjsCktAltDC[i]));
+    fprintf(FileCisAjsCktAltDC, "\n");
+  }  
+ 
   if (NVMCCalMode == 1) {
     /* zvo_cisajs.dat */
     if (NCisAjs > 0) {

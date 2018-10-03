@@ -47,8 +47,7 @@ void VMCMakeSample(MPI_Comm comm) {
   double complex logIpOld,logIpNew; /* logarithm of inner product <phi|L|x> */ // is this ok ? TBC
   int projCntNew[NProj];
   double complex pfMNew[NQPFull];
-  double complex  x;  
-  double w;
+  double complex w,x;  
 
   int qpStart,qpEnd;
   int rejectFlag;
@@ -125,7 +124,7 @@ void VMCMakeSample(MPI_Comm comm) {
         x = LogProjRatio(projCntNew,TmpEleProjCnt);
         //printf("x imag is %f \n", cimag(x));
         w = cexp(x+creal(logIpNew-logIpOld));
-        if( !isfinite(w) ) w = -1.0; /* should be rejected */
+        if( !isfinite(creal(w)+cimag(w)) ) w = -1.0; /* should be rejected */
 
         if(pow(cabs(w),2) > genrand_real2()) { /* accept */
           // UpdateMAll will change SlaterElm, InvM (including PfM)
@@ -589,7 +588,7 @@ void VMC_BF_MakeSample(MPI_Comm comm)
         /* Metroplis */
         x = LogProjRatio(projCntNew, TmpEleProjCnt);
         w = cexp((x + (logIpNew - logIpOld)));
-        if (!isfinite(w)) w = -1.0; /* should be rejected */
+        if (!isfinite(creal(w)+cimag(w) )) w = -1.0; /* should be rejected */
 
         if (cabs(w) > genrand_real2()) { /* accept */
           // UpdateMAll will change SlaterElm, InvM (including PfM)

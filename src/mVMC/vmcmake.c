@@ -31,6 +31,7 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 #ifndef _SRC_VMCMAKE
 #define _SRC_VMCMAKE
 #include "projection.h"
+#include "gpw_projection.h"
 #include "pfupdate_two_fcmp.h"
 #include "matrix.c"
 #include "splitloop.h"
@@ -46,6 +47,7 @@ void VMCMakeSample(MPI_Comm comm) {
 
   double complex logIpOld,logIpNew; /* logarithm of inner product <phi|L|x> */ // is this ok ? TBC
   int projCntNew[NProj];
+  double eleGPWKernNew[NGPWIdx];
   double complex pfMNew[NQPFull];
   double complex  x;  
   double w;
@@ -60,10 +62,10 @@ void VMCMakeSample(MPI_Comm comm) {
 
   StartTimer(30);
   if(BurnFlag==0) {
-    makeInitialSample(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,
+    makeInitialSample(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleGPWKern,
                       qpStart,qpEnd,comm);
   } else {
-    copyFromBurnSample(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt);
+    copyFromBurnSample(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleGPWKern);
   }
   
   CalculateMAll_fcmp(TmpEleIdx,qpStart,qpEnd);
@@ -71,7 +73,7 @@ void VMCMakeSample(MPI_Comm comm) {
   logIpOld = CalculateLogIP_fcmp(PfM,qpStart,qpEnd,comm);
   if( !isfinite(creal(logIpOld) + cimag(logIpOld)) ) {
     if(rank==0) fprintf(stderr,"waring: VMCMakeSample remakeSample logIpOld=%e\n",creal(logIpOld)); //TBC
-    makeInitialSample(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,
+    makeInitialSample(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleGPWKern,
                       qpStart,qpEnd,comm);
     CalculateMAll_fcmp(TmpEleIdx,qpStart,qpEnd);
     //printf("DEBUG: maker2: PfM=%lf\n",creal(PfM[0]));
@@ -105,6 +107,7 @@ void VMCMakeSample(MPI_Comm comm) {
         /* The mi-th electron with spin s hops to site rj */
         updateEleConfig(mi,ri,rj,s,TmpEleIdx,TmpEleCfg,TmpEleNum);
         UpdateProjCnt(ri,rj,s,projCntNew,TmpEleProjCnt,TmpEleNum);
+        UpdateGPWKern(ri,rj,s,eleGPWKernNew,TmpEleGPWKern,TmpEleNum);
         StopTimer(60);
 
   //TODO:Add        StartTimer
@@ -123,6 +126,7 @@ void VMCMakeSample(MPI_Comm comm) {
 
         /* Metroplis */
         x = LogProjRatio(projCntNew,TmpEleProjCnt);
+        x += LogGPWRatio(eleGPWKernNew,TmpEleGPWKern);
         //printf("x imag is %f \n", cimag(x));
         w = cexp(x+creal(logIpNew-logIpOld));
         if( !isfinite(w) ) w = -1.0; /* should be rejected */
@@ -135,6 +139,7 @@ void VMCMakeSample(MPI_Comm comm) {
           StopTimer(63);
 
           for(i=0;i<NProj;i++) TmpEleProjCnt[i] = projCntNew[i];
+          for(i=0;i<NGPWIdx;i++) TmpEleGPWKern[i] = eleGPWKernNew[i];
           logIpOld = logIpNew;
           nAccept++;
           Counter[1]++;
@@ -163,9 +168,11 @@ void VMCMakeSample(MPI_Comm comm) {
         /* The mi-th electron with spin s hops to rj */
         updateEleConfig(mi,ri,rj,s,TmpEleIdx,TmpEleCfg,TmpEleNum);
         UpdateProjCnt(ri,rj,s,projCntNew,TmpEleProjCnt,TmpEleNum);
+        UpdateGPWKern(ri,rj,s,eleGPWKernNew,TmpEleGPWKern,TmpEleNum);
         /* The mj-th electron with spin t hops to ri */
         updateEleConfig(mj,rj,ri,t,TmpEleIdx,TmpEleCfg,TmpEleNum);
         UpdateProjCnt(rj,ri,t,projCntNew,projCntNew,TmpEleNum);
+        UpdateGPWKern(rj,ri,t,eleGPWKernNew,eleGPWKernNew,TmpEleNum);
 
         StopTimer(65);
         StartTimer(66);
@@ -181,6 +188,7 @@ void VMCMakeSample(MPI_Comm comm) {
 
         /* Metroplis */
         x = LogProjRatio(projCntNew,TmpEleProjCnt);
+        x += LogGPWRatio(eleGPWKernNew,TmpEleGPWKern);
         w = cexp(x+creal(logIpNew-logIpOld)); 
         if( !isfinite(w) ) w = -1.0; /* should be rejected */
 
@@ -190,6 +198,7 @@ void VMCMakeSample(MPI_Comm comm) {
           StopTimer(68);
 
           for(i=0;i<NProj;i++) TmpEleProjCnt[i] = projCntNew[i];
+          for(i=0;i<NGPWIdx;i++) TmpEleGPWKern[i] = eleGPWKernNew[i];
           logIpOld = logIpNew;
           nAccept++;
           Counter[3]++;
@@ -215,18 +224,18 @@ void VMCMakeSample(MPI_Comm comm) {
     /* save Electron Configuration */
     if(outStep >= nOutStep-NVMCSample) {
       sample = outStep-(nOutStep-NVMCSample);
-      saveEleConfig(sample,logIpOld,TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt);
+      saveEleConfig(sample,logIpOld,TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleGPWKern);
     }
     StopTimer(35);
 
   } /* end of outstep */
 
-  copyToBurnSample(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt);
+  copyToBurnSample(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleGPWKern);
   BurnFlag=1;
   return;
 }
 
-int makeInitialSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
+int makeInitialSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double *eleGPWKern,
                       const int qpStart, const int qpEnd, MPI_Comm comm) {
   const int nsize = Nsize;
   const int nsite2 = Nsite2;
@@ -276,6 +285,7 @@ int makeInitialSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
     }
     
     MakeProjCnt(eleProjCnt,eleNum);
+    CalculateGPWKern(eleGPWKern,eleNum);
 
     flag = CalculateMAll_fcmp(eleIdx,qpStart,qpEnd);
     //printf("DEBUG: maker4: PfM=%lf\n",creal(PfM[0]));
@@ -294,31 +304,45 @@ int makeInitialSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
   return 0;
 }
 
-void copyFromBurnSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt) {
+void copyFromBurnSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double *eleGPWKern) {
   int i,n;
   const int *burnEleIdx = BurnEleIdx;
+  const int nGPWIdx = NGPWIdx;
+  const double *burnGPWKern = BurnEleGPWKern;
+  
   n = Nsize + 2*Nsite + 2*Nsite + NProj;
   #pragma loop noalias
   for(i=0;i<n;i++) eleIdx[i] = burnEleIdx[i];
+  #pragma loop noalias
+  for(i=0;i<nGPWIdx;i++) eleGPWKern[i] = burnGPWKern[i];
+  
   return;
 }
 
-void copyToBurnSample(const int *eleIdx, const int *eleCfg, const int *eleNum, const int *eleProjCnt) {
+void copyToBurnSample(const int *eleIdx, const int *eleCfg, const int *eleNum,
+                      const int *eleProjCnt, const double *eleGPWKern) {
   int i,n;
   int *burnEleIdx = BurnEleIdx;
+  const int nGPWIdx = NGPWIdx;
+  double *burnGPWKern = BurnEleGPWKern;
+  
   n = Nsize + 2*Nsite + 2*Nsite + NProj;
   #pragma loop noalias
   for(i=0;i<n;i++) burnEleIdx[i] = eleIdx[i];
+  #pragma loop noalias
+  for(i=0;i<nGPWIdx;i++) burnGPWKern[i] = eleGPWKern[i];
+  
   return;
 }
 
-void saveEleConfig(const int sample, const double complex logIp,
-                   const int *eleIdx, const int *eleCfg, const int *eleNum, const int *eleProjCnt) {
+void saveEleConfig(const int sample, const double complex logIp, const int *eleIdx,
+                   const int *eleCfg, const int *eleNum, const int *eleProjCnt, const double *eleGPWKern) {
   int i,offset;
   double complex x;
   const int nsize=Nsize;
   const int nsite2 = Nsite2;
   const int nProj = NProj;
+  const int nGPWIdx = NGPWIdx;
 
   offset = sample*nsize;
   #pragma loop noalias
@@ -331,8 +355,11 @@ void saveEleConfig(const int sample, const double complex logIp,
   offset = sample*nProj;
   #pragma loop noalias
   for(i=0;i<nProj;i++) EleProjCnt[offset+i] = eleProjCnt[i];
+  #pragma loop noalias
+  for(i=0;i<nGPWIdx;i++) EleGPWKern[i] = eleGPWKern[i];
   
   x = LogProjVal(eleProjCnt);
+  x += LogGPWVal(eleGPWKern);
   logSqPfFullSlater[sample] = 2.0*(x+creal(logIp));//TBC
   
   return;

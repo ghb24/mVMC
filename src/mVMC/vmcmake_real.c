@@ -47,6 +47,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
 
   double logIpOld, logIpNew; /* logarithm of inner product <phi|L|x> */ // is this ok ? TBC
   int projCntNew[NProj];
+  double eleGPWKernNew[NGPWIdx];
   double pfMNew_real[NQPFull];
   double x, w; // TBC x will be complex number
 
@@ -62,9 +63,9 @@ void VMCMakeSample_real(MPI_Comm comm) {
   StartTimer(30);
   if (BurnFlag == 0) {
     makeInitialSample(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt,
-                      qpStart, qpEnd, comm);
+                      TmpEleGPWKern, qpStart, qpEnd, comm);
   } else {
-    copyFromBurnSample(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt);
+    copyFromBurnSample(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, TmpEleGPWKern);
   }
 
   CalculateMAll_real(TmpEleIdx, qpStart, qpEnd);
@@ -73,7 +74,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
   if (!isfinite(logIpOld)) {
     if (rank == 0) fprintf(stderr, "warning: VMCMakeSample remakeSample logIpOld=%e\n", creal(logIpOld)); //TBC
     makeInitialSample(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt,
-                      qpStart, qpEnd, comm);
+                      TmpEleGPWKern, qpStart, qpEnd, comm);
     CalculateMAll_real(TmpEleIdx, qpStart, qpEnd);
     //printf("DEBUG: maker2: PfM=%lf\n",creal(PfM[0]));
     logIpOld = CalculateLogIP_real(PfM_real, qpStart, qpEnd, comm);
@@ -106,6 +107,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
         /* The mi-th electron with spin s hops to site rj */
         updateEleConfig(mi, ri, rj, s, TmpEleIdx, TmpEleCfg, TmpEleNum);
         UpdateProjCnt(ri, rj, s, projCntNew, TmpEleProjCnt, TmpEleNum);
+        UpdateGPWKern(ri, rj, s, eleGPWKernNew, TmpEleGPWKern, TmpEleNum);
         StopTimer(60);
         StartTimer(61);
         //CalculateNewPfM2(mi,s,pfMNew,TmpEleIdx,qpStart,qpEnd);
@@ -121,6 +123,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
 
         /* Metroplis */
         x = LogProjRatio(projCntNew, TmpEleProjCnt);
+        x += LogGPWRatio(eleGPWKernNew, TmpEleGPWKern);
         w = exp(2.0 * (x + (logIpNew - logIpOld)));
         if (!isfinite(w)) w = -1.0; /* should be rejected */
 
@@ -132,6 +135,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
           StopTimer(63);
 
           for (i = 0; i < NProj; i++) TmpEleProjCnt[i] = projCntNew[i];
+          for (i = 0; i < NGPWIdx; i++) TmpEleGPWKern[i] = eleGPWKernNew[i];
           logIpOld = logIpNew;
           nAccept++;
           Counter[1]++;
@@ -160,9 +164,11 @@ void VMCMakeSample_real(MPI_Comm comm) {
         /* The mi-th electron with spin s hops to rj */
         updateEleConfig(mi, ri, rj, s, TmpEleIdx, TmpEleCfg, TmpEleNum);
         UpdateProjCnt(ri, rj, s, projCntNew, TmpEleProjCnt, TmpEleNum);
+        UpdateGPWKern(ri, rj, s, eleGPWKernNew, TmpEleGPWKern, TmpEleNum);
         /* The mj-th electron with spin t hops to ri */
         updateEleConfig(mj, rj, ri, t, TmpEleIdx, TmpEleCfg, TmpEleNum);
         UpdateProjCnt(rj, ri, t, projCntNew, projCntNew, TmpEleNum);
+        UpdateGPWKern(rj, ri, t, eleGPWKernNew, eleGPWKernNew, TmpEleNum);
 
         StopTimer(65);
         StartTimer(66);
@@ -178,6 +184,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
 
         /* Metroplis */
         x = LogProjRatio(projCntNew, TmpEleProjCnt);
+        x += LogGPWRatio(eleGPWKernNew, TmpEleGPWKern);
         w = exp(2.0 * (x + (logIpNew - logIpOld))); //TBC
         if (!isfinite(w)) w = -1.0; /* should be rejected */
 
@@ -187,6 +194,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
           StopTimer(68);
 
           for (i = 0; i < NProj; i++) TmpEleProjCnt[i] = projCntNew[i];
+          for (i = 0; i < NGPWIdx; i++) TmpEleGPWKern[i] = eleGPWKernNew[i];
           logIpOld = logIpNew;
           nAccept++;
           Counter[3]++;
@@ -212,18 +220,18 @@ void VMCMakeSample_real(MPI_Comm comm) {
     /* save Electron Configuration */
     if (outStep >= nOutStep - NVMCSample) {
       sample = outStep - (nOutStep - NVMCSample);
-      saveEleConfig(sample, logIpOld, TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt);
+      saveEleConfig(sample, logIpOld, TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, TmpEleGPWKern);
     }
     StopTimer(35);
 
   } /* end of outstep */
 
-  copyToBurnSample(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt);
+  copyToBurnSample(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, TmpEleGPWKern);
   BurnFlag = 1;
   return;
 }
 
-int makeInitialSample_real(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
+int makeInitialSample_real(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double *eleGPWKern,
                            const int qpStart, const int qpEnd, MPI_Comm comm) {
   const int nsize = Nsize;
   const int nsite2 = Nsite2;
@@ -273,6 +281,7 @@ int makeInitialSample_real(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCn
     }
 
     MakeProjCnt(eleProjCnt, eleNum);
+    CalculateGPWKern(eleGPWKern, eleNum);
 
     flag = CalculateMAll_real(eleIdx, qpStart, qpEnd);
     //printf("DEBUG: maker4: PfM=%lf\n",creal(PfM[0]));

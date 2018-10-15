@@ -128,6 +128,10 @@ int NGutzwillerIdx, *GutzwillerIdx; /* [Nsite] */
 int NJastrowIdx, **JastrowIdx; /* [Nsite][Nsite] */
 int NDoublonHolon2siteIdx, **DoublonHolon2siteIdx; /* DoublonHolon2siteIdx[idx][2*Nsite] */
 int NDoublonHolon4siteIdx, **DoublonHolon4siteIdx; /* DoublonHolon4siteIdx[idx][4*Nsite] */
+int NGPWIdx; /* NGPWIdx = total number of training configurations*/
+int *GPWTrnSize; /*[NGPWIdx], system sizes associated with the training configurations)*/
+int *GPWCfg; /*[NGPWIdx], training configurations in integer representation (int number corresponding to
+              bitstring representation of eleNum array)*/
 int NOrbitalIdx, **OrbitalIdx; /* [Nsite][Nsite] */
 int **OrbitalSgn; /* OrbitalSgn[Nsite][Nsite] = +1 or -1 */
 int iFlgOrbitalGeneral=0;
@@ -174,7 +178,7 @@ int FlagBinary=0;
 int NFileFlushInterval=1;
 
 /***** Variational Parameters *****/
-int NPara; /* the total number of variational prameters NPara= NProj + NSlater+ NOptTrans */ 
+int NPara; /* the total number of variational prameters NPara= NProj + NGPWIdx + NSlater+ NOptTrans */ 
 int NProj;    /* the number of correlation factor */
 int NProjBF;    /* the number of correlation factor */
 int NSlater;  /* the number of pair orbital (f_ij) = NOrbitalIdx */
@@ -184,8 +188,9 @@ int **etaFlag;   /* Back Flow correlation factor (eta = 1.0 or ProjBF[0])*/
 double complex *Para;   /* variatonal parameters */
 double complex *Proj;   /* correlation factor (Proj    =Para) */
 double complex *ProjBF; /* Back flow correlation factor (Proj    =Para) */
-double complex *Slater; /* pair orbital       (Slater  =Para+NProj) */
-double complex *OptTrans; /* weights          (OptTrans=Para+NProj+NSlater) */
+double complex *GPWVar;   /* Variational parameters of the GPW training sets (GPWVar = Proj+NProj) */
+double complex *Slater; /* pair orbital       (Slater  =Para+NProj+NGPWIdx) */
+double complex *OptTrans; /* weights          (OptTrans=Para+NProj+NGPWIdx+NSlater) */
 double complex **eta;   /* Back Flow correlation factor (eta = 1.0 or ProjBF[0])*/
 
 /***** Back Flow ******/
@@ -203,6 +208,7 @@ int *EleProjCnt; /* EleProjCnt[sample][proj] */
 int *EleSpn;     /* EleIdx[sample][mi+si*Ne] */ //fsz
 int *EleProjBFCnt; /* EleProjCnt[sample][proj] */
 //[e] MERGE BY TM
+double *EleGPWKern; /* EleGPWKernel[sample][NGPWIdx], stores the kernel for the electron configuration */
 double *logSqPfFullSlater; /* logSqPfFullSlater[sample] */
 //double complex *SmpSltElmBF; /* logSqPfFullSlater[sample] */
 double *SmpSltElmBF_real; /* logSqPfFullSlater[sample] */
@@ -217,6 +223,7 @@ int *TmpEleProjCnt;
 //[s] MERGE BY TM
 int *TmpEleSpn;
 int *TmpEleProjBFCnt;
+double *TmpEleGPWKern;
 //[e] MERGE BY TM
 
 int *BurnEleIdx;
@@ -224,6 +231,7 @@ int *BurnEleCfg;
 int *BurnEleNum;
 int *BurnEleProjCnt;
 int *BurnEleSpn;
+double *BurnEleGPWKern;
 int BurnFlag=0; /* 0: off, 1: on */
 
 /***** Slater Elements ******/

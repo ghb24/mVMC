@@ -35,10 +35,10 @@ static char cKWListOfFileNameList[][D_CharTmpReadDef]={
   "Trans", "CoulombIntra", "CoulombInter",
   "Hund", "PairHop", "Exchange",
   "Gutzwiller", "Jastrow",
-  "DH2", "DH4", "Orbital", "OrbitalAntiParallel",
+  "DH2", "DH4", "GPW", "Orbital", "OrbitalAntiParallel",
   "OrbitalParallel", "OrbitalGeneral",
   "TransSym", "InGutzwiller", "InJastrow",
-  "InDH2", "InDH4", "InOrbital", "InOrbitalAntiParallel",
+  "InDH2", "InDH4", "InGPW", "InOrbital", "InOrbitalAntiParallel",
 	"InOrbitalParallel", "InOrbitalGeneral",
   "OneBodyG", "TwoBodyG", "TwoBodyGEx",
   "InterAll", "OptTrans", "InOptTrans",
@@ -53,10 +53,10 @@ enum KWIdxInt{
   KWTrans, KWCoulombIntra,KWCoulombInter,
   KWHund, KWPairHop, KWExchange,
   KWGutzwiller, KWJastrow,
-  KWDH2, KWDH4, KWOrbital, KWOrbitalAntiParallel,
+  KWDH2, KWDH4, KWGPW, KWOrbital, KWOrbitalAntiParallel,
 	KWOrbitalParallel, KWOrbitalGeneral,
   KWTransSym, KWInGutzwiller, KWInJastrow,
-  KWInDH2, KWInDH4, KWInOrbital,KWInOrbitalAntiParallel,
+  KWInDH2, KWInDH4, KWInGPW, KWInOrbital,KWInOrbitalAntiParallel,
 	KWInOrbitalParallel, KWInorbitalGeneral,
   KWOneBodyG, KWTwoBodyG, KWTwoBodyGEx,
   KWInterAll, KWOptTrans, KWInOptTrans,
@@ -80,7 +80,7 @@ enum ParamIdxInt{
   IdxNLocSpin,IdxNTrans,IdxNCoulombIntra,
   IdxNCoulombInter, IdxNHund, IdxNPairHop, 
   IdxNExchange, IdxNGutz, IdxNJast,
-  IdxNDH2, IdxNDH4, IdxNOrbit, IdxNOrbitGeneral,
+  IdxNDH2, IdxNDH4, IdxNGPW, IdxNOrbit, IdxNOrbitGeneral,
 	IdxNQPTrans, IdxNOneBodyG, IdxNTwoBodyG,
   IdxNTwoBodyGEx, IdxNInterAll, IdxNQPOptTrans,
   IdxSROptCGMaxIter,
@@ -109,4 +109,5 @@ int iComplexFlgGutzwiller=0;
 int iComplexFlgJastrow=0;
 int iComplexFlgDH2=0;
 int iComplexFlgDH4=0;
+int iComplexFlgGPW=0;
 int iComplexFlgOrbital=0;

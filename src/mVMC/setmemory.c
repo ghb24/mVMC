@@ -97,6 +97,11 @@ void SetMemoryDef() {
     pInt += 4*Nsite;
   }
 
+  GPWTrnSize = pInt;
+  pInt += NGPWIdx;
+  GPWCfg = pInt;
+  pInt += NGPWIdx;
+
  /*[s] For BackFlow */
   if(NBackFlowIdx>0) {
     PosBF = (int**)malloc(sizeof(int*)*Nsite);
@@ -264,8 +269,9 @@ void SetMemory() {
 
   Proj     = Para;
   ProjBF   = Para + NProj;
-  Slater   = Para + NProj + NProjBF;
-  OptTrans = Para + NProj + NProjBF + NSlater;
+  GPWVar   = Para + NProj + NProjBF;
+  Slater   = Para + NProj + NProjBF + NGPWIdx;
+  OptTrans = Para + NProj + NProjBF + NGPWIdx + NSlater;
 
   /***** Electron Configuration ******/
   EleIdx            = (int*)malloc(sizeof(int)*( NVMCSample*2*Ne ));
@@ -276,6 +282,7 @@ void SetMemory() {
   EleSpn            = (int*)malloc(sizeof(int)*( NVMCSample*2*Ne ));//fsz
   EleProjBFCnt = (int*)malloc(sizeof(int)*( NVMCSample*4*4*Nsite*Nrange));
 //[e] MERGE BY TM
+  EleGPWKern        = (double*)malloc(sizeof(double)*(NVMCSample*NGPWIdx));
   logSqPfFullSlater = (double*)malloc(sizeof(double)*(NVMCSample));
   SmpSltElmBF_real = (double *)malloc(sizeof(double)*(NVMCSample*NQPFull*(2*Nsite)*(2*Nsite)));
   SmpEta = (double*)malloc(sizeof(double*)*NVMCSample*NQPFull*Nsite*Nsite);
@@ -289,12 +296,14 @@ void SetMemory() {
   TmpEleSpn         = TmpEleProjCnt + NProj; //fsz
   TmpEleProjBFCnt = TmpEleProjCnt + NProj;
 //[e] MERGE BY TM
+  TmpEleGPWKern     = (double*)malloc(sizeof(double)*NGPWIdx);
 
   BurnEleIdx        = (int*)malloc(sizeof(int)*(2*Ne+2*Nsite+2*Nsite+NProj+2*Ne)); //fsz
   BurnEleCfg        = BurnEleIdx + 2*Ne;
   BurnEleNum        = BurnEleCfg + 2*Nsite;
   BurnEleProjCnt    = BurnEleNum + 2*Nsite;
   BurnEleSpn        = BurnEleProjCnt + NProj; //fsz
+  BurnEleGPWKern     = (double*)malloc(sizeof(double)*NGPWIdx);
 
   /***** Slater Elements ******/
   SlaterElm = (double complex*)malloc( sizeof(double complex)*(NQPFull*(2*Nsite)*(2*Nsite)) );
@@ -466,9 +475,12 @@ void FreeMemory() {
   free(InvM);
   free(SlaterElm);
 
+  free(BurnEleGPWKern);
   free(BurnEleIdx);
+  free(TmpEleGPWKern);
   free(TmpEleIdx);
   free(logSqPfFullSlater);
+  free(EleGPWKern);
   free(EleProjCnt);
   free(EleIdx);
   free(EleCfg);

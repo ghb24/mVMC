@@ -72,6 +72,8 @@ int
 GetInfoDH4(FILE *fp, int **ArrayIdx, int *ArrayOpt, int iComplxFlag, int *iOptCount, int _fidx, int Nsite, int NArray,
            char *defname);
 
+int GetInfoGPW(FILE *fp, int *TrnSize, int *TrnCfg, int *ArrayOpt, int iComplxFlag, int *iOptCount, int _fidx, char *defname);
+
 int GetInfoTransSym(FILE *fp, int **Array, int **ArraySgn, int **ArrayInv, double complex *ArrayPara, int _APFlag,
                     int Nsite, int NArray, char *defname);
 
@@ -399,6 +401,10 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
             cerr = ReadBuffIntCmpFlg(fp, &bufInt[IdxNDH4], &iComplexFlgDH4);
             break;
 
+          case KWGPW:
+            cerr = ReadBuffIntCmpFlg(fp, &bufInt[IdxNGPW], &iComplexFlgGPW);
+            break;
+
           case KWOrbital:
           case KWOrbitalAntiParallel:
             cerr = ReadBuffIntCmpFlg(fp, &iNOrbitalAntiParallel, &iOrbitalComplex);
@@ -560,7 +566,7 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
 
   if (rank == 0) {
     AllComplexFlag = iComplexFlgGutzwiller + iComplexFlgJastrow + iComplexFlgDH2; //TBC
-    AllComplexFlag += iComplexFlgDH4 + iComplexFlgOrbital;//TBC
+    AllComplexFlag += iComplexFlgDH4 + iComplexFlgGPW + iComplexFlgOrbital;//TBC
     //AllComplexFlag  = 1;//DEBUG
     // AllComplexFlag= 0 -> All real, !=0 -> complex
     if(AllComplexFlag == 0 && iFlgOrbitalGeneral == 1){
@@ -617,6 +623,7 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
   NJastrowIdx = bufInt[IdxNJast];
   NDoublonHolon2siteIdx = bufInt[IdxNDH2];
   NDoublonHolon4siteIdx = bufInt[IdxNDH4];
+  NGPWIdx = bufInt[IdxNGPW];
   NOrbitalIdx = bufInt[IdxNOrbit];
   NQPTrans = bufInt[IdxNQPTrans];
   NCisAjs = bufInt[IdxNOneBodyG];
@@ -669,7 +676,7 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
   }
   /* [e] For BackFlow */
 
-  NPara = NProj + NSlater + NOptTrans + NProjBF;
+  NPara = NProj + NGPWIdx + NSlater + NOptTrans + NProjBF;
   NQPFix = NSPGaussLeg * NMPTrans;
   NQPFull = NQPFix * NQPOptTrans;
   SROptSize = NPara + 1;
@@ -685,6 +692,7 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
                  + Nsite * Nsite /* JastrowIdx */
                  + 2 * Nsite * NDoublonHolon2siteIdx /* DoublonHolon2siteIdx */
                  + 4 * Nsite * NDoublonHolon4siteIdx /* DoublonHolon4siteIdx */
+                 + 2 * NGPWIdx /* Size of training set (training configs as well as training config system sizes)*/
                  //+ (2*Nsite)*(2*Nsite) /* OrbitalIdx */ //fsz
                  //+ (2*Nsite)*(2*Nsite) /* OrbitalSgn */ //fsz
                  + Nsite * NQPTrans /* QPTrans */
@@ -811,6 +819,12 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
           fidx = NGutzwillerIdx + NJastrowIdx + 2 * 3 * NDoublonHolon2siteIdx;
           if (GetInfoDH4(fp, DoublonHolon4siteIdx, OptFlag, iComplexFlgDH4, &count_idx, fidx, Nsite,
                          NDoublonHolon4siteIdx, defname) != 0)
+            info = 1;
+          break;
+
+        case KWGPW:
+          fidx = NGPWIdx;
+          if (GetInfoGPW(fp, GPWTrnSize, GPWCfg, OptFlag, iComplexFlgGPW, &count_idx, fidx, defname) != 0)
             info = 1;
           break;
 
@@ -1080,6 +1094,18 @@ int ReadInputParameters(char *xNameListFile, MPI_Comm comm) {
           for (i = count; i < count + 2 * 5 * NDoublonHolon4siteIdx; i++) {
             fscanf(fp, "%d %lf %lf ", &idx, &tmp_real, &tmp_comp);
             Proj[idx+count] = tmp_real + I * tmp_comp;
+          }
+          break;
+
+        case KWInGPW:
+          fprintf(stdout, "Read InGPW File. \n");
+          if (idx != NGPWIdx) {
+            info = 1;
+            continue;
+          }
+          for (i = 0; i < NGPWIdx; i++) {
+            fscanf(fp, "%d %lf %lf ", &idx, &tmp_real, &tmp_comp);
+            GPWVar[i] = tmp_real + I * tmp_comp;
           }
           break;
 
@@ -1464,6 +1490,7 @@ void SetDefaultValuesModPara(int *bufInt, double *bufDouble) {
   bufInt[IdxNJast] = 0;
   bufInt[IdxNDH2] = 0;
   bufInt[IdxNDH4] = 0;
+  bufInt[IdxNGPW] = 0;
   bufInt[IdxNOrbit] = 0;
   bufInt[IdxNQPTrans] = 0;
   bufInt[IdxNOneBodyG] = 0;
@@ -1877,6 +1904,25 @@ GetInfoDH4(FILE *fp, int **ArrayIdx, int *ArrayOpt, int iComplxFlag, int *iOptCo
     }
     idx1 = GetInfoOpt(fp, ArrayOpt, iComplxFlag, iOptCount, fidx);
     if (idx0 != Nsite * NArray || idx1 != 2 * 5 * NArray) {
+      info = ReadDefFileError(defname);
+    }
+  }
+  return info;
+}
+
+int GetInfoGPW(FILE *fp, int *TrnSize, int *TrnCfg, int *ArrayOpt, int iComplxFlag, int *iOptCount, int _fidx, char *defname) {
+  int trnSize = 0, trnCfg = 0, idx0 = 0, idx1 = 0, i = 0, info = 0;
+  int fidx = _fidx;
+  if (NGPWIdx > 0) {
+    while (fscanf(fp, "%d %d %d\n", &trnSize, &trnCfg, &i) != EOF) {
+      //TODO insert sanity checks. do we want to allow #alpha values != #training configs (different training configs share same alpha value)? probably not sensible.
+      TrnSize[i] = trnSize;
+      TrnCfg[i] = trnCfg;
+      idx0++;
+      if (idx0 == NGPWIdx) break;
+    }
+    idx1 = GetInfoOpt(fp, ArrayOpt, iComplxFlag, iOptCount, fidx);
+    if (idx0 != NGPWIdx || idx1 != NGPWIdx) {
       info = ReadDefFileError(defname);
     }
   }

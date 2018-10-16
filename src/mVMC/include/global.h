@@ -128,10 +128,9 @@ int NGutzwillerIdx, *GutzwillerIdx; /* [Nsite] */
 int NJastrowIdx, **JastrowIdx; /* [Nsite][Nsite] */
 int NDoublonHolon2siteIdx, **DoublonHolon2siteIdx; /* DoublonHolon2siteIdx[idx][2*Nsite] */
 int NDoublonHolon4siteIdx, **DoublonHolon4siteIdx; /* DoublonHolon4siteIdx[idx][4*Nsite] */
-int NGPWIdx; /* NGPWIdx = total number of training configurations*/
-int *GPWTrnSize; /*[NGPWIdx], system sizes associated with the training configurations)*/
-int *GPWCfg; /*[NGPWIdx], training configurations in integer representation (int number corresponding to
-              bitstring representation of eleNum array)*/
+int NGPWIdx; /* NGPWIdx = total number of training configurations */
+int *GPWTrnSize; /* [NGPWIdx] Lattice sizes of training configurations*/
+int **GPWTrnCfg; /*[NGPWIdx][2*trnSize], training configurations representation as in EleNum*/
 int NOrbitalIdx, **OrbitalIdx; /* [Nsite][Nsite] */
 int **OrbitalSgn; /* OrbitalSgn[Nsite][Nsite] = +1 or -1 */
 int iFlgOrbitalGeneral=0;

@@ -72,7 +72,7 @@ int
 GetInfoDH4(FILE *fp, int **ArrayIdx, int *ArrayOpt, int iComplxFlag, int *iOptCount, int _fidx, int Nsite, int NArray,
            char *defname);
 
-int GetInfoGPW(FILE *fp, int *TrnSize, int *TrnCfg, int *ArrayOpt, int iComplxFlag, int *iOptCount, int _fidx, char *defname);
+int GetInfoGPW(FILE *fp, int *trnSize, int **trnCfg, int *ArrayOpt, int iComplxFlag, int *iOptCount, int _fidx, char *defname);
 
 int GetInfoTransSym(FILE *fp, int **Array, int **ArraySgn, int **ArrayInv, double complex *ArrayPara, int _APFlag,
                     int Nsite, int NArray, char *defname);
@@ -692,9 +692,6 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
                  + Nsite * Nsite /* JastrowIdx */
                  + 2 * Nsite * NDoublonHolon2siteIdx /* DoublonHolon2siteIdx */
                  + 4 * Nsite * NDoublonHolon4siteIdx /* DoublonHolon4siteIdx */
-                 + 2 * NGPWIdx /* Size of training set (training configs as well as training config system sizes)*/
-                 //+ (2*Nsite)*(2*Nsite) /* OrbitalIdx */ //fsz
-                 //+ (2*Nsite)*(2*Nsite) /* OrbitalSgn */ //fsz
                  + Nsite * NQPTrans /* QPTrans */
                  + Nsite * NQPTrans /* QPTransInv */
                  + Nsite * NQPTrans /* QPTransSgn */
@@ -824,7 +821,7 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
 
         case KWGPW:
           fidx = NGPWIdx;
-          if (GetInfoGPW(fp, GPWTrnSize, GPWCfg, OptFlag, iComplexFlgGPW, &count_idx, fidx, defname) != 0)
+          if (GetInfoGPW(fp, GPWTrnSize, GPWTrnCfg, OptFlag, iComplexFlgGPW, &count_idx, fidx, defname) != 0)
             info = 1;
           break;
 
@@ -1910,14 +1907,21 @@ GetInfoDH4(FILE *fp, int **ArrayIdx, int *ArrayOpt, int iComplxFlag, int *iOptCo
   return info;
 }
 
-int GetInfoGPW(FILE *fp, int *TrnSize, int *TrnCfg, int *ArrayOpt, int iComplxFlag, int *iOptCount, int _fidx, char *defname) {
-  int trnSize = 0, trnCfg = 0, idx0 = 0, idx1 = 0, i = 0, info = 0;
+int GetInfoGPW(FILE *fp, int *trnSize, int **trnCfg, int *ArrayOpt, int iComplxFlag, int *iOptCount, int _fidx, char *defname) {
+  int trnSz = 0, trnCfgUp = 0, trnCfgDown = 0, idx0 = 0, idx1 = 0, i = 0, j = 0, info = 0;
   int fidx = _fidx;
   if (NGPWIdx > 0) {
-    while (fscanf(fp, "%d %d %d\n", &trnSize, &trnCfg, &i) != EOF) {
+    while (fscanf(fp, "%d %d %d %d\n", &trnSz, &trnCfgUp, &trnCfgDown, &i) != EOF) {
       //TODO insert sanity checks. do we want to allow #alpha values != #training configs (different training configs share same alpha value)? probably not sensible.
-      TrnSize[i] = trnSize;
-      TrnCfg[i] = trnCfg;
+      trnSize[i] = trnSz;
+      trnCfg[i] = (int*)malloc(sizeof(int)*2*trnSz);
+      
+      // TODO: Maybe this should be optimised...
+      for(j=0;j<trnSz;j++) {
+        trnCfg[i][j] = (trnCfgUp >> j) & 1;
+        trnCfg[i][j+trnSz] = (trnCfgDown >> j) & 1;
+      }
+      
       idx0++;
       if (idx0 == NGPWIdx) break;
     }

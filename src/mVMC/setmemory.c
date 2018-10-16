@@ -97,10 +97,6 @@ void SetMemoryDef() {
     pInt += 4*Nsite;
   }
 
-  GPWTrnSize = pInt;
-  pInt += NGPWIdx;
-  GPWCfg = pInt;
-  pInt += NGPWIdx;
 
  /*[s] For BackFlow */
   if(NBackFlowIdx>0) {
@@ -229,11 +225,21 @@ void SetMemoryDef() {
       CisAjsCktAltLzIdx[i] = malloc(sizeof(int) * 2);
     }
   }
+  
+  // GPW trainig set
+  GPWTrnSize = (int*)malloc(sizeof(int)*(NGPWIdx));
+  GPWTrnCfg = (int**)malloc(sizeof(int*)*(NGPWIdx));
 
   return;
 }
 
 void FreeMemoryDef() {
+  for(int i=0;i<NGPWIdx;i++) {
+    free(GPWTrnCfg[i]);
+  }
+  free(GPWTrnCfg);
+  free(GPWTrnSize);
+  
   free(ParaTransfer);
 
   free(QPOptTransSgn);

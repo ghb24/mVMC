@@ -14,10 +14,10 @@ the Free Software Foundation, either version 3 of the License, or
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details. 
+GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License 
-along with this program. If not, see http://www.gnu.org/licenses/. 
+You should have received a copy of the GNU General Public License
+along with this program. If not, see http://www.gnu.org/licenses/.
 */
 /*-------------------------------------------------------------
  * Variational Monte Carlo
@@ -37,6 +37,7 @@ void InitParameter() {
   //printf("AllComplexFlag=%d \n",AllComplexFlag);
   #pragma omp parallel for default(shared) private(i)
   for(i=0;i<NProj;i++) Proj[i] = 0.0+0.0*I;
+  for(i=0;i<NGPWIdx;i++) GPWVar[i] = 0.0+0.0*I;
   if(AllComplexFlag==0){
     for(i=0;i<NSlater;i++){
       if(OptFlag[2*i+2*NProj] > 0){ //TBC
@@ -59,7 +60,7 @@ void InitParameter() {
         Slater[i] = 0.0;
       }
     }
- 
+
   }
   for(i=0;i<NOptTrans;i++){
     OptTrans[i] = ParaQPOptTrans[i];
@@ -83,20 +84,20 @@ int ReadInitParameter(char *initFile) {
       for (i = 1; i < 6; i++) fscanf(fp, "%lf ", &xtmp);
       for(xi=0;xi<NProj;xi++) {
         fscanf(fp, "%lf %lf %lf ", &tmp_real, &tmp_comp, &xtmp);
-        Proj[xi] = tmp_real+tmp_comp*I; 
+        Proj[xi] = tmp_real+tmp_comp*I;
       }
       for(xi=0;xi<NSlater;xi++) {
         fscanf(fp, "%lf %lf %lf ", &tmp_real,&tmp_comp, &xtmp);
-        Slater[xi] = tmp_real+tmp_comp*I; 
+        Slater[xi] = tmp_real+tmp_comp*I;
       }
       for(xi=0;xi<NOptTrans;xi++) {
         fscanf(fp, "%lf %lf %lf ", &tmp_real,&tmp_comp, &xtmp);
-        OptTrans[xi] = tmp_real+tmp_comp*I; 
+        OptTrans[xi] = tmp_real+tmp_comp*I;
       }
     }
     fclose(fp);
   } else { fprintf(stderr, "Error: %s does not exist.\n",initFile); }
-  
+
   return 0;
 }
 
@@ -167,7 +168,7 @@ void shiftGJ() {
 
   for(i=0;i<n;i++) {
     shift += Proj[i];
-   // shift += creal(Proj[i]); 
+   // shift += creal(Proj[i]);
   }
   shift /= (double)n;
 
@@ -247,7 +248,7 @@ void SetFlagShift() {
   for(i=start;i<end;i++) {
     if(OptFlag[2*i]!=1) return;   // fixed Gutx -> do nothing
   }
-  
+
   /* Jastrow */
   if(NJastrowIdx>0) {
     start = end;
@@ -260,7 +261,7 @@ void SetFlagShift() {
       }
     }
   }
-  
+
   /* 2-site Doublon-Holon */
   if(NDoublonHolon2siteIdx>0) {
     start = end;
@@ -273,20 +274,20 @@ void SetFlagShift() {
       }
     }
   }
-  
+
   /* 4-site Doublon-Holon */
   if(NDoublonHolon4siteIdx>0) {
     start = end;
     end   = start + 10*NDoublonHolon4siteIdx;
     FlagShiftDH4=1;         // unfixed D-H -> FlagShift on
-    for(i=start;i<end;i++) { 
+    for(i=start;i<end;i++) {
       if(OptFlag[2*i]!=1) { // fixed D-H -> do nothing
         FlagShiftDH4=0;
         break;
       }
     }
   }
-  
+
   return;
 }
 #endif

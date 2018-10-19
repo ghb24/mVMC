@@ -2,6 +2,7 @@
 TODO: Add License + Description*/
 #include "global.h"
 #include "gpw_projection.h"
+#include "gpw_kernel.h"
 
 
 //TODO: parallelise?
@@ -34,12 +35,12 @@ inline double complex GPWRatio(const double *eleGPWKernNew, const double *eleGPW
 
 void CalculateGPWKern(double *eleGPWKern, const int *eleNum) {
   const int nGPWIdx=NGPWIdx;
+  int i;
   
-  const int *n0=eleNum; //up-spin
-  const int *n1=eleNum+Nsite; //down-spin
-  int idx;
-  
-  // TODO: implement functionality
+  // TODO Prallelise this loop!!!
+  for(i=0; i<nGPWIdx;i++) {
+    eleGPWKern[i] = (double)GPWKernel1(eleNum, Nsite, GPWTrnCfg[i], GPWTrnSize[i]);
+  }
   
   return;
 }

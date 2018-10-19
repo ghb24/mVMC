@@ -234,7 +234,8 @@ void SetMemoryDef() {
 }
 
 void FreeMemoryDef() {
-  for(int i=0;i<NGPWIdx;i++) {
+  int i;
+  for(i=0;i<NGPWIdx;i++) {
     free(GPWTrnCfg[i]);
   }
   free(GPWTrnCfg);

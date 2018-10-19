@@ -14,10 +14,10 @@ the Free Software Foundation, either version 3 of the License, or
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details. 
+GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License 
-along with this program. If not, see http://www.gnu.org/licenses/. 
+You should have received a copy of the GNU General Public License
+along with this program. If not, see http://www.gnu.org/licenses/.
 */
 /*-------------------------------------------------------------
  * Variational Monte Carlo
@@ -581,7 +581,7 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
     }
     MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
   }
-  
+
 #ifdef _mpi_use
   MPI_Bcast(bufInt, nBufInt, MPI_INT, 0, comm);
   MPI_Bcast(&NStoreO, 1, MPI_INT, 0, comm); // for NStoreO
@@ -820,7 +820,7 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
           break;
 
         case KWGPW:
-          fidx = NGPWIdx;
+          fidx = NGutzwillerIdx + NJastrowIdx + 2 * 3 * NDoublonHolon2siteIdx + 2 * 5 * NDoublonHolon4siteIdx;
           if (GetInfoGPW(fp, GPWTrnSize, GPWTrnCfg, OptFlag, iComplexFlgGPW, &count_idx, fidx, defname) != 0)
             info = 1;
           break;
@@ -828,7 +828,7 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
         case KWOrbital:
         case KWOrbitalAntiParallel:
           /*orbitalidxs.def------------------------------------*/
-          fidx = NProj;
+          fidx = NProj + NGPWIdx;
           if (GetInfoOrbitalAntiParallel(fp, OrbitalIdx, OptFlag, OrbitalSgn, &count_idx,
                                          fidx, iComplexFlgOrbital, iFlgOrbitalGeneral, APFlag, Nsite, iNOrbitalAntiParallel,
                                          defname) != 0)
@@ -836,7 +836,7 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
           break;
 
         case KWOrbitalGeneral:
-          fidx = NProj;
+          fidx = NProj + NGPWIdx;
           if (GetInfoOrbitalGeneral(fp, OrbitalIdx, OptFlag, OrbitalSgn, &count_idx,
                                     fidx, iComplexFlgOrbital, iFlgOrbitalGeneral, APFlag, Nsite, NOrbitalIdx,
                                     defname) != 0)
@@ -845,7 +845,7 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
 
         case KWOrbitalParallel:
           /*orbitalidxt.def------------------------------------*/
-          fidx = NProj + iNOrbitalAntiParallel;
+          fidx = NProj + NGPWIdx + iNOrbitalAntiParallel;
           if (GetInfoOrbitalParallel(fp, OrbitalIdx, OptFlag, OrbitalSgn, &count_idx,
                                      fidx, iComplexFlgOrbital, iFlgOrbitalGeneral, APFlag, Nsite, iNOrbitalParallel,
                                      iNOrbitalAntiParallel, defname) != 0)
@@ -1186,14 +1186,14 @@ int ReadInputParameters(char *xNameListFile, MPI_Comm comm) {
 /**********************************************************************/
 /* Function checking keywords*/
 /**********************************************************************/
-/** 
- * 
+/**
+ *
  * @brief function of checking whether ctmp is same as cKeyWord or not
- * 
- * @param[in] ctmp 
- * @param[in] cKeyWord 
+ *
+ * @param[in] ctmp
+ * @param[in] cKeyWord
  * @return 0 ctmp is same as cKeyWord
- * 
+ *
  * @author Kazuyoshi Yoshimi (The University of Tokyo)
  */
 int CheckWords(
@@ -1350,7 +1350,7 @@ int ValidateValue(
 
 /**
  * @brief Function of Getting keyword and it's variable from characters.
- * @param[in] _ctmpLine characters including keyword and it's variable 
+ * @param[in] _ctmpLine characters including keyword and it's variable
  * @param[out] _ctmp keyword
  * @param[out] _itmp variable for a keyword
  * @retval 0 keyword and it's variable are obtained.
@@ -1915,13 +1915,13 @@ int GetInfoGPW(FILE *fp, int *trnSize, int **trnCfg, int *ArrayOpt, int iComplxF
       //TODO insert sanity checks. do we want to allow #alpha values != #training configs (different training configs share same alpha value)? probably not sensible.
       trnSize[i] = trnSz;
       trnCfg[i] = (int*)malloc(sizeof(int)*2*trnSz);
-      
+
       // TODO: Maybe this should be optimised...
       for(j=0;j<trnSz;j++) {
         trnCfg[i][j] = (trnCfgUp >> j) & 1;
         trnCfg[i][j+trnSz] = (trnCfgDown >> j) & 1;
       }
-      
+
       idx0++;
       if (idx0 == NGPWIdx) break;
     }

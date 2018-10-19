@@ -6,7 +6,7 @@ if(${CMAKE_PROJECT_NAME} STREQUAL "Project")
   message(FATAL_ERROR "cmake should be executed not for 'src' subdirectory, but for the top directory of mVMC.")
 endif(${CMAKE_PROJECT_NAME} STREQUAL "Project")
 
-include_directories(include)
+include_directories(include ../GPW/include)
 add_definitions(-DMEXP=19937)
 
 set(SOURCES_vmcmain
@@ -25,7 +25,7 @@ add_executable(vmcdry.out vmcdry.c)
 target_link_libraries(vmcdry.out StdFace m)
 add_executable(vmc.out ${SOURCES_vmcmain} ${SOURCES_sfmt})
 target_link_libraries(vmc.out StdFace)
-target_link_libraries(vmc.out pfapack StdFace ${LAPACK_LIBRARIES} m)
+target_link_libraries(vmc.out pfapack StdFace ${LAPACK_LIBRARIES} gpw_kernel)
 
 if(USE_SCALAPACK)
   string(REGEX REPLACE "-L[ ]+" "-L" sc_libs ${SCALAPACK_LIBRARIES})

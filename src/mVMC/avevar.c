@@ -34,20 +34,26 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 void CalcAveVar(int i, int n, double complex* _ave, double* _var){
   int sample;
   double complex data;
-  double complex ave=0;
-  double var=0;
+  double complex ave=0.0;
+  double varr=0.0,vari=0.0,var;
   
   for(sample=0;sample<NSROptItrSmp;sample++) {
     ave += SROptData[i+n*sample];
   }
   ave /= (double)(NSROptItrSmp);
   
-  var = 0.0;
   for(sample=0;sample<NSROptItrSmp;sample++) {
     data = SROptData[i+n*sample] - ave;
-    var += creal(data*conj(data));//TBC
+    //Var(Z)=Var(Re(Z))+Var(Im(Z))
+    varr += creal(data*conj(data));
+    vari += cimag(data*conj(data));
   }
-  var = sqrt( var/((double)(NSROptItrSmp)-1.0) );
+  
+  if(NSROptItrSmp>1) {
+    var = sqrt( varr/((double)(NSROptItrSmp)-1.0) ) + sqrt( vari/((double)(NSROptItrSmp)-1.0) );
+  }else{ 
+    var = 0.0;
+  } 
 
   *_ave= ave;
   *_var= var;
@@ -103,81 +109,76 @@ void OutputOptData() {
   sprintf(fileName, "%s_opt.dat", CParaFileHead);
   fp = fopen(fileName, "w");
 
-  if(NSROptItrSmp==1) {
-    for(i=0;i<n;i++) {
-      fprintf(fp,"% .18e % .18e ", creal(SROptData[i]), 0.0);//TBC
-    }
-  } else {    
-    //output <H> and <H^2>
-    for(i=0;i<2;i++) {
-      CalcAveVar(i, n, &ave, &var);
-      fprintf(fp,"% .18e % .18e % .18e ",
-              creal(ave), cimag(ave), var);
-    }
+  //output <H> and <H^2>
+  for(i=0;i<2;i++) {
+    CalcAveVar(i, n, &ave, &var);
+    fprintf(fp,"% .18e % .18e % .18e ",
+            creal(ave), cimag(ave), var);
+  }
 
-    count_i=2;
-    if(NGutzwillerIdx !=0){
-      sprintf(fileName, "%s_gutzwiller_opt.dat", CParaFileHead);
-      Child_OutputOptData(fp, fileName, "NGutzwillerIdx",
-			  NGutzwillerIdx, NGutzwillerIdx, count_i, n);
-      count_i += NGutzwillerIdx;
-    }
+  count_i=2;
+  if(NGutzwillerIdx !=0){
+    sprintf(fileName, "%s_gutzwiller_opt.dat", CParaFileHead);
+    Child_OutputOptData(fp, fileName, "NGutzwillerIdx",
+	  NGutzwillerIdx, NGutzwillerIdx, count_i, n);
+    count_i += NGutzwillerIdx;
+  }
 
-    if(NJastrowIdx !=0){
-      sprintf(fileName, "%s_jastrow_opt.dat", CParaFileHead);
-      Child_OutputOptData(fp, fileName, "NJastrowIdx",
-			  NJastrowIdx, NJastrowIdx, count_i, n);
-      count_i += NJastrowIdx;
-    }
+  if(NJastrowIdx !=0){
+    sprintf(fileName, "%s_jastrow_opt.dat", CParaFileHead);
+    Child_OutputOptData(fp, fileName, "NJastrowIdx",
+	  NJastrowIdx, NJastrowIdx, count_i, n);
+    count_i += NJastrowIdx;
+  }
 
-    if(NDoublonHolon2siteIdx != 0){
-      sprintf(fileName, "%s_doublonHolon2site_opt.dat", CParaFileHead);
-      Child_OutputOptData(fp, fileName, "NDoublonHolon2siteIdx",
-			  NDoublonHolon2siteIdx, NDoublonHolon2siteIdx*2*3, 
-			  count_i, n);
-      count_i +=2*3*NDoublonHolon2siteIdx;
-    }
+  if(NDoublonHolon2siteIdx != 0){
+    sprintf(fileName, "%s_doublonHolon2site_opt.dat", CParaFileHead);
+    Child_OutputOptData(fp, fileName, "NDoublonHolon2siteIdx",
+  	                NDoublonHolon2siteIdx, NDoublonHolon2siteIdx*2*3, 
+	                count_i, n);
+    count_i +=2*3*NDoublonHolon2siteIdx;
+  }
 
-    if(NDoublonHolon4siteIdx != 0){
-      sprintf(fileName, "%s_doublonHolon4site_opt.dat", CParaFileHead);
-      Child_OutputOptData(fp, fileName, "NDoublonHolon4siteIdx",
-			  NDoublonHolon4siteIdx, NDoublonHolon4siteIdx*2*5, 
-			  count_i, n);
-      count_i +=2*5*NDoublonHolon4siteIdx;
-    }
+  if(NDoublonHolon4siteIdx != 0){
+    sprintf(fileName, "%s_doublonHolon4site_opt.dat", CParaFileHead);
+    Child_OutputOptData(fp, fileName, "NDoublonHolon4siteIdx",
+		        NDoublonHolon4siteIdx, NDoublonHolon4siteIdx*2*5, 
+			count_i, n);
+    count_i +=2*5*NDoublonHolon4siteIdx;
+  }
 
-    if(NSlater != 0){
-      if(iFlgOrbitalGeneral==0) {
-        sprintf(fileName, "%s_orbital_opt.dat", CParaFileHead);
+  if(NSlater != 0){
+    if(iFlgOrbitalGeneral==0) {
+      sprintf(fileName, "%s_orbital_opt.dat", CParaFileHead);
+      Child_OutputOptData(fp, fileName, "NOrbitalIdx",
+                          NSlater, NSlater, count_i, n);
+      count_i +=NSlater;
+    }else{
+      if(iNOrbitalParallel !=0){//use OrbitalParallel and Orbital AntiParallel
+        sprintf(fileName, "%s_orbitalAntiParallel_opt.dat", CParaFileHead);
+        Child_OutputOptData(fp, fileName, "NOrbitalAntiParallelIdx",
+                            iNOrbitalAntiParallel, iNOrbitalAntiParallel, count_i, n);
+        count_i += iNOrbitalAntiParallel;
+        sprintf(fileName, "%s_orbitalParallel_opt.dat", CParaFileHead);
+        Child_OutputOptData(fp, fileName, "NOrbitalParallelIdx",
+                            2*iNOrbitalParallel, 2*iNOrbitalParallel, count_i, n);
+        count_i += 2*iNOrbitalParallel;
+      }else{// use OrbitalGeneral
+        sprintf(fileName, "%s_orbital_general_opt.dat", CParaFileHead);
         Child_OutputOptData(fp, fileName, "NOrbitalIdx",
                             NSlater, NSlater, count_i, n);
         count_i +=NSlater;
-      }else{
-        if(iNOrbitalParallel !=0){//use OrbitalParallel and Orbital AntiParallel
-          sprintf(fileName, "%s_orbitalAntiParallel_opt.dat", CParaFileHead);
-          Child_OutputOptData(fp, fileName, "NOrbitalAntiParallelIdx",
-                              iNOrbitalAntiParallel, iNOrbitalAntiParallel, count_i, n);
-          count_i += iNOrbitalAntiParallel;
-          sprintf(fileName, "%s_orbitalParallel_opt.dat", CParaFileHead);
-          Child_OutputOptData(fp, fileName, "NOrbitalParallelIdx",
-                              2*iNOrbitalParallel, 2*iNOrbitalParallel, count_i, n);
-          count_i += 2*iNOrbitalParallel;
-        }else{// use OrbitalGeneral
-          sprintf(fileName, "%s_orbital_general_opt.dat", CParaFileHead);
-          Child_OutputOptData(fp, fileName, "NOrbitalIdx",
-                              NSlater, NSlater, count_i, n);
-          count_i +=NSlater;
-        }
       }
     }
-
-    if(NOptTrans !=0){
-      sprintf(fileName, "%s_trans_opt.dat", CParaFileHead);
-      Child_OutputOptData(fp, fileName, "NQPOptTrans",
-			  NOptTrans, NOptTrans, count_i, n);
-      count_i += NOptTrans;
-    }
   }
+
+  if(NOptTrans !=0){
+    sprintf(fileName, "%s_trans_opt.dat", CParaFileHead);
+    Child_OutputOptData(fp, fileName, "NQPOptTrans",
+		        NOptTrans, NOptTrans, count_i, n);
+    count_i += NOptTrans;
+  }
+  
   fprintf(fp, "\n");
   fclose(fp);
 

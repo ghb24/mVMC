@@ -432,8 +432,9 @@ int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
     ReduceCounter(comm_child2);
     StopTimer(21);
     StartTimer(22);
-    /* output zvo_out and zvo_var */
+    /* output files */
     if(rank==0) outputData();
+    
     StopTimer(22);
 
 #ifdef _DEBUG_DUMP_SROPTO_STORE
@@ -506,7 +507,7 @@ int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
     if(step >= NSROptItrStep-NSROptItrSmp) {
       StoreOptData(step-(NSROptItrStep-NSROptItrSmp));
     }
-
+    
     FlushFile(step,rank);
   }
 
@@ -518,8 +519,6 @@ int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
     OutputOptData();
     fprintf(stdout, "End: Output opt params.\n");
   }
-
-  //if(RealEvolve==1) CloseFilePhysCal(rank);
 
   return 0;
 }
@@ -641,34 +640,49 @@ void outputData() {
 //[s] MERGE BY TM
  // fprintf(FileOut, "% .18e % .18e % .18e \n", Etot, Etot2, (Etot2 - Etot*Etot)/(Etot*Etot));
  //   fprintf(FileOut, "% .18e % .18e  % .18e % .18e \n", creal(Etot),cimag(Etot), creal(Etot2), creal((Etot2 - Etot*Etot)/(Etot*Etot)));
-   fprintf(FileOut, "% .18e % .18e  % .18e % .18e %.18e %.18e\n", creal(Etot),cimag(Etot), creal(Etot2), creal((Etot2 - Etot*Etot)/(Etot*Etot)),creal(Sztot),creal(Sztot2));
+ //  fprintf(FileOut, "% .18e % .18e  % .18e % .18e %.18e %.18e\n", creal(Etot),cimag(Etot), creal(Etot2), creal((Etot2 - Etot*Etot)/(Etot*Etot)),creal(Sztot),creal(Sztot2));
   // fprintf(FileOut, "% .18e % .18e % .18e \n", Etot, Etot2, (Etot2 - Etot*Etot)/(Etot*Etot));
  // fprintf(FileOut, "% .18e % .18e  % .18e % .18e \n", creal(Etot), cimag(Etot), creal(Etot2),
  //         creal((Etot2 - Etot * Etot) / (Etot * Etot)));
 //[e] MERGE BY TM
-
-  /* zvo_var.dat */
-  if (FlagBinary == 0) { /* formatted output*/
-    fprintf(FileVar, "% .18e % .18e 0.0 % .18e % .18e 0.0 ", creal(Etot), cimag(Etot), creal(Etot2), cimag(Etot2));
-    for (i = 0; i < NPara; i++) fprintf(FileVar, "% .18e % .18e 0.0 ", creal(Para[i]), cimag(Para[i]));
-    fprintf(FileVar, "\n");
-    //for(i=0;i<NPara;i++)  printf("DEBUG:i=%d: % .18e % .18e  \n",i, creal(Para[i]),cimag(Para[i]));
-  } else { /* binary output */
-    fwrite(Para, sizeof(double), NPara, FileVar);
+//
+  if (NVMCCalMode == 0 && RealEvolve==0) {
+    /* zvo_out.dat */
+    fprintf(FileOut, "% .18e % .18e  % .18e % .18e %.18e %.18e\n", creal(Etot),cimag(Etot), creal(Etot2), creal((Etot2 - Etot*Etot)/(Etot*Etot)),creal(Sztot),creal(Sztot2));
+    /* zvo_var.dat */
+    if (FlagBinary == 0) { /* formatted output*/
+      fprintf(FileVar, "% .18e % .18e 0.0 % .18e % .18e 0.0 ", creal(Etot), cimag(Etot), creal(Etot2), cimag(Etot2));
+      for (i = 0; i < NPara; i++) fprintf(FileVar, "% .18e % .18e 0.0 ", creal(Para[i]), cimag(Para[i]));
+      fprintf(FileVar, "\n");
+      //for(i=0;i<NPara;i++)  printf("DEBUG:i=%d: % .18e % .18e  \n",i, creal(Para[i]),cimag(Para[i]));
+    } else { /* binary output */
+      fwrite(Para, sizeof(double), NPara, FileVar);
+    }  
   }
 
-  /* zvo_cisajs.dat at every timestep during real evolution*/
-  if(RealEvolve==1 && NCisAjs > 0) {
-    for (i = 0; i < NCisAjs; i++) fprintf(FileCisAjs, "% .18e  % .18e 0.0", creal(PhysCisAjs[i]), cimag(PhysCisAjs[i]));
-    fprintf(FileCisAjs, "\n");
+  if(RealEvolve==1) {
+    /* zvo_out.dat */
+    fprintf(FileOut, "% .18e % .18e  % .18e % .18e %.18e %.18e\n", creal(Etot),cimag(Etot), creal(Etot2), creal((Etot2 - Etot*Etot)/(Etot*Etot)),creal(Sztot),creal(Sztot2));
+    /* zvo_var.dat */
+    if (FlagBinary == 0) { /* formatted output*/
+      fprintf(FileVar, "% .18e % .18e 0.0 % .18e % .18e 0.0 ", creal(Etot), cimag(Etot), creal(Etot2), cimag(Etot2));
+      for (i = 0; i < NPara; i++) fprintf(FileVar, "% .18e % .18e 0.0 ", creal(Para[i]), cimag(Para[i]));
+      fprintf(FileVar, "\n");
+    } else { /* binary output */
+      fwrite(Para, sizeof(double), NPara, FileVar);
+    }
+    /* zvo_cisajs.dat */
+    if(NCisAjs > 0) {
+      for (i = 0; i < NCisAjs; i++) fprintf(FileCisAjs, "% .18e  % .18e 0.0", creal(PhysCisAjs[i]), cimag(PhysCisAjs[i]));
+      fprintf(FileCisAjs, "\n");
+    }
+    /* zvo_cisajscktaltdc.dat */
+    if(NCisAjsCktAltDC > 0) {
+      for (i = 0; i < NCisAjsCktAltDC; i++) fprintf(FileCisAjsCktAltDC, "% .18e  % .18e 0.0", creal(PhysCisAjsCktAltDC[i]), cimag(PhysCisAjsCktAltDC[i]));
+      fprintf(FileCisAjsCktAltDC, "\n"); 
+    }
   }  
   
-  /* zvo_cisajscktaltdc.dat at every timestep during real evolution*/
-  if(RealEvolve==1 && NCisAjsCktAltDC > 0) {
-    for (i = 0; i < NCisAjsCktAltDC; i++) fprintf(FileCisAjsCktAltDC, "% .18e  % .18e 0.0", creal(PhysCisAjsCktAltDC[i]), cimag(PhysCisAjsCktAltDC[i]));
-    fprintf(FileCisAjsCktAltDC, "\n");
-  }  
- 
   if (NVMCCalMode == 1) {
     /* zvo_cisajs.dat */
     if (NCisAjs > 0) {

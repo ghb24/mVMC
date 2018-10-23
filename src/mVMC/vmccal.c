@@ -181,7 +181,7 @@ void VMCMainCal(MPI_Comm comm) {
     if(NVMCCalMode==0) {
       /* Calculate O for correlation fauctors */
       srOptO[0] = 1.0+0.0*I;//   real 
-      srOptO[1] = 0.0+0.0*I;//   real 
+      srOptO[1] = 1.0+0.0*I;//   real 
 #pragma loop noalias
       for(i=0;i<nProj;i++){ 
         srOptO[(i+1)*2]     = (double)(eleProjCnt[i]);    // even real

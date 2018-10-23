@@ -2,7 +2,7 @@
 #define _CALHAM_REAL
 
 double CalculateHamiltonian_real(const double ip, int *eleIdx, const int *eleCfg,
-                             int *eleNum, const int *eleProjCnt);
+                             int *eleNum, const int *eleProjCnt, const double *eleGPWKern);
 
 double CalculateHamiltonianBF_real(const double ip, int *eleIdx, const int *eleCfg,
                               int *eleNum, const int *eleProjCnt, const int *eleProjBFCnt);

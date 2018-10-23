@@ -14,10 +14,10 @@ the Free Software Foundation, either version 3 of the License, or
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details. 
+GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License 
-along with this program. If not, see http://www.gnu.org/licenses/. 
+You should have received a copy of the GNU General Public License
+along with this program. If not, see http://www.gnu.org/licenses/.
 */
 /*-------------------------------------------------------------
  * Variational Monte Carlo
@@ -30,24 +30,27 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 #define _CALGRN_SRC
 
 void CalculateGreenFunc(const double w, const double complex ip, int *eleIdx, int *eleCfg,
-                        int *eleNum, int *eleProjCnt) {
+                        int *eleNum, int *eleProjCnt, double *eleGPWKern) {
 
   int idx,idx0,idx1;
   int ri,rj,s,rk,rl,t;
   double complex tmp;
   int *myEleIdx, *myEleNum, *myProjCntNew;
+  double *myGPWKernNew;
   double complex *myBuffer;
 
   RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj);
+  RequestWorkSpaceThreadDouble(NGPWIdx);
   RequestWorkSpaceThreadComplex(NQPFull+2*Nsize);
   /* GreenFunc1: NQPFull, GreenFunc2: NQPFull+2*Nsize */
 
   #pragma omp parallel default(shared)		\
-  private(myEleIdx,myEleNum,myProjCntNew,myBuffer,idx)
+  private(myEleIdx,myEleNum,myProjCntNew,myGPWKernNew,myBuffer,idx)
   {
     myEleIdx = GetWorkSpaceThreadInt(Nsize);
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myProjCntNew = GetWorkSpaceThreadInt(NProj);
+    myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
     myBuffer = GetWorkSpaceThreadComplex(NQPFull+2*Nsize);
 
     #pragma loop noalias
@@ -64,12 +67,12 @@ void CalculateGreenFunc(const double w, const double complex ip, int *eleIdx, in
       rj = CisAjsIdx[idx][2];
       s  = CisAjsIdx[idx][3];
       tmp = GreenFunc1(ri,rj,s,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,
-                       myProjCntNew,myBuffer);
+                       myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
       LocalCisAjs[idx] = tmp;
     }
     #pragma omp master
     {StopTimer(50);StartTimer(51);}
-    
+
     #pragma omp for private(idx,ri,rj,s,rk,rl,t,tmp) schedule(dynamic)
     for(idx=0;idx<NCisAjsCktAltDC;idx++) {
       ri = CisAjsCktAltDCIdx[idx][0];
@@ -80,10 +83,10 @@ void CalculateGreenFunc(const double w, const double complex ip, int *eleIdx, in
       t  = CisAjsCktAltDCIdx[idx][5];
 
       tmp = GreenFunc2(ri,rj,rk,rl,s,t,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,
-                       myProjCntNew,myBuffer);
+                       myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
       PhysCisAjsCktAltDC[idx] += w*tmp;
     }
-    
+
     #pragma omp master
     {StopTimer(51);StartTimer(52);}
 
@@ -107,6 +110,7 @@ void CalculateGreenFunc(const double w, const double complex ip, int *eleIdx, in
   }
 
   ReleaseWorkSpaceThreadInt();
+  ReleaseWorkSpaceThreadDouble();
   ReleaseWorkSpaceThreadComplex();
   return;
 }
@@ -121,6 +125,8 @@ void CalculateGreenFuncBF(const double w, const double ip, int *eleIdx, int *ele
   int *myEleIdx, *myEleNum, *myEleCfg, *myProjCntNew, *myProjBFCntNew;
   double complex* mySltBFTmp;
   double complex* myBuffer;
+
+  double *eleGPWKern, *myGPWKernNew; // Dummy variables, backflow is not supported.
 
   RequestWorkSpaceThreadInt(Nsize+2*Nsite2+NProj+16*Nsite*Nrange);
   RequestWorkSpaceThreadComplex(NQPFull+2*Nsize+NQPFull*Nsite2*Nsite2);
@@ -169,7 +175,7 @@ void CalculateGreenFuncBF(const double w, const double ip, int *eleIdx, int *ele
       rl = CisAjsCktAltDCIdx[idx][6];
       t  = CisAjsCktAltDCIdx[idx][5];
       tmp = GreenFunc2(ri,rj,rk,rl,s,t,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,
-                       myProjCntNew,myBuffer);
+                       myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
       PhysCisAjsCktAltDC[idx] += w*tmp;
     }
 

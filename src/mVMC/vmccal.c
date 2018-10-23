@@ -14,16 +14,16 @@ the Free Software Foundation, either version 3 of the License, or
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details. 
+GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License 
-along with this program. If not, see http://www.gnu.org/licenses/. 
+You should have received a copy of the GNU General Public License
+along with this program. If not, see http://www.gnu.org/licenses/.
 */
 /*-------------------------------------------------------------
  * Variational Monte Carlo
  * calculate physical quantities
  *-------------------------------------------------------------
- * by Satoshi Morita 
+ * by Satoshi Morita
  *-------------------------------------------------------------*/
 #ifndef _SRC_VMCCAL
 #define _SRC_VMCCAL
@@ -70,6 +70,7 @@ void calculateQCACAQ_real(double *qcacaq, const double *lslca, const double w,
 
 void VMCMainCal(MPI_Comm comm) {
   int *eleIdx,*eleCfg,*eleNum,*eleProjCnt;
+  double *eleGPWKern;
   double complex e,ip;
   double w;
   double sqrtw;
@@ -103,6 +104,7 @@ void VMCMainCal(MPI_Comm comm) {
     eleCfg = EleCfg + sample*Nsite2;
     eleNum = EleNum + sample*Nsite2;
     eleProjCnt = EleProjCnt + sample*NProj;
+    eleGPWKern = EleGPWKern + sample*NGPWIdx;
 
     StartTimer(40);
 #ifdef _DEBUG_VMCCAL
@@ -128,7 +130,7 @@ void VMCMainCal(MPI_Comm comm) {
       ip = CalculateIP_real(PfM_real,qpStart,qpEnd,MPI_COMM_SELF);
     }else{
       ip = CalculateIP_fcmp(PfM,qpStart,qpEnd,MPI_COMM_SELF);
-    } 
+    }
 
 #ifdef _DEBUG_VMCCAL
     printf("  Debug: sample=%d: LogProjVal \n",sample);
@@ -153,12 +155,12 @@ void VMCMainCal(MPI_Comm comm) {
 #ifdef _DEBUG_VMCCAL
       printf("  Debug: sample=%d: calculateHam_real \n",sample);
 #endif
-      e = CalculateHamiltonian_real(creal(ip),eleIdx,eleCfg,eleNum,eleProjCnt);
+      e = CalculateHamiltonian_real(creal(ip),eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
     }else{
 #ifdef _DEBUG_VMCCAL
       printf("  Debug: sample=%d: calculateHam_cmp \n",sample);
 #endif
-      e = CalculateHamiltonian(ip,eleIdx,eleCfg,eleNum,eleProjCnt);
+      e = CalculateHamiltonian(ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
     }
     //printf("MDEBUG: %lf %lf \n",creal(e),cimag(e));
     StopTimer(41);
@@ -178,12 +180,12 @@ void VMCMainCal(MPI_Comm comm) {
 #ifdef _DEBUG_VMCCAL
     printf("  Debug: sample=%d: calculateOpt \n",sample);
 #endif
-    if(NVMCCalMode==0) {
+    if(NVMCCalMode==0) { // TODO include GPW parameters into SR method
       /* Calculate O for correlation fauctors */
-      srOptO[0] = 1.0+0.0*I;//   real 
-      srOptO[1] = 0.0+0.0*I;//   real 
+      srOptO[0] = 1.0+0.0*I;//   real
+      srOptO[1] = 0.0+0.0*I;//   real
 #pragma loop noalias
-      for(i=0;i<nProj;i++){ 
+      for(i=0;i<nProj;i++){
         srOptO[(i+1)*2]     = (double)(eleProjCnt[i]);    // even real
        // srOptO[(i+1)*2+1]   = 0.0+0.0*I;  // odd  comp
         srOptO[(i+1)*2+1]   = (double)(eleProjCnt[i])*I;  // odd  comp
@@ -200,8 +202,8 @@ void VMCMainCal(MPI_Comm comm) {
       //[s] this part will be used for real varaibles
       if(AllComplexFlag==0){
 #pragma loop noalias
-        for(i=0;i<SROptSize;i++){ 
-          srOptO_real[i] = creal(srOptO[2*i]);       
+        for(i=0;i<SROptSize;i++){
+          srOptO_real[i] = creal(srOptO[2*i]);
         }
       }
       //[e]
@@ -213,38 +215,38 @@ void VMCMainCal(MPI_Comm comm) {
           calculateOO_real(SROptOO_real,SROptHO_real,SROptO_real,w,creal(e),SROptSize);
         }else{
           calculateOO(SROptOO,SROptHO,SROptO,w,e,SROptSize);
-        } 
+        }
       }else{
         we    = w*e;
-        sqrtw = sqrt(w); 
+        sqrtw = sqrt(w);
         if(AllComplexFlag==0){
           #pragma omp parallel for default(shared) private(int_i)
           for(int_i=0;int_i<SROptSize;int_i++){
             // SROptO_Store for fortran
             SROptO_Store_real[int_i+sample*SROptSize]  = sqrtw*SROptO_real[int_i];
-            SROptHO_real[int_i]                       += creal(we)*SROptO_real[int_i]; 
+            SROptHO_real[int_i]                       += creal(we)*SROptO_real[int_i];
           }
         }else{
           #pragma omp parallel for default(shared) private(int_i)
           for(int_i=0;int_i<SROptSize*2;int_i++){
             // SROptO_Store for fortran
             SROptO_Store[int_i+sample*(2*SROptSize)]  = sqrtw*SROptO[int_i];
-            SROptHO[int_i]                           += we*SROptO[int_i]; 
+            SROptHO[int_i]                           += we*SROptO[int_i];
           }
         }
-      } 
-    
+      }
+
       //below needs to extended for cases where NLanczosMode>1
-      if(RealEvolve==1) CalculateGreenFunc(w,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
+      if(RealEvolve==1) CalculateGreenFunc(w,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
       StopTimer(43);
-    
+
     } else if(NVMCCalMode==1) {
       StartTimer(42);
       /* Calculate Green Function */
 #ifdef _DEBUG_VMCCAL
       fprintf(stdout, "Debug: Start: CalcGreenFunc\n");
 #endif
-      CalculateGreenFunc(w,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
+      CalculateGreenFunc(w,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
       StopTimer(42);
 
       if(NLanczosMode>0){
@@ -255,10 +257,10 @@ void VMCMainCal(MPI_Comm comm) {
         /* Calculate local QQQQ */
         StartTimer(43);
         if(AllComplexFlag==0) {
-          LSLocalQ_real(creal(e),creal(ip),eleIdx,eleCfg,eleNum,eleProjCnt, LSLQ_real);
+          LSLocalQ_real(creal(e),creal(ip),eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern, LSLQ_real);
           calculateQQQQ_real(QQQQ_real,LSLQ_real,w,NLSHam);
         }else{
-          LSLocalQ(e,ip,eleIdx,eleCfg,eleNum,eleProjCnt, LSLQ);
+          LSLocalQ(e,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern, LSLQ);
           calculateQQQQ(QQQQ,LSLQ,w,NLSHam);
         }
         StopTimer(43);
@@ -268,15 +270,15 @@ void VMCMainCal(MPI_Comm comm) {
           // Calculate local QcisAjsQ
           StartTimer(44);
           if(AllComplexFlag==0) {
-            
-            LSLocalCisAjs_real(creal(e),creal(ip),eleIdx,eleCfg,eleNum,eleProjCnt);
+
+            LSLocalCisAjs_real(creal(e),creal(ip),eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
             calculateQCAQ_real(QCisAjsQ_real,LSLCisAjs_real,LSLQ_real,w,NLSHam,NCisAjs);
             calculateQCACAQ_real(QCisAjsCktAltQ_real,LSLCisAjs_real,w,NLSHam,NCisAjs,
                             NCisAjsCktAltDC, CisAjsCktAltLzIdx);
-            
+
           }
           else{
-            LSLocalCisAjs(e,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
+            LSLocalCisAjs(e,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
             calculateQCAQ(QCisAjsQ,LSLCisAjs,LSLQ,w,NLSHam,NCisAjs);
             calculateQCACAQ(QCisAjsCktAltQ,LSLCisAjs,w,NLSHam,NCisAjs,
                             NCisAjsCktAltDC,CisAjsCktAltLzIdx);
@@ -318,6 +320,8 @@ void VMC_BF_MainCal(MPI_Comm comm) {
   int i, info;
   double complex *InvM_Moto, *PfM_Moto;
 //  double *InvM_real_Moto, *PfM_real_Moto;
+
+  double *eleGPWKern; // Dummy variable, backflow is not supported.
 
   /* optimazation for Kei */
   const int nProj = NProj;
@@ -497,10 +501,10 @@ for(i=0;i<nProj;i++) srOptO[i+1] = (double)(eleProjCnt[i]);
         /* Calculate local QQQQ */
         StartTimer(43);
         if (AllComplexFlag == 0) {
-          LSLocalQ_real(creal(e), creal(ip), eleIdx, eleCfg, eleNum, eleProjCnt, LSLQ_real);
+          LSLocalQ_real(creal(e), creal(ip), eleIdx, eleCfg, eleNum, eleProjCnt, eleGPWKern, LSLQ_real);
           calculateQQQQ_real(QQQQ_real, LSLQ_real, w, NLSHam);
         } else {
-          LSLocalQ(e, ip, eleIdx, eleCfg, eleNum, eleProjCnt, LSLQ);
+          LSLocalQ(e, ip, eleIdx, eleCfg, eleNum, eleProjCnt, eleGPWKern, LSLQ);
           calculateQQQQ(QQQQ, LSLQ, w, NLSHam);
           return;
         }
@@ -509,12 +513,12 @@ for(i=0;i<nProj;i++) srOptO[i+1] = (double)(eleProjCnt[i]);
           /* Calculate local QcisAjsQ */
           StartTimer(44);
           if (AllComplexFlag == 0) {
-            LSLocalCisAjs_real(creal(e), creal(ip), eleIdx, eleCfg, eleNum, eleProjCnt);
+            LSLocalCisAjs_real(creal(e), creal(ip), eleIdx, eleCfg, eleNum, eleProjCnt, eleGPWKern);
             calculateQCAQ_real(QCisAjsQ_real, LSLCisAjs_real, LSLQ_real, w, NLSHam, NCisAjs);
             calculateQCACAQ_real(QCisAjsCktAltQ_real, LSLCisAjs_real, w, NLSHam, NCisAjs,
                 NCisAjsCktAltDC, CisAjsCktAltLzIdx);
           } else {
-            LSLocalCisAjs(e, ip, eleIdx, eleCfg, eleNum, eleProjCnt);
+            LSLocalCisAjs(e, ip, eleIdx, eleCfg, eleNum, eleProjCnt, eleGPWKern);
             calculateQCAQ(QCisAjsQ, LSLCisAjs, LSLQ, w, NLSHam, NCisAjs);
             calculateQCACAQ(QCisAjsCktAltQ, LSLCisAjs, w, NLSHam, NCisAjs,
                 NCisAjsCktAltDC, CisAjsCktAltLzIdx);
@@ -640,10 +644,10 @@ void calculateOO_Store_real(double *srOptOO_real, double *srOptHO_real, double *
   int i,j;
   char jobz, uplo;
   double alpha,beta,o;
-  
+
   alpha = 1.0;
   beta  = 0.0;
-  
+
   jobz = 'N';
   uplo = 'T';
   if(NSRCG==0){
@@ -676,10 +680,10 @@ void calculateOO_Store(double complex *srOptOO, double complex *srOptHO, double 
   int i,j;
   char jobz, uplo;
   double complex alpha,beta,o;
-  
+
   alpha = 1.0;
   beta  = 0.0;
-  
+
   jobz = 'N';
   uplo = 'C';
   if(NSRCG==0){
@@ -717,7 +721,7 @@ void calculateOO_Store(double complex *srOptOO, double complex *srOptHO, double 
 //  extern int M_DAXPY(const int *n, const double *alpha, const double *x, const int *incx,
 //                     double *y, const int *incy);
 //  extern int M_DGER(const int *m, const int *n, const double *alpha,
-//                    const double *x, const int *incx, const double *y, const int *incy, 
+//                    const double *x, const int *incx, const double *y, const int *incy,
 //                    double *a, const int *lda);
 //  int m,n,incx,incy,lda;
 //  m=n=lda=srOptSize;
@@ -740,9 +744,9 @@ void calculateOO_matvec(double complex *srOptOO, double complex *srOptHO, const 
   m=n=lda=2*srOptSize;
   incx=incy=1;
 
-//   OO[i][j] += w*O[i]*O[j] 
+//   OO[i][j] += w*O[i]*O[j]
   M_ZGERC(&m, &n, &w, srOptO, &incx, srOptO, &incy, srOptOO, &lda);
-//   HO[i] += w*e*O[i] 
+//   HO[i] += w*e*O[i]
   M_ZAXPY(&n, &we, srOptO, &incx, srOptHO, &incy);
   return;
 }
@@ -757,10 +761,10 @@ void calculateOO(double complex *srOptOO, double complex *srOptHO, const double 
   for(j=0;j<2*srOptSize;j++) {
     tmp                            = w * srOptO[j];
     srOptOO[0*(2*srOptSize)+j]    += tmp;      // update O
-    srOptOO[1*(2*srOptSize)+j]    += 0.0;      // update 
+    srOptOO[1*(2*srOptSize)+j]    += 0.0;      // update
     srOptHO[j]                    += e * tmp;  // update HO
   }
-  
+
   #pragma omp parallel for default(shared) private(i,j,tmp)
 #pragma loop noalias
   for(i=2;i<2*srOptSize;i++) {

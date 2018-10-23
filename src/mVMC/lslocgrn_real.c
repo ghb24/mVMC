@@ -14,10 +14,10 @@ the Free Software Foundation, either version 3 of the License, or
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details. 
+GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License 
-along with this program. If not, see http://www.gnu.org/licenses/. 
+You should have received a copy of the GNU General Public License
+along with this program. If not, see http://www.gnu.org/licenses/.
 */
 /*-------------------------------------------------------------
  * Variational Monte Carlo
@@ -42,15 +42,15 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 #include "projection.h"
 
 /* Calculate <psi|QQ|x>/<psi|x> */
-void LSLocalQ_real(const double h1, const double ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double *_LSLQ_real)
+void LSLocalQ_real(const double h1, const double ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double *eleGPWKern, double *_LSLQ_real)
 {
   double e0,h2;
 
   e0 = CalculateHamiltonian0_real(eleNum); /* V */
 
   h2 = h1*e0; /* HV = (V+K+W)V */
-  h2 += calculateHK_real(h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
-  h2 += calculateHW_real(h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
+  h2 += calculateHK_real(h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
+  h2 += calculateHW_real(h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
 
   /* calculate local Q (IQ) */
   _LSLQ_real[0] = 1.0; /* I */
@@ -73,7 +73,7 @@ void LSLocalQ_real(const double h1, const double ip, int *eleIdx, int *eleCfg, i
 /// \return val
 /// \version 1.0
 double calculateHK_real(const double h1, const double ip, int *eleIdx, int *eleCfg,
-                           int *eleNum, int *eleProjCnt) {
+                           int *eleNum, int *eleProjCnt, double *eleGPWKern) {
   int idx,ri,rj,s;
   double val=0.0;
 
@@ -82,7 +82,7 @@ double calculateHK_real(const double h1, const double ip, int *eleIdx, int *eleC
     rj = Transfer[idx][2];
     s  = Transfer[idx][3];
 
-    val -= creal(ParaTransfer[idx]) * calHCA_real(ri,rj,s,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
+    val -= creal(ParaTransfer[idx]) * calHCA_real(ri,rj,s,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
     /* Caution: negative sign */
   }
 
@@ -103,7 +103,7 @@ double calculateHK_real(const double h1, const double ip, int *eleIdx, int *eleC
 /// \version 1.0
 double calHCA_real(const int ri, const int rj, const int s,
                       const double h1, const double ip, int *eleIdx, int *eleCfg,
-                      int *eleNum, int *eleProjCnt) {
+                      int *eleNum, int *eleProjCnt, double *eleGPWKern) {
   int rsi=ri+s*Nsite;
   int rsj=rj+s*Nsite;
   double val;
@@ -120,9 +120,9 @@ double calHCA_real(const int ri, const int rj, const int s,
 
   g = checkGF1_real(ri,rj,s,ip,eleIdx,eleCfg,eleNum);
   if(fabs(g)>1.0e-12) {
-    val = calHCA1_real(ri,rj,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
+    val = calHCA1_real(ri,rj,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
   } else {
-    val = calHCA2_real(ri,rj,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
+    val = calHCA2_real(ri,rj,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
   }
 
   return val;
@@ -179,10 +179,11 @@ double checkGF1_real(const int ri, const int rj, const int s, const double ip,
 /// \version 1.0
 double calHCA1_real(const int ri, const int rj, const int s,
                const double ip, int *eleIdx, int *eleCfg,
-               int *eleNum, int *eleProjCnt) {
+               int *eleNum, int *eleProjCnt, double *eleGPWKern) {
   double *oldInvM; /* [NQPFull*Nsize*Nsize;] */
   double *oldPfM;  /* [NQPFull] */
   int *projCntNew;
+  double *eleGPWKernNew;
 
   int rsi=ri+s*Nsite;
   int rsj=rj+s*Nsite;
@@ -190,9 +191,10 @@ double calHCA1_real(const int ri, const int rj, const int s,
   double ipNew,z,e;
 
   RequestWorkSpaceInt(NProj);
-  RequestWorkSpaceDouble(NQPFull*(Nsize*Nsize+1));
+  RequestWorkSpaceDouble(NQPFull*(Nsize*Nsize+1)+NGPWIdx);
 
   projCntNew = GetWorkSpaceInt(NProj);
+  eleGPWKernNew = GetWorkSpaceDouble(NGPWIdx);
   oldInvM = GetWorkSpaceDouble(NQPFull*Nsize*Nsize);
   oldPfM  = GetWorkSpaceDouble(NQPFull);
 
@@ -210,10 +212,13 @@ double calHCA1_real(const int ri, const int rj, const int s,
   UpdateProjCnt(rj, ri, s, projCntNew, eleProjCnt, eleNum);
   z = ProjRatio(projCntNew,eleProjCnt);
 
+  UpdateGPWKern(rj, ri, s, eleGPWKernNew, eleGPWKern, eleNum);
+  z *= GPWRatio(eleGPWKernNew,eleGPWKern);
+
   UpdateMAll_real(mj,s,eleIdx,0,NQPFull);
   ipNew = CalculateIP_real(PfM_real,0,NQPFull,MPI_COMM_SELF);
 
-  e = CalculateHamiltonian_real(ipNew,eleIdx,eleCfg,eleNum,projCntNew);
+  e = CalculateHamiltonian_real(ipNew,eleIdx,eleCfg,eleNum,projCntNew,eleGPWKernNew);
 
   /* revert hopping */
   eleIdx[mj+s*Ne] = rj;
@@ -234,7 +239,7 @@ double calHCA1_real(const int ri, const int rj, const int s,
 /* Assuming ri!=rj, eleNum[rsi]=1, eleNum[rsj]=0 */
 double calHCA2_real(const int ri, const int rj, const int s,
                        const double ip, int *eleIdx, int *eleCfg,
-                       int *eleNum, int *eleProjCnt) {
+                       int *eleNum, int *eleProjCnt, double *eleGPWKern) {
   const int nsize=Nsize;
   const int nsite2=Nsite2;
 
@@ -249,9 +254,10 @@ double calHCA2_real(const int ri, const int rj, const int s,
 
   double *buffer;
   int *bufferInt;
+  double *eleGPWKernNew;
 
   int *myEleIdx, *myEleNum, *myBufferInt, *myRsi, *myRsj;
-  double *myBuffer;
+  double *myBuffer, *myGPWKernNew;
   //    double complex myValue=0;
   //    double complex v=0.0;
   double myValue=0;
@@ -259,16 +265,17 @@ double calHCA2_real(const int ri, const int rj, const int s,
 
 
   RequestWorkSpaceInt(NProj);      /* for GreenFunc1 */
-  RequestWorkSpaceDouble(NQPFull); /* for GreenFunc1 */
+  RequestWorkSpaceDouble(NQPFull+NGPWIdx); /* for GreenFunc1 */
   RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj+6);
-  RequestWorkSpaceThreadDouble(NQPFull+3*Nsize);
+  RequestWorkSpaceThreadDouble(NQPFull+3*Nsize+NGPWIdx);
 
   bufferInt = GetWorkSpaceInt(NProj);
   buffer = GetWorkSpaceDouble(NQPFull);
+  eleGPWKernNew = GetWorkSpaceDouble(NGPWIdx);
 
   /* H0 term */
   /* <psi|H0 CA|x>/<psi|x> = H0(x') <psi|CA|x>/<psi|x> */
-  g = GreenFunc1_real(ri,rj,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt,bufferInt,buffer);
+  g = GreenFunc1_real(ri,rj,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt,bufferInt,eleGPWKern,eleGPWKernNew,buffer);
 
   /* hopping */
   eleNum[rsi] = 1;
@@ -283,7 +290,7 @@ double calHCA2_real(const int ri, const int rj, const int s,
   /* end of H0 term */
 
 #pragma omp parallel default(shared)\
-  private(myEleIdx,myEleNum,myBufferInt,myBuffer,myValue,myRsi,myRsj)  \
+  private(myEleIdx,myEleNum,myBufferInt,myBuffer,myGPWKernNew,myValue,myRsi,myRsj)  \
   reduction(+:v)
   {
     myEleIdx = GetWorkSpaceThreadInt(Nsize);
@@ -292,6 +299,7 @@ double calHCA2_real(const int ri, const int rj, const int s,
     myRsi = GetWorkSpaceThreadInt(3);
     myRsj = GetWorkSpaceThreadInt(3);
     myBuffer = GetWorkSpaceThreadDouble(NQPFull+3*Nsize);
+    myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
 
 #pragma loop noalias
     for(idx=0;idx<nsize;idx++) myEleIdx[idx] = eleIdx[idx];
@@ -308,7 +316,7 @@ double calHCA2_real(const int ri, const int rj, const int s,
       sk = Transfer[idx][3];
 
       myValue -= creal(ParaTransfer[idx])
-                       * GreenFunc2_real(rk,rl,ri,rj,sk,s,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myBufferInt,myBuffer);
+                       * GreenFunc2_real(rk,rl,ri,rj,sk,s,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myBufferInt,eleGPWKern,myGPWKernNew,myBuffer);
       /* Caution: negative sign */
     }
 
@@ -325,7 +333,7 @@ double calHCA2_real(const int ri, const int rj, const int s,
       myRsj[2] = rsj;
 
       myValue += ParaPairHopping[idx]
-        * GreenFuncN_real(3,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myBuffer,myBufferInt);
+        * GreenFuncN_real(3,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,eleGPWKern,myGPWKernNew,myBuffer,myBufferInt);
     }
 
     /* Exchange Coupling */
@@ -340,7 +348,7 @@ double calHCA2_real(const int ri, const int rj, const int s,
       myRsi[2] = rsi;
       myRsj[2] = rsj;
       myValue += ParaExchangeCoupling[idx]
-        * GreenFuncN_real(3,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myBuffer,myBufferInt);
+        * GreenFuncN_real(3,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,eleGPWKern,myGPWKernNew,myBuffer,myBufferInt);
 
       myRsi[0] = rk+Nsite; /* s=1 */
       myRsj[0] = rl+Nsite; /* s=1 */
@@ -349,7 +357,7 @@ double calHCA2_real(const int ri, const int rj, const int s,
       myRsi[2] = rsi;
       myRsj[2] = rsj;
       myValue += ParaExchangeCoupling[idx]
-        * GreenFuncN_real(3,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myBuffer,myBufferInt);
+        * GreenFuncN_real(3,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,eleGPWKern,myGPWKernNew,myBuffer,myBufferInt);
     }
 
     /* Inter All */
@@ -362,7 +370,7 @@ double calHCA2_real(const int ri, const int rj, const int s,
       myRsi[2] = rsi;
       myRsj[2] = rsj;
       myValue += creal(ParaInterAll[idx])
-        * GreenFuncN_real(3,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myBuffer,myBufferInt);
+        * GreenFuncN_real(3,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,eleGPWKern,myGPWKernNew,myBuffer,myBufferInt);
     }
 
     v += myValue;
@@ -394,7 +402,7 @@ void copyMAll_real(double *invM_from, double *pfM_from, double *invM_to, double 
 }
 
 double calculateHW_real(const double h1, const double ip, int *eleIdx, int *eleCfg,
-                           int *eleNum, int *eleProjCnt) {
+                           int *eleNum, int *eleProjCnt, double *eleGPWKern) {
   int idx,ri,rj,s,rk,rl,t;
   double val=0.0,tmp;
 
@@ -404,7 +412,7 @@ double calculateHW_real(const double h1, const double ip, int *eleIdx, int *eleC
     rj = PairHopping[idx][1];
 
     val += ParaPairHopping[idx]
-      * calHCACA_real(ri,rj,ri,rj,0,1,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
+      * calHCACA_real(ri,rj,ri,rj,0,1,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
   }
 
   /* Exchange Coupling */
@@ -412,8 +420,8 @@ double calculateHW_real(const double h1, const double ip, int *eleIdx, int *eleC
     ri = ExchangeCoupling[idx][0];
     rj = ExchangeCoupling[idx][1];
 
-    tmp =  calHCACA_real(ri,rj,rj,ri,0,1,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
-    tmp += calHCACA_real(ri,rj,rj,ri,1,0,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
+    tmp =  calHCACA_real(ri,rj,rj,ri,0,1,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
+    tmp += calHCACA_real(ri,rj,rj,ri,1,0,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
     val += ParaExchangeCoupling[idx] * tmp;
   }
 
@@ -427,7 +435,7 @@ double calculateHW_real(const double h1, const double ip, int *eleIdx, int *eleC
     t  = InterAll[idx][7];
 
     val += creal(ParaInterAll[idx])
-      * calHCACA_real(ri,rj,rk,rl,s,t,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
+      * calHCACA_real(ri,rj,rk,rl,s,t,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
   }
 
   return val;
@@ -437,7 +445,7 @@ double calculateHW_real(const double h1, const double ip, int *eleIdx, int *eleC
 double calHCACA_real(const int ri, const int rj, const int rk, const int rl,
                         const int si,const int sk,
                         const double h1, const double ip, int *eleIdx, int *eleCfg,
-                        int *eleNum, int *eleProjCnt) {
+                        int *eleNum, int *eleProjCnt, double *eleGPWKern) {
   int rsi=ri+si*Nsite;
   int rsj=rj+si*Nsite;
   int rsk=rk+sk*Nsite;
@@ -449,24 +457,24 @@ double calHCACA_real(const int ri, const int rj, const int rk, const int rl,
   /* check */
   if(rsk==rsl) {
     if(eleNum[rsk]==1) {
-      return calHCA_real(ri,rj,si,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
+      return calHCA_real(ri,rj,si,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
     } else return 0;
   } else if(rsj==rsk) {
     if(eleNum[rsj]==1) return 0;
     else {
-      return calHCA_real(ri,rl,si,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
+      return calHCA_real(ri,rl,si,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
     }
   } else if(rsj==rsl) {
     return 0;
   } else if(rsi==rsj) {
     if(eleNum[rsi]==1) {
-      return calHCA_real(rk,rl,sk,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
+      return calHCA_real(rk,rl,sk,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
     } else return 0;
   } else if(rsi==rsk) {
     return 0;
   } else if(rsi==rsl) {
     if(eleNum[rsi]==1) {
-      return -calHCA_real(rk,rj,sk,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
+      return -calHCA_real(rk,rj,sk,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
     } else return 0;
   } else {
     if(eleNum[rsl]==0) return 0.0;
@@ -477,9 +485,9 @@ double calHCACA_real(const int ri, const int rj, const int rk, const int rl,
 
   g = checkGF2_real(ri,rj,rk,rl,si,sk,ip,eleIdx,eleCfg,eleNum);
   if(fabs(g)>1.0e-12) {
-    val = calHCACA1_real(ri,rj,rk,rl,si,sk,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
+    val = calHCACA1_real(ri,rj,rk,rl,si,sk,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
   } else {
-    val = calHCACA2_real(ri,rj,rk,rl,si,sk,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
+    val = calHCACA2_real(ri,rj,rk,rl,si,sk,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
   }
 
   return val;
@@ -536,10 +544,11 @@ double checkGF2_real(const int ri, const int rj, const int rk, const int rl,
 double calHCACA1_real(const int ri, const int rj, const int rk, const int rl,
                  const int si,const int sk,
                  const double ip, int *eleIdx, int *eleCfg,
-                 int *eleNum, int *eleProjCnt) {
+                 int *eleNum, int *eleProjCnt, double *eleGPWKern) {
   double *oldInvM; /* [NQPFull*Nsize*Nsize;] */
   double *oldPfM;  /* [NQPFull] */
   int *projCntNew;
+  double *eleGPWKernNew;
 
   int rsi=ri+si*Nsite;
   int rsj=rj+si*Nsite;
@@ -549,9 +558,10 @@ double calHCACA1_real(const int ri, const int rj, const int rk, const int rl,
   double ipNew,z,e;
 
   RequestWorkSpaceInt(NProj);
-  RequestWorkSpaceDouble(NQPFull*(Nsize*Nsize+1));
+  RequestWorkSpaceDouble(NQPFull*(Nsize*Nsize+1)+NGPWIdx);
 
   projCntNew = GetWorkSpaceInt(NProj);
+  eleGPWKernNew = GetWorkSpaceDouble(NGPWIdx);
   oldInvM = GetWorkSpaceDouble(NQPFull*Nsize*Nsize);
   oldPfM  = GetWorkSpaceDouble(NQPFull);
 
@@ -566,6 +576,7 @@ double calHCACA1_real(const int ri, const int rj, const int rk, const int rl,
   eleNum[rsl] = 0;
   eleNum[rsk] = 1;
   UpdateProjCnt(rl, rk, sk, projCntNew, eleProjCnt, eleNum);
+  UpdateGPWKern(rl, rk, sk, eleGPWKernNew, eleGPWKern, eleNum);
 
   /* The mj-th electron with spin si hops from rj to ri */
   mj = eleCfg[rsj];
@@ -575,13 +586,15 @@ double calHCACA1_real(const int ri, const int rj, const int rk, const int rl,
   eleNum[rsj] = 0;
   eleNum[rsi] = 1;
   UpdateProjCnt(rj, ri, si, projCntNew, projCntNew, eleNum);
+  UpdateGPWKern(rj, ri, si, eleGPWKernNew, eleGPWKernNew, eleNum);
 
   z = ProjRatio(projCntNew,eleProjCnt);
+  z *= GPWRatio(eleGPWKernNew,eleGPWKern);
 
   UpdateMAllTwo_real(ml, sk, mj, si, rl, rj, eleIdx, 0, NQPFull);
   ipNew = CalculateIP_real(PfM_real,0,NQPFull,MPI_COMM_SELF);
 
-  e = CalculateHamiltonian_real(ipNew,eleIdx,eleCfg,eleNum,projCntNew);
+  e = CalculateHamiltonian_real(ipNew,eleIdx,eleCfg,eleNum,projCntNew,eleGPWKernNew);
 
   /* revert hopping */
   eleIdx[mj+si*Ne] = rj;
@@ -608,7 +621,7 @@ double calHCACA1_real(const int ri, const int rj, const int rk, const int rl,
 /* Assuming ri,rj,rk,rl are different, eleNum[rsi]=1, eleNum[rsj]=0, eleNum[rsk]=1, eleNum[rsl]=0  */
 double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
                          const int si,const int sk,
-                         const double ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt) {
+                         const double ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double *eleGPWKern) {
   const int nsize=Nsize;
   const int nsite2=Nsite2;
 
@@ -622,26 +635,28 @@ double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
 
   double g;
 
-  double *buffer;
+  double *buffer, *eleGPWKernNew;
   int *bufferInt;
 
   int *myEleIdx, *myEleNum, *myBufferInt, *myRsi, *myRsj;
-  double *myBuffer;
+  double *myBuffer, *myGPWKernNew;
   double myValue=0.0;
   double v=0.0;
 
   RequestWorkSpaceInt(NProj);      /* for GreenFunc2 */
-  RequestWorkSpaceDouble(NQPFull+2*Nsize); /* for GreenFunc2 */
+  RequestWorkSpaceDouble(NQPFull+2*Nsize+NGPWIdx); /* for GreenFunc2 */
   RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj+8);
-  RequestWorkSpaceThreadDouble(NQPFull+3*Nsize);
+  RequestWorkSpaceThreadDouble(NQPFull+3*Nsize+NGPWIdx);
 
   bufferInt = GetWorkSpaceInt(NProj);
   buffer = GetWorkSpaceDouble(NQPFull+2*Nsize);
+  eleGPWKernNew = GetWorkSpaceDouble(NGPWIdx);
+
 
   /* H0 term */
   /* <psi|H0 CACA|x>/<psi|x> = H0(x') <psi|CACA|x>/<psi|x> */
   g = GreenFunc2_real(ri,rj,rk,rl,si,sk,ip,
-      eleIdx,eleCfg,eleNum,eleProjCnt,bufferInt,buffer);
+      eleIdx,eleCfg,eleNum,eleProjCnt,bufferInt,eleGPWKern,eleGPWKernNew,buffer);
 
   /* hopping */
   eleNum[rsi] = 1;
@@ -660,7 +675,7 @@ double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
   /* end of H0 term */
 
 #pragma omp parallel default(shared)\
-  private(myEleIdx,myEleNum,myBufferInt,myBuffer,myValue,myRsi,myRsj)  \
+  private(myEleIdx,myEleNum,myBufferInt,myBuffer,myGPWKernNew,myValue,myRsi,myRsj)  \
   reduction(+:v)
   {
     myEleIdx = GetWorkSpaceThreadInt(Nsize);
@@ -669,6 +684,7 @@ double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
     myRsi = GetWorkSpaceThreadInt(4);
     myRsj = GetWorkSpaceThreadInt(4);
     myBuffer = GetWorkSpaceThreadDouble(NQPFull+4*Nsize);
+    myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
 
 #pragma loop noalias
     for(idx=0;idx<nsize;idx++) myEleIdx[idx] = eleIdx[idx];
@@ -688,7 +704,7 @@ double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
       myRsj[2] = rsl;
 
       myValue -= creal(ParaTransfer[idx])
-        * GreenFuncN_real(3,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myBuffer,myBufferInt);
+        * GreenFuncN_real(3,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,eleGPWKern,myGPWKernNew,myBuffer,myBufferInt);
       /* Caution: negative sign */
     }
 
@@ -707,7 +723,7 @@ double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
       myRsj[3] = rsl;
 
       myValue += ParaPairHopping[idx]
-        * GreenFuncN_real(4,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myBuffer,myBufferInt);
+        * GreenFuncN_real(4,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,eleGPWKern,myGPWKernNew,myBuffer,myBufferInt);
     }
 
     /* Exchange Coupling */
@@ -724,7 +740,7 @@ double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
       myRsi[3] = rsk;
       myRsj[3] = rsl;
       myValue += ParaExchangeCoupling[idx]
-        * GreenFuncN_real(4,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myBuffer,myBufferInt);
+        * GreenFuncN_real(4,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,eleGPWKern,myGPWKernNew,myBuffer,myBufferInt);
 
       myRsi[0] = r0+Nsite; /* s=1 */
       myRsj[0] = r1+Nsite; /* s=1 */
@@ -735,7 +751,7 @@ double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
       myRsi[3] = rsk;
       myRsj[3] = rsl;
       myValue += ParaExchangeCoupling[idx]
-        * GreenFuncN_real(4,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myBuffer,myBufferInt);
+        * GreenFuncN_real(4,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,eleGPWKern,myGPWKernNew,myBuffer,myBufferInt);
     }
 
     /* Inter All */
@@ -750,7 +766,7 @@ double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
       myRsi[3] = rsk;
       myRsj[3] = rsl;
       myValue += creal(ParaInterAll[idx])
-        * GreenFuncN_real(4,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myBuffer,myBufferInt);
+        * GreenFuncN_real(4,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,eleGPWKern,myGPWKernNew,myBuffer,myBufferInt);
     }
 
     v += myValue;
@@ -767,7 +783,7 @@ double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
 
 
 /* Calculate <psi|QCisAjs|x>/<psi|x> */
-void LSLocalCisAjs_real(const double h1, const double ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt) {
+void LSLocalCisAjs_real(const double h1, const double ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double *eleGPWKern) {
   const int nCisAjs=NCisAjs;
   double *lsLCisAjs_real = LSLCisAjs_real;
   double complex*localCisAjs = LocalCisAjs;
@@ -786,7 +802,7 @@ void LSLocalCisAjs_real(const double h1, const double ip, int *eleIdx, int *eleC
     s  = CisAjsIdx[idx][3];
 
     /* calculate local HCisAjs */
-    LSLCisAjs_real[idx+nCisAjs] = calHCA_real(ri,rj,s,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
+    LSLCisAjs_real[idx+nCisAjs] = calHCA_real(ri,rj,s,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
   }
   return;
 }

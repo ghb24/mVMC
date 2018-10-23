@@ -14,10 +14,10 @@ the Free Software Foundation, either version 3 of the License, or
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details. 
+GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License 
-along with this program. If not, see http://www.gnu.org/licenses/. 
+You should have received a copy of the GNU General Public License
+along with this program. If not, see http://www.gnu.org/licenses/.
 */
 /*-------------------------------------------------------------
  * Variational Monte Carlo
@@ -28,16 +28,16 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 
 double complex GreenFunc1_fsz(const int ri, const int rj, const int s, const double complex ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,int *eleSpn,
-                  int *projCntNew, double complex *buffer);
+                  int *projCntNew, const double *eleGPWKern, double *eleGPWKernNew, double complex *buffer);
 
 double complex GreenFunc1_fsz2(const int ri, const int rj, const int s,const int t, const double complex ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,int *eleSpn,
-                  int *projCntNew, double complex *buffer);
+                  int *projCntNew, const double *eleGPWKern, double *eleGPWKernNew, double complex *buffer);
 
 double complex GreenFunc2_fsz(const int ri, const int rj, const int rk, const int rl,
                   const int s, const int t, const double complex  ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,int *eleSpn,
-                  int *projCntNew, double complex *buffer);
+                  int *projCntNew, const double *eleGPWKern, double *eleGPWKernNew, double complex *buffer);
 /*
 double complex GreenFuncN(const int n, int *rsi, int *rsj, const double complex  ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,
@@ -49,7 +49,7 @@ double complex calculateNewPfMN_child(const int qpidx, const int n, const int *m
 /* buffer size = NQPFull */
 double complex GreenFunc1_fsz(const int ri, const int rj, const int s, const double complex  ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,int *eleSpn,
-                  int *projCntNew, complex double *buffer) {
+                  int *projCntNew, const double *eleGPWKern, double *eleGPWKernNew, complex double *buffer) {
   double complex z;
   int mj,msj,rsi,rsj;
   double complex *pfMNew = buffer; /* NQPFull */
@@ -69,6 +69,8 @@ double complex GreenFunc1_fsz(const int ri, const int rj, const int s, const dou
   eleNum[rsi] = 1;
   UpdateProjCnt(rj, ri, s, projCntNew, eleProjCnt, eleNum);
   z = ProjRatio(projCntNew,eleProjCnt);
+  UpdateGPWKern(rj, ri, s, eleGPWKernNew, eleGPWKern, eleNum);
+  z *= GPWRatio(eleGPWKernNew,eleGPWKern);
 
   /* calculate Pfaffian */
   CalculateNewPfM_fsz(mj, s, pfMNew, eleIdx,eleSpn, 0, NQPFull);//fsz
@@ -87,7 +89,7 @@ double complex GreenFunc1_fsz(const int ri, const int rj, const int s, const dou
 /* buffer size = NQPFull */
 double complex GreenFunc1_fsz2(const int ri, const int rj, const int s,const int t, const double complex  ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,int *eleSpn,
-                  int *projCntNew, complex double *buffer) {
+                  int *projCntNew, const double *eleGPWKern, double *eleGPWKernNew, complex double *buffer) {
   double complex z;
   int mj,rsi,rtj;//msj
   double complex *pfMNew = buffer; /* NQPFull */
@@ -108,6 +110,8 @@ double complex GreenFunc1_fsz2(const int ri, const int rj, const int s,const int
   eleNum[rsi] = 1;
   UpdateProjCnt_fsz(rj, ri, t,s, projCntNew, eleProjCnt, eleNum);
   z = ProjRatio(projCntNew,eleProjCnt);
+  UpdateGPWKern_fsz(rj, ri, t,s, eleGPWKernNew, eleGPWKern, eleNum);
+  z *= GPWRatio(eleGPWKernNew, eleGPWKern);
 
   /* calculate Pfaffian */
   CalculateNewPfM_fsz(mj, s, pfMNew, eleIdx,eleSpn, 0, NQPFull);//fsz: note EleSpn[mj]=s
@@ -128,7 +132,7 @@ double complex GreenFunc1_fsz2(const int ri, const int rj, const int s,const int
 double complex GreenFunc2_fsz(const int ri, const int rj, const int rk, const int rl,
                   const int s, const int t, const double complex ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,int *eleSpn,
-                  int *projCntNew, double complex *buffer) {
+                  int *projCntNew, const double *eleGPWKern, double *eleGPWKernNew, double complex *buffer) {
   double complex z;
   int mj,msj,ml,mtl;
   int rsi,rsj,rtk,rtl;
@@ -143,37 +147,37 @@ double complex GreenFunc2_fsz(const int ri, const int rj, const int rk, const in
   if(s==t) {
     if(rk==rl) { /* CisAjsNks */
       if(eleNum[rtk]==0) return 0.0;
-      else return GreenFunc1_fsz(ri,rj,s,ip,eleIdx,eleCfg,eleNum,
-                             eleProjCnt,eleSpn,projCntNew,buffer); /* CisAjs */
+      else return GreenFunc1_fsz(ri,rj,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleSpn,
+                              projCntNew,eleGPWKern,eleGPWKernNew,buffer); /* CisAjs */
     }else if(rj==rl) {
       return 0.0; /* CisAjsCksAjs (j!=k) */
     }else if(ri==rl) { /* AjsCksNis */
       if(eleNum[rsi]==0) return 0.0;
       else if(rj==rk) return 1.0-eleNum[rsj];
-      else return -GreenFunc1_fsz(rk,rj,s,ip,eleIdx,eleCfg,eleNum,
-                              eleProjCnt,eleSpn,projCntNew,buffer); /* -CksAjs */
+      else return -GreenFunc1_fsz(rk,rj,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleSpn,
+                              projCntNew,eleGPWKern,eleGPWKernNew,buffer); /* -CksAjs */
     }else if(rj==rk) { /* CisAls(1-Njs) */
       if(eleNum[rsj]==1) return 0.0;
       else if(ri==rl) return eleNum[rsi];
-      else return GreenFunc1_fsz(ri,rl,s,ip,eleIdx,eleCfg,eleNum,
-                             eleProjCnt,eleSpn,projCntNew,buffer); /* CisAls */
+      else return GreenFunc1_fsz(ri,rl,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleSpn,
+                              projCntNew,eleGPWKern,eleGPWKernNew,buffer); /* CisAls */
     }else if(ri==rk) {
       return 0.0; /* CisAjsCisAls (i!=j) */
     }else if(ri==rj) { /* NisCksAls (i!=k,l) */
       if(eleNum[rsi]==0) return 0.0;
-      else return GreenFunc1_fsz(rk,rl,s,ip,eleIdx,eleCfg,eleNum,
-                             eleProjCnt,eleSpn,projCntNew,buffer); /* CksAls */
+      else return GreenFunc1_fsz(rk,rl,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleSpn,
+                              projCntNew,eleGPWKern,eleGPWKernNew,buffer); /* CksAls */
     }
   }else{
     if(rk==rl) { /* CisAjsNkt */
       if(eleNum[rtk]==0) return 0.0;
       else if(ri==rj) return eleNum[rsi];
-      else return GreenFunc1_fsz(ri,rj,s,ip,eleIdx,eleCfg,eleNum,
-                             eleProjCnt,eleSpn,projCntNew,buffer); /* CisAjs */
+      else return GreenFunc1_fsz(ri,rj,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleSpn,
+                              projCntNew,eleGPWKern,eleGPWKernNew,buffer); /* CisAjs */
     }else if(ri==rj) { /* NisCktAlt */
       if(eleNum[rsi]==0) return 0.0;
-      else return GreenFunc1_fsz(rk,rl,t,ip,eleIdx,eleCfg,eleNum,
-                             eleProjCnt,eleSpn,projCntNew,buffer); /* CktAlt */
+      else return GreenFunc1_fsz(rk,rl,t,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleSpn,
+                              projCntNew,eleGPWKern,eleGPWKernNew,buffer); /* CktAlt */
     }
   }
 
@@ -190,13 +194,16 @@ double complex GreenFunc2_fsz(const int ri, const int rj, const int rk, const in
   eleNum[rtl] = 0;
   eleNum[rtk] = 1;
   UpdateProjCnt(rl, rk, t, projCntNew, eleProjCnt, eleNum);
+  UpdateGPWKern(rl, rk, t, eleGPWKernNew, eleGPWKern, eleNum);
   eleIdx[msj] = ri;
   eleSpn[msj] = s;
   eleNum[rsj] = 0;
   eleNum[rsi] = 1;
   UpdateProjCnt(rj, ri, s, projCntNew, projCntNew, eleNum);
+  UpdateGPWKern(rj, ri, s, eleGPWKernNew, eleGPWKernNew, eleNum);
 
   z = ProjRatio(projCntNew,eleProjCnt);
+  z *= GPWRatio(eleGPWKernNew,eleGPWKern);
 
   /* calculate Pfaffian */
   CalculateNewPfMTwo_fsz(ml, t, mj, s, pfMNew, eleIdx,eleSpn, 0, NQPFull, bufV);
@@ -220,7 +227,7 @@ double complex GreenFunc2_fsz(const int ri, const int rj, const int rk, const in
 double complex GreenFunc2_fsz2(const int ri, const int rj, const int rk, const int rl,
                   const int s, const int t,const int u,const int v, const double complex ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,int *eleSpn,
-                  int *projCntNew, double complex *buffer) {
+                  int *projCntNew, const double *eleGPWKern, double *eleGPWKernNew, double complex *buffer) {
   double complex z;
   //int mj,msj,ml,mtl;
   int mj,ml; // mj: (rj,t) -> (ri,s) ml:(rl,v) -> (rk,u)
@@ -242,10 +249,10 @@ double complex GreenFunc2_fsz2(const int ri, const int rj, const int rk, const i
         return eleNum[XI];
       }else{
         // I=J=K !=L #2
-        if(eleNum[XI]==1) return 0.0; // 
-        else return GreenFunc1_fsz2(rk,rl,u,v,ip,eleIdx,eleCfg,eleNum,
-                             eleProjCnt,eleSpn,projCntNew,buffer); /* CkuAlv */
-      }      
+        if(eleNum[XI]==1) return 0.0; //
+        else return GreenFunc1_fsz2(rk,rl,u,v,ip,eleIdx,eleCfg,eleNum,eleProjCnt,
+                                    eleSpn,projCntNew,eleGPWKern,eleGPWKernNew,buffer); /* CkuAlv */
+      }
     }else if(XJ == XL){
       // I=J=L !=K #3
       return 0.0;
@@ -254,10 +261,10 @@ double complex GreenFunc2_fsz2(const int ri, const int rj, const int rk, const i
       return eleNum[XI]*eleNum[XK];
     }else {
       // I=J   K!=L #5
-      if(eleNum[XI]==0) return 0.0; // 
-      else return GreenFunc1_fsz2(rk,rl,u,v,ip,eleIdx,eleCfg,eleNum,
-                            eleProjCnt,eleSpn,projCntNew,buffer); /* CkuAlv */
-    } 
+      if(eleNum[XI]==0) return 0.0; //
+      else return GreenFunc1_fsz2(rk,rl,u,v,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleSpn,
+                                  projCntNew,eleGPWKern,eleGPWKernNew,buffer); /* CkuAlv */
+    }
   }else if(XI == XK){
     if(XJ == XL){
       // I=K != J=L  #6
@@ -275,33 +282,33 @@ double complex GreenFunc2_fsz2(const int ri, const int rj, const int rk, const i
       return eleNum[XI]*(1-eleNum[XJ]);
     }else{
       // I=L != J!=K #10
-      if(eleNum[XI]==0) return 0.0; // 
-      else return -1.0*GreenFunc1_fsz2(rk,rj,u,t,ip,eleIdx,eleCfg,eleNum,
-                            eleProjCnt,eleSpn,projCntNew,buffer); /* CkuAjt */
+      if(eleNum[XI]==0) return 0.0; //
+      else return -1.0*GreenFunc1_fsz2(rk,rj,u,t,ip,eleIdx,eleCfg,eleNum,eleProjCnt,
+                                       eleSpn,projCntNew,eleGPWKern,eleGPWKernNew,buffer); /* CkuAjt */
     }
   }else if(XJ == XK){
    if(XK == XL){
      // I != J=K=L  #11
-     if(eleNum[XJ]==0) return 0.0; // 
-     else return GreenFunc1_fsz2(ri,rj,s,t,ip,eleIdx,eleCfg,eleNum,
-                            eleProjCnt,eleSpn,projCntNew,buffer); /* CisAjt */
+     if(eleNum[XJ]==0) return 0.0; //
+     else return GreenFunc1_fsz2(ri,rj,s,t,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleSpn,
+                                 projCntNew,eleGPWKern,eleGPWKernNew,buffer); /* CisAjt */
    }else{
      // I != J=K !=L  #12
-     if(eleNum[XJ]==1) return 0.0; // 
-     else return GreenFunc1_fsz2(ri,rl,s,v,ip,eleIdx,eleCfg,eleNum,
-                            eleProjCnt,eleSpn,projCntNew,buffer); /* CisAlv */
-   } 
+     if(eleNum[XJ]==1) return 0.0; //
+     else return GreenFunc1_fsz2(ri,rl,s,v,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleSpn,
+                                 projCntNew,eleGPWKern,eleGPWKernNew,buffer); /* CisAlv */
+   }
   }else if(XJ == XL){
     // I != J=L !=K  #13
-    return 0.0; // 
+    return 0.0; //
   }else if(XK == XL){
     // I != J != K =L  #14
-    if(eleNum[XK]==0) return 0.0; // 
-    else return GreenFunc1_fsz2(ri,rj,s,t,ip,eleIdx,eleCfg,eleNum,
-                            eleProjCnt,eleSpn,projCntNew,buffer); /* CisAjt */
+    if(eleNum[XK]==0) return 0.0; //
+    else return GreenFunc1_fsz2(ri,rj,s,t,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleSpn,
+                                projCntNew,eleGPWKern,eleGPWKernNew,buffer); /* CisAjt */
   }
-     
-  // from here, no pair exists 
+
+  // from here, no pair exists
   if(eleNum[XI]==1 || eleNum[XJ]==0 || eleNum[XK]==1 || eleNum[XL]==0) return 0.0;
 
 
@@ -316,13 +323,16 @@ double complex GreenFunc2_fsz2(const int ri, const int rj, const int rk, const i
   eleNum[XL] = 0;
   eleNum[XK] = 1;
   UpdateProjCnt_fsz(rl, rk, v,u, projCntNew, eleProjCnt, eleNum); // (rl,v) -> (rk,u) v!=u
+  UpdateGPWKern_fsz(rl, rk, v,u, eleGPWKernNew, eleGPWKern, eleNum);
   eleIdx[mj]  = ri; // mj : (ri,s)
   eleSpn[mj]  = s;
   eleNum[XJ] = 0;
   eleNum[XI] = 1;
   UpdateProjCnt_fsz(rj,ri, t,s, projCntNew, projCntNew, eleNum); // (rj,t) -> (ri,s) t!=s
+  UpdateGPWKern_fsz(rj,ri, t,s, eleGPWKernNew, eleGPWKernNew, eleNum);
 
   z = ProjRatio(projCntNew,eleProjCnt);
+  z *= GPWRatio(eleGPWKernNew,eleGPWKern);
 
   /* calculate Pfaffian */
   CalculateNewPfMTwo_fsz(ml, u, mj, s, pfMNew, eleIdx,eleSpn, 0, NQPFull, bufV); // ml -> rk,u; mj -> ri,s
@@ -444,7 +454,7 @@ double complex GreenFunc2_fsz2(const int ri, const int rj, const int rk, const i
 //    sj = rsj[k]/Nsite;
 //    mj = eleCfg[rsj[k]];
 //    msj[k] = mj + sj*Ne;
-//    
+//
 //    eleIdx[msj[k]] = ri;
 //    eleNum[rsj[k]] = 0;
 //    eleNum[rsi[k]] = 1;
@@ -462,7 +472,7 @@ double complex GreenFunc2_fsz2(const int ri, const int rj, const int rk, const i
 //  /* revert hoppint */
 //  #pragma loop noalias
 //  for(k=0;k<n;k++) {
-//    rj = rsj[k]%Nsite;    
+//    rj = rsj[k]%Nsite;
 //    eleIdx[msj[k]] = rj;
 //    eleNum[rsj[k]] = 1;
 //    eleNum[rsi[k]] = 0;
@@ -549,7 +559,7 @@ double complex GreenFunc2_fsz2(const int ri, const int rj, const int rk, const i
 //      mat_k[l] = val;
 //    }
 //  }
-//  
+//
 //  /* Z_kl */
 //  for(k=0;k<n;k++) {
 //    mat_k = mat + n2*(k+n) + n;

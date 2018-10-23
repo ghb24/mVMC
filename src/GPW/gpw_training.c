@@ -196,7 +196,7 @@ int InvertKernel(double* inv, double **kern, const double theta) {
     }
   }
 
-  // TODO exploit symmetry + positivity of the matrix!
+  // TODO exploit symmetry + positivity of the matrix! more stable method: solve linear system...TODO implement!
   M_DGETRF(&NTrn, &NTrn, inv, &NTrn, pivotArray, &errorHandler);
   M_DGETRI(&NTrn, inv, &NTrn, pivotArray, lapackWorkspace, &nn, &errorHandler);
   if (errorHandler != 0) {

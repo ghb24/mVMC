@@ -14,10 +14,10 @@ the Free Software Foundation, either version 3 of the License, or
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details. 
+GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License 
-along with this program. If not, see http://www.gnu.org/licenses/. 
+You should have received a copy of the GNU General Public License
+along with this program. If not, see http://www.gnu.org/licenses/.
 */
 /*-------------------------------------------------------------
  * Variational Monte Carlo
@@ -27,28 +27,31 @@ along with this program. If not, see http://www.gnu.org/licenses/.
  *-------------------------------------------------------------*/
 
 void CalculateGreenFunc_fsz(const double w, const double complex ip, int *eleIdx, int *eleCfg,
-                         int *eleNum, int *eleSpn, int *eleProjCnt);
+                         int *eleNum, int *eleSpn, int *eleProjCnt, double *eleGPWKern);
 
 void CalculateGreenFunc_fsz(const double w, const double complex ip, int *eleIdx, int *eleCfg,
-                         int *eleNum, int *eleSpn,int *eleProjCnt) {
+                         int *eleNum, int *eleSpn,int *eleProjCnt, double *eleGPWKern) {
 
   int idx,idx0,idx1;
   int ri,rj,s,rk,rl,t,u,v;
   double complex tmp;
   int *myEleIdx, *myEleNum, *myProjCntNew,*myEleSpn;
+  double *myGPWKernNew;
   double complex *myBuffer;
 
   RequestWorkSpaceThreadInt(Nsize+Nsize+Nsite2+NProj);
+  RequestWorkSpaceThreadDouble(NGPWIdx);
   RequestWorkSpaceThreadComplex(NQPFull+2*Nsize);
   /* GreenFunc1: NQPFull, GreenFunc2: NQPFull+2*Nsize */
 
 #pragma omp parallel default(shared)\
-  private(myEleIdx,myEleNum,myEleSpn,myProjCntNew,myBuffer,idx)
+  private(myEleIdx,myEleNum,myEleSpn,myProjCntNew,myGPWKernNew,myBuffer,idx)
   {
     myEleIdx = GetWorkSpaceThreadInt(Nsize);
     myEleSpn = GetWorkSpaceThreadInt(Nsize);
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myProjCntNew = GetWorkSpaceThreadInt(NProj);
+    myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
     myBuffer = GetWorkSpaceThreadComplex(NQPFull+2*Nsize);
 
     #pragma loop noalias
@@ -69,17 +72,17 @@ void CalculateGreenFunc_fsz(const double w, const double complex ip, int *eleIdx
       t  = CisAjsIdx[idx][3];
       if(s==t){
         tmp = GreenFunc1_fsz(ri,rj,s,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myEleSpn,
-                       myProjCntNew,myBuffer);
+                       myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
       }else{
         tmp = GreenFunc1_fsz2(ri,rj,s,t,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myEleSpn,
-                       myProjCntNew,myBuffer);
-      }     
+                       myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
+      }
       LocalCisAjs[idx] = tmp;
     }
 
     #pragma omp master
     {StopTimer(50);StartTimer(51);}
-    
+
     #pragma omp for private(idx,ri,rj,s,rk,rl,t,tmp) schedule(dynamic)
     for(idx=0;idx<NCisAjsCktAltDC;idx++) {
       /*
@@ -102,14 +105,14 @@ void CalculateGreenFunc_fsz(const double w, const double complex ip, int *eleIdx
 
       if(s==t && u==v){
         tmp = GreenFunc2_fsz(ri,rj,rk,rl,s,u,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myEleSpn,
-                       myProjCntNew,myBuffer);
+                       myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
       }else{
         tmp = GreenFunc2_fsz2(ri,rj,rk,rl,s,t,u,v,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myEleSpn,
-                       myProjCntNew,myBuffer);
+                       myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
       }
       PhysCisAjsCktAltDC[idx] += w*tmp;
     }
-    
+
     #pragma omp master
     {StopTimer(51);StartTimer(52);}
 
@@ -117,7 +120,7 @@ void CalculateGreenFunc_fsz(const double w, const double complex ip, int *eleIdx
     for(idx=0;idx<NCisAjs;idx++) {
       PhysCisAjs[idx] += w*LocalCisAjs[idx];
     }
-    
+
     #pragma omp master
     {StopTimer(52);StartTimer(53);}
 
@@ -133,6 +136,7 @@ void CalculateGreenFunc_fsz(const double w, const double complex ip, int *eleIdx
   }
 
   ReleaseWorkSpaceThreadInt();
+  ReleaseWorkSpaceThreadDouble();
   ReleaseWorkSpaceThreadComplex();
   return;
 }

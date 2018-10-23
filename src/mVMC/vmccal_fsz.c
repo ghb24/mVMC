@@ -14,22 +14,23 @@ the Free Software Foundation, either version 3 of the License, or
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details. 
+GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License 
-along with this program. If not, see http://www.gnu.org/licenses/. 
+You should have received a copy of the GNU General Public License
+along with this program. If not, see http://www.gnu.org/licenses/.
 */
 /*-------------------------------------------------------------
  * Variational Monte Carlo
  * calculate physical quantities
  *-------------------------------------------------------------
- * by Satoshi Morita 
+ * by Satoshi Morita
  *-------------------------------------------------------------*/
 
 void VMCMainCal_fsz(MPI_Comm comm);
 
 void VMCMainCal_fsz(MPI_Comm comm) {
   int *eleIdx,*eleCfg,*eleNum,*eleProjCnt,*eleSpn; //fsz
+  double *eleGPWKern;
   double complex e,ip;
   double w;
   double sqrtw;
@@ -63,6 +64,7 @@ void VMCMainCal_fsz(MPI_Comm comm) {
     eleCfg = EleCfg + sample*Nsite2;
     eleNum = EleNum + sample*Nsite2;
     eleProjCnt = EleProjCnt + sample*NProj;
+    eleGPWKern = EleGPWKern + sample*NGPWIdx;
     eleSpn     = EleSpn + sample*Nsize; //fsz
 
     StartTimer(40);
@@ -102,8 +104,8 @@ void VMCMainCal_fsz(MPI_Comm comm) {
 #ifdef _DEBUG_DETAIL
     printf("  Debug: sample=%d: calculateHam_cmp \n",sample);
 #endif
-    e  = CalculateHamiltonian_fsz(ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleSpn);//fsz
-    Sz = CalculateSz_fsz(ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleSpn);//fsz
+    e  = CalculateHamiltonian_fsz(ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern,eleSpn);//fsz
+    Sz = CalculateSz_fsz(ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern,eleSpn);//fsz
     //printf("MDEBUG: Sz=%lf \n",Sz);
     //printf("MDEBUG: e= %lf %lf ip= %lf %lf \n",creal(e),cimag(e),creal(ip),cimag(ip));
     StopTimer(41);
@@ -122,10 +124,10 @@ void VMCMainCal_fsz(MPI_Comm comm) {
 #endif
     if(NVMCCalMode==0) {
       /* Calculate O for correlation fauctors */
-      srOptO[0] = 1.0+0.0*I;//   real 
-      srOptO[1] = 0.0+0.0*I;//   real 
+      srOptO[0] = 1.0+0.0*I;//   real
+      srOptO[1] = 0.0+0.0*I;//   real
       #pragma loop noalias
-      for(i=0;i<nProj;i++){ 
+      for(i=0;i<nProj;i++){
         srOptO[(i+1)*2]     = (double)(eleProjCnt[i]); // even real
         srOptO[(i+1)*2+1]   = 0.0+0.0*I;               // odd  comp
       }
@@ -134,7 +136,7 @@ void VMCMainCal_fsz(MPI_Comm comm) {
       /* SlaterElmDiff */
       SlaterElmDiff_fsz(SROptO+2*NProj+2,ip,eleIdx,eleSpn) ;//SlaterElmDiff_fcmp(SROptO+2*NProj+2,ip,eleIdx); //TBC: using InvM not InvM_real
       StopTimer(42);
-      
+
       if(FlagOptTrans>0) { // this part will be not used
         calculateOptTransDiff(SROptO+2*NProj+2*NSlater+2, ip); //TBC
       }
@@ -144,19 +146,19 @@ void VMCMainCal_fsz(MPI_Comm comm) {
         calculateOO(SROptOO,SROptHO,SROptO,w,e,SROptSize);
       }else{
         we    = w*e;
-        sqrtw = sqrt(w); 
+        sqrtw = sqrt(w);
         #pragma omp parallel for default(shared) private(int_i)
         for(int_i=0;int_i<SROptSize*2;int_i++){
         // SROptO_Store for fortran
           SROptO_Store[int_i+sample*(2*SROptSize)]  = sqrtw*SROptO[int_i];
-          SROptHO[int_i]                           += we*SROptO[int_i]; 
+          SROptHO[int_i]                           += we*SROptO[int_i];
         }
-      } 
+      }
       StopTimer(43);
     } else if(NVMCCalMode==1) {
       StartTimer(42);
       /* Calculate Green Function */
-      CalculateGreenFunc_fsz(w,ip,eleIdx,eleCfg,eleNum,eleSpn,eleProjCnt);
+      CalculateGreenFunc_fsz(w,ip,eleIdx,eleCfg,eleNum,eleSpn,eleProjCnt,eleGPWKern);
       StopTimer(42);
 
       if(NLanczosMode>0){

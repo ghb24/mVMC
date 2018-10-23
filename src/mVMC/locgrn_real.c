@@ -14,10 +14,10 @@ the Free Software Foundation, either version 3 of the License, or
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details. 
+GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License 
-along with this program. If not, see http://www.gnu.org/licenses/. 
+You should have received a copy of the GNU General Public License
+along with this program. If not, see http://www.gnu.org/licenses/.
 */
 /*-------------------------------------------------------------
  * Variational Monte Carlo
@@ -43,7 +43,7 @@ double calculateNewPfMN_real_child(const int qpidx, const int n, const int *msa,
 /* buffer size = NQPFull */
 double  GreenFunc1_real(const int ri, const int rj, const int s, const double ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,
-                  int *projCntNew, double *buffer) {
+                  int *projCntNew, const double *eleGPWKern, double *eleGPWKernNew, double *buffer) {
   double  z;
   int mj,msj,rsi,rsj;
   double  *pfMNew_real = buffer; /* NQPFull */
@@ -62,6 +62,8 @@ double  GreenFunc1_real(const int ri, const int rj, const int s, const double ip
   eleNum[rsi] = 1;
   UpdateProjCnt(rj, ri, s, projCntNew, eleProjCnt, eleNum);
   z = ProjRatio(projCntNew,eleProjCnt);
+  UpdateGPWKern(rj, ri, s, eleGPWKernNew, eleGPWKern, eleNum);
+  z *= GPWRatio(eleGPWKernNew,eleGPWKern);
 
   /* calculate Pfaffian */
   CalculateNewPfM_real(mj, s, pfMNew_real, eleIdx, 0, NQPFull);
@@ -80,7 +82,7 @@ double  GreenFunc1_real(const int ri, const int rj, const int s, const double ip
 double GreenFunc2_real(const int ri, const int rj, const int rk, const int rl,
                   const int s, const int t, const double ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,
-                  int *projCntNew, double *buffer) {
+                  int *projCntNew, const double *eleGPWKern, double *eleGPWKernNew, double *buffer) {
   double z;
   int mj,msj,ml,mtl;
   int rsi,rsj,rtk,rtl;
@@ -95,37 +97,37 @@ double GreenFunc2_real(const int ri, const int rj, const int rk, const int rl,
   if(s==t) {
     if(rk==rl) { /* CisAjsNks */
       if(eleNum[rtk]==0) return 0.0;
-      else return GreenFunc1_real(ri,rj,s,ip,eleIdx,eleCfg,eleNum,
-                             eleProjCnt,projCntNew,buffer); /* CisAjs */
+      else return GreenFunc1_real(ri,rj,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt,projCntNew,
+                              eleGPWKern,eleGPWKernNew,buffer); /* CisAjs */
     }else if(rj==rl) {
       return 0.0; /* CisAjsCksAjs (j!=k) */
     }else if(ri==rl) { /* AjsCksNis */
       if(eleNum[rsi]==0) return 0.0;
       else if(rj==rk) return 1.0-eleNum[rsj];
-      else return -GreenFunc1_real(rk,rj,s,ip,eleIdx,eleCfg,eleNum,
-                              eleProjCnt,projCntNew,buffer); /* -CksAjs */
+      else return -GreenFunc1_real(rk,rj,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt,projCntNew,
+                              eleGPWKern,eleGPWKernNew,buffer); /* -CksAjs */
     }else if(rj==rk) { /* CisAls(1-Njs) */
       if(eleNum[rsj]==1) return 0.0;
       else if(ri==rl) return eleNum[rsi];
-      else return GreenFunc1_real(ri,rl,s,ip,eleIdx,eleCfg,eleNum,
-                             eleProjCnt,projCntNew,buffer); /* CisAls */
+      else return GreenFunc1_real(ri,rl,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt,projCntNew,
+                              eleGPWKern,eleGPWKernNew,buffer); /* CisAls */
     }else if(ri==rk) {
       return 0.0; /* CisAjsCisAls (i!=j) */
     }else if(ri==rj) { /* NisCksAls (i!=k,l) */
       if(eleNum[rsi]==0) return 0.0;
-      else return GreenFunc1_real(rk,rl,s,ip,eleIdx,eleCfg,eleNum,
-                             eleProjCnt,projCntNew,buffer); /* CksAls */
+      else return GreenFunc1_real(rk,rl,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt,projCntNew,
+                              eleGPWKern,eleGPWKernNew,buffer); /* CksAls */
     }
   }else{
     if(rk==rl) { /* CisAjsNkt */
       if(eleNum[rtk]==0) return 0.0;
       else if(ri==rj) return eleNum[rsi];
-      else return GreenFunc1_real(ri,rj,s,ip,eleIdx,eleCfg,eleNum,
-                             eleProjCnt,projCntNew,buffer); /* CisAjs */
+      else return GreenFunc1_real(ri,rj,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt,projCntNew,
+                              eleGPWKern,eleGPWKernNew,buffer); /* CisAjs */
     }else if(ri==rj) { /* NisCktAlt */
       if(eleNum[rsi]==0) return 0.0;
-      else return GreenFunc1_real(rk,rl,t,ip,eleIdx,eleCfg,eleNum,
-                             eleProjCnt,projCntNew,buffer); /* CktAlt */
+      else return GreenFunc1_real(rk,rl,t,ip,eleIdx,eleCfg,eleNum,eleProjCnt,projCntNew,
+                              eleGPWKern,eleGPWKernNew,buffer); /* CktAlt */
     }
   }
 
@@ -141,12 +143,15 @@ double GreenFunc2_real(const int ri, const int rj, const int rk, const int rl,
   eleNum[rtl] = 0;
   eleNum[rtk] = 1;
   UpdateProjCnt(rl, rk, t, projCntNew, eleProjCnt, eleNum);
+  UpdateGPWKern(rl, rk, t, eleGPWKernNew, eleGPWKern, eleNum);
   eleIdx[msj] = ri;
   eleNum[rsj] = 0;
   eleNum[rsi] = 1;
   UpdateProjCnt(rj, ri, s, projCntNew, projCntNew, eleNum);
+  UpdateGPWKern(rj, ri, s, eleGPWKernNew, eleGPWKernNew, eleNum);
 
   z = ProjRatio(projCntNew,eleProjCnt);
+  z *= GPWRatio(eleGPWKernNew,eleGPWKern);
 
   /* calculate Pfaffian */
   CalculateNewPfMTwo_real(ml, t, mj, s, pfMNew_real, eleIdx, 0, NQPFull, bufV);
@@ -183,7 +188,7 @@ double GreenFunc2_real(const int ri, const int rj, const int rk, const int rl,
 /// \version 1.0
 double GreenFuncN_real(const int n, int *rsi, int *rsj, const double  ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,
-                  double *buffer, int *bufferInt){
+                  const double *eleGPWKern, double *eleGPWKernNew, double *buffer, int *bufferInt){
   int ri,rj,rk,rl,si,sj,sk,mj;
   int k,l,m,rsk;
   double z,x;
@@ -206,7 +211,7 @@ double GreenFuncN_real(const int n, int *rsi, int *rsj, const double  ip,
     ri = rsi[0]%Nsite;
     rj = rsj[0]%Nsite;
     si = rsi[0]/Nsite;
-    return GreenFunc1_real(ri,rj,si,ip,eleIdx,eleCfg,eleNum,eleProjCnt,projCntNew,buffer);
+    return GreenFunc1_real(ri,rj,si,ip,eleIdx,eleCfg,eleNum,eleProjCnt,projCntNew,eleGPWKern,eleGPWKernNew,buffer);
   } else if(n==2) {
     ri = rsi[0]%Nsite;
     rj = rsj[0]%Nsite;
@@ -214,7 +219,7 @@ double GreenFuncN_real(const int n, int *rsi, int *rsj, const double  ip,
     rk = rsi[1]%Nsite;
     rl = rsj[1]%Nsite;
     sk = rsi[1]/Nsite;
-    return GreenFunc2_real(ri,rj,rk,rl,si,sk,ip,eleIdx,eleCfg,eleNum,eleProjCnt,projCntNew,buffer);
+    return GreenFunc2_real(ri,rj,rk,rl,si,sk,ip,eleIdx,eleCfg,eleNum,eleProjCnt,projCntNew,eleGPWKern,eleGPWKernNew,buffer);
   }
 
   /* reduction */
@@ -229,7 +234,7 @@ double GreenFuncN_real(const int n, int *rsi, int *rsj, const double  ip,
           rsi[m] = rsi[m+1];
           rsj[m] = rsj[m+1];
         }
-        return GreenFuncN_real(n-1,rsi,rsj,ip,eleIdx,eleCfg,eleNum,eleProjCnt,buffer,bufferInt);
+        return GreenFuncN_real(n-1,rsi,rsj,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern,eleGPWKernNew,buffer,bufferInt);
       }
       /* rsj[k] == rsj[l] */
       if(rsk==rsj[l]) return 0;
@@ -245,7 +250,7 @@ double GreenFuncN_real(const int n, int *rsi, int *rsj, const double  ip,
         rsi[m] = rsi[m+1];
         rsj[m] = rsj[m+1];
       }
-      return GreenFuncN_real(n-1,rsi,rsj,ip,eleIdx,eleCfg,eleNum,eleProjCnt,buffer,bufferInt);
+      return GreenFuncN_real(n-1,rsi,rsj,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern,eleGPWKernNew,buffer,bufferInt);
     }
     for(l=k+1;l<n;l++) {
       /* rsi[k] == rsi[l] */
@@ -257,7 +262,7 @@ double GreenFuncN_real(const int n, int *rsi, int *rsj, const double  ip,
           rsi[m] = rsi[m+1];
           rsj[m] = rsj[m+1];
         }
-        return (-1.0)*GreenFuncN_real(n-1,rsi,rsj,ip,eleIdx,eleCfg,eleNum,eleProjCnt,buffer,bufferInt);
+        return (-1.0)*GreenFuncN_real(n-1,rsi,rsj,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern,eleGPWKernNew,buffer,bufferInt);
       }
     }
     /* check electron number */
@@ -279,7 +284,9 @@ double GreenFuncN_real(const int n, int *rsi, int *rsj, const double  ip,
   }
 
   MakeProjCnt(projCntNew,eleNum);
+  CalculateGPWKern(eleGPWKernNew,eleNum);
   x = ProjRatio(projCntNew,eleProjCnt);
+  x *= GPWRatio(eleGPWKernNew,eleGPWKern);
 
   /* calculateNewPfM */
   for(qpidx=0;qpidx<NQPFull;qpidx++) {

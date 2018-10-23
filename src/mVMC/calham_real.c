@@ -14,10 +14,10 @@ the Free Software Foundation, either version 3 of the License, or
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details. 
+GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License 
-along with this program. If not, see http://www.gnu.org/licenses/. 
+You should have received a copy of the GNU General Public License
+along with this program. If not, see http://www.gnu.org/licenses/.
 */
 /*-------------------------------------------------------------
  * Variational Monte Carlo
@@ -39,33 +39,36 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 /// \param eleCfg
 /// \param eleNum
 /// \param eleProjCnt
+/// \param eleGPWKern
 /// \return myEnergy
 double CalculateHamiltonian_real(const double ip, int *eleIdx, const int *eleCfg,
-                             int *eleNum, const int *eleProjCnt) {
+                             int *eleNum, const int *eleProjCnt, const double *eleGPWKern) {
   const int *n0 = eleNum;
   const int *n1 = eleNum + Nsite;
   double e=0.0, tmp;
   int idx;
   int ri,rj,s,rk,rl,t;
   int *myEleIdx, *myEleNum, *myProjCntNew;
+  double *myGPWKernNew;
   double  *myBuffer;
   double  myEnergy;
 
   RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj);
-  RequestWorkSpaceThreadDouble(NQPFull+2*Nsize);
+  RequestWorkSpaceThreadDouble(NQPFull+2*Nsize+NGPWIdx);
   /* GreenFunc1: NQPFull, GreenFunc2: NQPFull+2*Nsize */
 
   #pragma omp parallel default(none) \
-    private(myEleIdx,myEleNum,myProjCntNew,myBuffer,myEnergy, idx, ri, rj, rk, rl, s, t) \
-    firstprivate(Nsize, Nsite2, NProj, NQPFull, NCoulombIntra, CoulombIntra, ParaCoulombIntra,   \
+    private(myEleIdx,myEleNum,myProjCntNew,myGPWKernNew,myBuffer,myEnergy, idx, ri, rj, rk, rl, s, t) \
+    firstprivate(Nsize, Nsite2, NProj, NGPWIdx, NQPFull, NCoulombIntra, CoulombIntra, ParaCoulombIntra,   \
     NCoulombInter, CoulombInter, ParaCoulombInter, NHundCoupling, HundCoupling, ParaHundCoupling,    \
     NTransfer, Transfer, ParaTransfer, NPairHopping, PairHopping, ParaPairHopping,    \
     NExchangeCoupling, ExchangeCoupling, ParaExchangeCoupling, NInterAll, InterAll, ParaInterAll, n0, n1)\
-    shared(eleCfg, eleProjCnt, eleIdx, eleNum) reduction(+:e)
+    shared(eleCfg, eleProjCnt, eleGPWKern, eleIdx, eleNum) reduction(+:e)
   {
     myEleIdx = GetWorkSpaceThreadInt(Nsize);
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myProjCntNew = GetWorkSpaceThreadInt(NProj);
+    myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
     myBuffer = GetWorkSpaceThreadDouble(NQPFull+2*Nsize);
 
     #pragma loop noalias
@@ -73,7 +76,7 @@ double CalculateHamiltonian_real(const double ip, int *eleIdx, const int *eleCfg
     #pragma loop noalias
     for(idx=0;idx<Nsite2;idx++) myEleNum[idx] = eleNum[idx];
     #pragma omp barrier
-    
+
     myEnergy = 0.0;
 
     #pragma omp master
@@ -127,9 +130,9 @@ double CalculateHamiltonian_real(const double ip, int *eleIdx, const int *eleCfg
       ri = Transfer[idx][0];
       rj = Transfer[idx][2];
       s  = Transfer[idx][3];
-      
+
       myEnergy -= creal(ParaTransfer[idx])
-        * GreenFunc1_real(ri,rj,s,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,myBuffer);
+        * GreenFunc1_real(ri,rj,s,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
       /* Caution: negative sign */
     }
 
@@ -145,9 +148,9 @@ double CalculateHamiltonian_real(const double ip, int *eleIdx, const int *eleCfg
     for(idx=0;idx<NPairHopping;idx++) {
       ri = PairHopping[idx][0];
       rj = PairHopping[idx][1];
-    
+
       myEnergy += ParaPairHopping[idx]
-        * GreenFunc2_real(ri,rj,ri,rj,0,1,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,myBuffer);
+        * GreenFunc2_real(ri,rj,ri,rj,0,1,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
     }
 
 #ifdef _DEBUG
@@ -159,13 +162,13 @@ double CalculateHamiltonian_real(const double ip, int *eleIdx, const int *eleCfg
     for(idx=0;idx<NExchangeCoupling;idx++) {
       ri = ExchangeCoupling[idx][0];
       rj = ExchangeCoupling[idx][1];
-    
-      tmp =  GreenFunc2_real(ri,rj,rj,ri,0,1,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,myBuffer);
-      tmp += GreenFunc2_real(ri,rj,rj,ri,1,0,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,myBuffer);
+
+      tmp =  GreenFunc2_real(ri,rj,rj,ri,0,1,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
+      tmp += GreenFunc2_real(ri,rj,rj,ri,1,0,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
       myEnergy += ParaExchangeCoupling[idx] * tmp;
       //printf("XDEBUG: idx=%d tmp=%lf %lf\n",idx,tmp,ParaExchangeCoupling[idx]);
     }
-    
+
 #ifdef _DEBUG
 #pragma omp master
     printf("    Debug: InterAll, NInterAll=%d\n", NInterAll);
@@ -179,14 +182,14 @@ double CalculateHamiltonian_real(const double ip, int *eleIdx, const int *eleCfg
       rk = InterAll[idx][4];
       rl = InterAll[idx][6];
       t  = InterAll[idx][7];
-      
+
       myEnergy += ParaInterAll[idx]
-        * GreenFunc2_real(ri,rj,rk,rl,s,t,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,myBuffer);
+        * GreenFunc2_real(ri,rj,rk,rl,s,t,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
     }
 
     #pragma omp master
     {StopTimer(72);}
-#ifdef _DEBUG    
+#ifdef _DEBUG
     printf("    Debug: myEnergy=%lf\n", myEnergy);
 #endif
     e += myEnergy;
@@ -216,6 +219,8 @@ double CalculateHamiltonianBF_real(const double ip, int *eleIdx, const int *eleC
   double *mySltBFTmp;
   double *myBuffer;
   double myEnergy;
+
+  double *eleGPWKern, *myGPWKernNew; // Dummy variables, backflow is not supported.
 
   RequestWorkSpaceThreadInt(Nsize+2*Nsite2+NProj+16*Nsite*Nrange);
   RequestWorkSpaceThreadDouble(NQPFull+2*Nsize+NQPFull*Nsite2*Nsite2);
@@ -299,7 +304,7 @@ double CalculateHamiltonianBF_real(const double ip, int *eleIdx, const int *eleC
       rj = PairHopping[idx][1];
 
       myEnergy += ParaPairHopping[idx]
-        * GreenFunc2_real(ri,rj,ri,rj,0,1,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,myBuffer);
+        * GreenFunc2_real(ri,rj,ri,rj,0,1,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
     }
 
     /* Exchange Coupling */
@@ -308,8 +313,8 @@ double CalculateHamiltonianBF_real(const double ip, int *eleIdx, const int *eleC
       ri = ExchangeCoupling[idx][0];
       rj = ExchangeCoupling[idx][1];
 
-      tmp =  GreenFunc2_real(ri,rj,rj,ri,0,1,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,myBuffer);
-      tmp += GreenFunc2_real(ri,rj,rj,ri,1,0,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,myBuffer);
+      tmp =  GreenFunc2_real(ri,rj,rj,ri,0,1,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
+      tmp += GreenFunc2_real(ri,rj,rj,ri,1,0,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
       myEnergy += ParaExchangeCoupling[idx] * tmp;
     }
 
@@ -323,7 +328,7 @@ double CalculateHamiltonianBF_real(const double ip, int *eleIdx, const int *eleC
       rl = InterAll[idx][6];
       t  = InterAll[idx][7];
       myEnergy += creal(ParaInterAll[idx])
-        * GreenFunc2_real(ri,rj,rk,rl,s,t,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,myBuffer);
+        * GreenFunc2_real(ri,rj,rk,rl,s,t,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
     }
 
 #pragma omp master

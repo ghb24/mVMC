@@ -10,7 +10,7 @@ inline double complex LogGPWVal(const double *eleGPWKern) {
   int idx;
   double complex z=0.0+0.0*I;
   for(idx=0;idx<NGPWIdx;idx++) {
-    z += GPWVar[idx] * (double)(eleGPWKern[idx]);
+    z += GPWVar[idx] * eleGPWKern[idx];
   }
   return z;
 }
@@ -19,7 +19,7 @@ inline double complex LogGPWRatio(const double *eleGPWKernNew, const double *ele
   int idx;
   double complex z=0.0+0.0*I;
   for(idx=0;idx<NGPWIdx;idx++) {
-    z += GPWVar[idx] * (double)(eleGPWKernNew[idx]-eleGPWKernOld[idx]); 
+    z += GPWVar[idx] * (eleGPWKernNew[idx]-eleGPWKernOld[idx]);
   }
   return z;
 }
@@ -28,7 +28,7 @@ inline double complex GPWRatio(const double *eleGPWKernNew, const double *eleGPW
   int idx;
   double complex z=0.0+0.0*I;
   for(idx=0;idx<NGPWIdx;idx++) {
-    z += GPWVar[idx] * (double)(eleGPWKernNew[idx]-eleGPWKernOld[idx]); 
+    z += GPWVar[idx] * (eleGPWKernNew[idx]-eleGPWKernOld[idx]);
   }
   return cexp(z);
 }
@@ -36,12 +36,12 @@ inline double complex GPWRatio(const double *eleGPWKernNew, const double *eleGPW
 void CalculateGPWKern(double *eleGPWKern, const int *eleNum) {
   const int nGPWIdx=NGPWIdx;
   int i;
-  
+
   // TODO Prallelise this loop!!!
   for(i=0; i<nGPWIdx;i++) {
     eleGPWKern[i] = (double)GPWKernel1(eleNum, Nsite, GPWTrnCfg[i], GPWTrnSize[i]);
   }
-  
+
   return;
 }
 

@@ -355,9 +355,10 @@ void saveEleConfig(const int sample, const double complex logIp, const int *eleI
   offset = sample*nProj;
   #pragma loop noalias
   for(i=0;i<nProj;i++) EleProjCnt[offset+i] = eleProjCnt[i];
+  offset = sample*nGPWIdx;
   #pragma loop noalias
-  for(i=0;i<nGPWIdx;i++) EleGPWKern[i] = eleGPWKern[i];
   
+  for(i=0;i<nGPWIdx;i++) EleGPWKern[offset+i] = eleGPWKern[i];
   x = LogProjVal(eleProjCnt);
   x += LogGPWVal(eleGPWKern);
   logSqPfFullSlater[sample] = 2.0*(x+creal(logIp));//TBC

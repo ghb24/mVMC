@@ -185,9 +185,9 @@ int StochasticOpt(MPI_Comm comm) {
         }
       }else{
         if(RealEvolve==0){
-          para[(pi-1)/2] += r[si]*I;                                                                           
+          para[(pi-1)/2] += r[si]*I;                                                                     
         }else{
-          para[(pi-1)/2] += -1.0*r[si];                                                                         
+          para[(pi-1)/2] += -1.0*r[si];                                                                  
         }
       }
     }

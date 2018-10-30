@@ -288,7 +288,11 @@ int main(int argc, char* argv[])
     StartTimer(2);
     /*-- VMC Parameter Optimization --*/
     if(rank0==0) fprintf(stdout,"Start: Optimize VMC parameters.\n");
-    VMCParaOpt(comm0, comm1, comm2);
+    if(RealEvolve<2){
+      VMCParaOpt(comm0, comm1, comm2);
+    }else{
+      VMCParaOpt2(comm0, comm1, comm2);
+    }
     if(rank0==0) fprintf(stdout,"End  : Optimize VMC parameters.\n");
     StopTimer(2);
   } else if(NVMCCalMode==1) {
@@ -336,6 +340,203 @@ int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
   MPI_Comm_rank(comm_parent, &rank);
   
   if(RealEvolve==1) InitFilePhysCal(0, rank);  
+
+  for(step=0;step<NSROptItrStep;step++) {
+    //printf("0 DUBUG make:step=%d TwoSz=%d\n",step,TwoSz);
+    if(rank==0){
+      OutputTime(step);
+      if(NSROptItrStep<20){
+        iprogress = (int) (100.0*step/NSROptItrStep);
+        printf("Progress of Optimization: %d %%.\n", iprogress);
+      }
+      else if(step%(NSROptItrStep/20)==0){
+        iprogress = (int) (100.0*step/NSROptItrStep);
+        printf("Progress of Optimization: %d %%.\n", iprogress);
+      }
+    }
+    
+    StartTimer(20);
+    //printf("1 DUBUG make:step=%d \n",step);
+    if(iFlgOrbitalGeneral==0){//sz is conserved
+      UpdateSlaterElm_fcmp();
+    }else{
+      UpdateSlaterElm_fsz();
+    } 
+    //printf("2 DUBUG make:step=%d \n",step);
+    UpdateQPWeight();
+    StopTimer(20);
+    StartTimer(3);
+#ifdef _DEBUG_DETAIL
+    printf("Debug: step %d, MakeSample.\n", step);
+#endif
+    if(AllComplexFlag==0 && iFlgOrbitalGeneral==0){ // real & sz=0
+      // only for real TBC
+      StartTimer(69);
+#pragma omp parallel for default(shared) private(tmp_i)
+      for(tmp_i=0;tmp_i<NQPFull*(2*Nsite)*(2*Nsite);tmp_i++) SlaterElm_real[tmp_i]= creal(SlaterElm[tmp_i]);
+#pragma omp parallel for default(shared) private(tmp_i)
+      for(tmp_i=0;tmp_i<NQPFull*(Nsize*Nsize+1);tmp_i++)     InvM_real[tmp_i]= creal(InvM[tmp_i]);
+      StopTimer(69);
+      if(NProjBF ==0){
+        // SlaterElm_real will be used in CalculateMAll, note that SlaterElm will not change before SR
+        VMCMakeSample_real(comm_child1);
+      }else{
+        VMC_BF_MakeSample_real(comm_child1);
+      }
+      // only for real TBC
+      StartTimer(69);
+#pragma omp parallel for default(shared) private(tmp_i)
+      for(tmp_i=0;tmp_i<NQPFull*(Nsize*Nsize+1);tmp_i++)     InvM[tmp_i]      = InvM_real[tmp_i]+0.0*I;
+      StopTimer(69);
+      // only for real TBC
+    }else{
+      if(NProjBF ==0) {
+        if(iFlgOrbitalGeneral==0){// sz =0 & complex
+          VMCMakeSample(comm_child1);//VMCMakeSample(comm_child1);
+        }else{
+          VMCMakeSample_fsz(comm_child1);//VMCMakeSample(comm_child1);
+        } 
+      }
+      else {
+        VMC_BF_MakeSample(comm_child1);
+      }
+    } 
+    StopTimer(3);
+    StartTimer(4);
+
+#ifdef _DEBUG_DETAIL
+    printf("Debug: step %d, MainCal.\n", step);
+#endif
+    if(NProjBF ==0) {
+      if(iFlgOrbitalGeneral==0){//sz is conserved
+        VMCMainCal(comm_child1);
+      }else{//fsz
+        VMCMainCal_fsz(comm_child1); 
+      }
+    }else{
+      VMC_BF_MainCal(comm_child1);
+    }
+    StopTimer(4);
+    StartTimer(21);
+#ifdef _DEBUG_DETAIL
+    printf("Debug: step %d, AverageWE.\n", step);
+#endif
+    WeightAverageWE(comm_parent);
+    if(RealEvolve==1) WeightAverageGreenFunc(comm_parent); 
+    StartTimer(25);//DEBUG
+#ifdef _DEBUG_DETAIL
+    printf("Debug: step %d, SROpt.\n", step);
+#endif
+    if(AllComplexFlag==0 && iFlgOrbitalGeneral==0){ //real & sz =0
+      WeightAverageSROpt_real(comm_parent);
+    }else{
+      WeightAverageSROpt(comm_parent);
+    }
+    StopTimer(25);
+    ReduceCounter(comm_child2);
+    StopTimer(21);
+    StartTimer(22);
+    /* output files */
+    if(rank==0) outputData();
+    
+    StopTimer(22);
+
+#ifdef _DEBUG_DUMP_SROPTO_STORE
+    if(rank==0){
+      if(AllComplexFlag==0 && iFlgOrbitalGeneral==0){ //real & sz=0
+        for(i=0;i<SROptSize*NVMCSample;i++){
+          fprintf(stderr, "DEBUG: SROptO_Store_real[%d]=%lf +I*%lf\n",i,creal(SROptO_Store_real[i]),cimag(SROptO_Store_real[i]));
+        } 
+      }else{
+        for(i=0;i<2*SROptSize*NVMCSample;i++){
+          fprintf(stderr, "DEBUG: SROptO_Store[%d]=%lf +I*%lf\n",i,creal(SROptO_Store[i]),cimag(SROptO_Store[i]));
+        } 
+      }
+    }
+#endif
+
+#ifdef _DEBUG_DUMP_SROPTOO
+    if(rank==0){
+      if(AllComplexFlag==0 && iFlgOrbitalGeneral==0){ //real & sz=0
+        for(i=0;i<(NSRCG==0 ? SROptSize*SROptSize: SROptSize*2);i++){
+          fprintf(stderr, "DEBUG: SROptOO_real[%d]=%lf +I*%lf\n",i,creal(SROptOO_real[i]),cimag(SROptOO_real[i]));
+        } 
+        for(i=0;i<SROptSize;i++){
+          fprintf(stderr, "DEBUG: SROptHO_real[%d]=%lf +I*%lf\n",i,creal(SROptHO_real[i]),cimag(SROptHO_real[i]));
+        } 
+        for(i=0;i<SROptSize;i++){
+          fprintf(stderr, "DEBUG: SROptO_real[%d]=%lf +I*%lf\n",i,creal(SROptO_real[i]),cimag(SROptO_real[i]));
+        } 
+      }else{
+        for(i=0;i<(NSRCG==0 ? 2*SROptSize*(2*SROptSize): 2*SROptSize*2);i++){
+          fprintf(stderr, "DEBUG: SROptOO[%d]=%lf +I*%lf\n",i,creal(SROptOO[i]),cimag(SROptOO[i]));
+        } 
+        for(i=0;i<2*SROptSize;i++){
+          fprintf(stderr, "DEBUG: SROptHO[%d]=%lf +I*%lf\n",i,creal(SROptHO[i]),cimag(SROptHO[i]));
+        } 
+        for(i=0;i<2*SROptSize;i++){
+          fprintf(stderr, "DEBUG: SROptO[%d]=%lf +I*%lf\n",i,creal(SROptO[i]),cimag(SROptO[i]));
+        } 
+      }
+    }
+#endif
+
+    StartTimer(5);
+    if(NSRCG!=0){
+      info = StochasticOptCG(comm_parent);
+    }else{
+      info = StochasticOpt(comm_parent);
+    }
+    //info = StochasticOptDiag(comm_parent);
+    StopTimer(5);
+
+#ifdef _DEBUG_DUMP_PARA
+    for(int i=0; i<NPara; ++i){
+      fprintf(stderr, "DEBUG: Para[%d] = %lf %lf\n", i, creal(Para[i]), cimag(Para[i]));
+    }
+#endif
+
+    // DEBUG
+    // abort();
+
+    if(info!=0) {
+      if(rank==0) fprintf(stderr, "Error: StcOpt info=%d step=%d\n",info,step);
+      return info;
+    }
+
+    StartTimer(23);
+    SyncModifiedParameter(comm_parent);
+    StopTimer(23);
+
+    if(step >= NSROptItrStep-NSROptItrSmp) {
+      StoreOptData(step-(NSROptItrStep-NSROptItrSmp));
+    }
+    
+    FlushFile(step,rank);
+  }
+
+  if(rank==0) OutputTime(NSROptItrStep);
+
+  /* output zqp_opt */
+  if(rank==0) {
+    fprintf(stdout, "Start: Output opt params.\n");
+    OutputOptData();
+    fprintf(stdout, "End: Output opt params.\n");
+  }
+
+  return 0;
+}
+
+/*-- RK4 --*/
+int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2) {
+  int step;
+  int info;
+  int rank;
+  int tmp_i;//DEBUG
+  int iprogress;
+  MPI_Comm_rank(comm_parent, &rank);
+  
+  InitFilePhysCal(0, rank);  
 
   for(step=0;step<NSROptItrStep;step++) {
     //printf("0 DUBUG make:step=%d TwoSz=%d\n",step,TwoSz);

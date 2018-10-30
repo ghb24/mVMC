@@ -106,6 +106,7 @@ int ReadTrnConfigs(const char *directory) {
   FILE *fp;
   int i,x,y;
   double *trnAmp, *trnSD;
+  double amp;
 
   // read no of training configs
   strcat(strcpy(fileName, directory), "/config_strings");
@@ -157,7 +158,10 @@ int ReadTrnConfigs(const char *directory) {
     return -1;
   }
   i = 0;
-  while (fscanf(fp, "%d %d %lf\n", &x, &y, &trnAmp[i]) != EOF) i++;
+  while (fscanf(fp, "%d %d %lf\n", &x, &y, &amp) != EOF) {
+    trnAmp[i] = fabs(amp); // TODO sanity checks if all signs match + support for different signs/complex amplitudes
+    i++;
+  }
   fclose(fp);
 
   // read training slater determinants

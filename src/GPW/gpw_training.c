@@ -8,11 +8,11 @@ int ReadTrnConfigs(const char *directory);
 
 int InvertKernel(double* inv, double **kern, const double theta);
 
-void SaveConfigFiles(double *alpha);
+void SaveConfigFiles(const double complex *alpha);
 
 int main(int argc, char* argv[]) {
   int i,j;
-  double *alpha;
+  double complex *alpha;
   double **kernelMatr, *invKernel;
   const double theta = 1.0; // TODO read in hyperparameter
 
@@ -68,9 +68,9 @@ int main(int argc, char* argv[]) {
 
   // compute vector of alpha values TODO optimise!
   fprintf(stdout,"Start: Create array of alpha values.\n");
-  alpha = (double*)malloc(sizeof(double)*NTrn);
+  alpha = (double complex*)malloc(sizeof(double complex)*NTrn);
   for(i=0;i<NTrn;i++) {
-    double an = 0;
+    double complex an = 0 + 0*I;
     for(j=0;j<NTrn;j++) {
       an += invKernel[i+NTrn*j] * CVec[j];
     }
@@ -123,7 +123,7 @@ int ReadTrnConfigs(const char *directory) {
   TrnCfgStrUp = (int*)malloc(sizeof(int)*NTrn);
   TrnCfgStrDown = (int*)malloc(sizeof(int)*NTrn);
   TrnCfg = (int**)malloc(sizeof(int*)*NTrn);
-  CVec = (double*)malloc(sizeof(double)*NTrn);
+  CVec = (double complex*)malloc(sizeof(double complex)*NTrn);
 
   trnAmp = (double*)malloc(sizeof(double*)*NTrn);
   trnSD = (double*)malloc(sizeof(double)*NTrn);
@@ -159,7 +159,7 @@ int ReadTrnConfigs(const char *directory) {
   }
   i = 0;
   while (fscanf(fp, "%d %d %lf\n", &x, &y, &amp) != EOF) {
-    trnAmp[i] = fabs(amp); // TODO sanity checks if all signs match + support for different signs/complex amplitudes
+    trnAmp[i] = amp; // TODO support for complex amplitudes
     i++;
   }
   fclose(fp);
@@ -177,7 +177,7 @@ int ReadTrnConfigs(const char *directory) {
 
   // compute CVec
   for(i=0;i<NTrn;i++) {
-    CVec[i] = log(trnAmp[i]/trnSD[i]); // TODO sanity check if the sign matches.
+    CVec[i] = clog(trnAmp[i]/trnSD[i]);
   }
   free(trnSD);
   free(trnAmp);
@@ -213,14 +213,14 @@ int InvertKernel(double* inv, double **kern, const double theta) {
   return 0;
 }
 
-void SaveConfigFiles(double *alpha) {
+void SaveConfigFiles(const double complex *alpha) {
   FILE *fp;
   int i;
   const int opt = 0; //sets optimisation flag for the alpha values ...TODO implement support for this
   fp = fopen("gpwidx.def", "w");
   fprintf(fp, "====================== \n");
   fprintf(fp, "NGPWIdx %d  \n", NTrn);
-  fprintf(fp, "ComplexType %d  \n", 0); // TODO Complex support
+  fprintf(fp, "ComplexType %d  \n", 1);
   fprintf(fp, "====================== \n");
   fprintf(fp, "====================== \n");
   for(i=0;i<NTrn;i++) fprintf(fp, "%d %d %d %d\n", TrnSize[i], TrnCfgStrUp[i], TrnCfgStrDown[i], i);
@@ -235,7 +235,7 @@ void SaveConfigFiles(double *alpha) {
   fprintf(fp, "====================== \n");
   fprintf(fp, "========i_GPWCfg===== \n");
   fprintf(fp, "====================== \n");
-  for(i=0;i<NTrn;i++) fprintf(fp, "%d %f %f\n", i, alpha[i], 0.0);
+  for(i=0;i<NTrn;i++) fprintf(fp, "%d %f %f\n", i, creal(alpha[i]), cimag(alpha[i]));
   fflush(fp);
   fclose(fp);
   fprintf(stdout, "ingpw.def written.\n");

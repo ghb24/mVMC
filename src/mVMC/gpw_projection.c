@@ -37,7 +37,7 @@ void CalculateGPWKern(double *eleGPWKern, const int *eleNum) {
   const int nGPWIdx=NGPWIdx;
   int i;
 
-  // TODO Prallelise this loop!!!
+  // TODO Parallelise this loop!!!
   for(i=0; i<nGPWIdx;i++) {
     eleGPWKern[i] = (double)GPWKernel1(eleNum, Nsite, GPWTrnCfg[i], GPWTrnSize[i]);
   }

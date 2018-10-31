@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <complex.h>
 
 #include <gpw_kernel.h>
 
@@ -30,6 +31,5 @@ int *TrnCfgStrUp; // string representation of the up configurations
 int *TrnCfgStrDown; // string representation of the down configurations
 int **TrnCfg; // training configurations
 
-double *CVec; // vector of the configuration factors for the training data (C_n) TODO complex values
-
+double complex *CVec; // vector of the configuration factors for the training data (C_n)
 #endif // _GPW_TRN_INCLUDE_FILES

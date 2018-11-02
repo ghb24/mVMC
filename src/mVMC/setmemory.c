@@ -261,6 +261,8 @@ void SetMemory() {
   /***** Variational Parameters *****/
   //printf("DEBUG:opt=%d %d %d %d %d Ne=%d\n", AllComplexFlag,NPara,NProj,NSlater,NOrbitalIdx,Ne);
   Para     = (double complex*)malloc(sizeof(double complex)*(NPara));
+  Paran    = (double complex*)malloc(sizeof(double complex)*(NPara));
+  Para_new = (double complex*)malloc(sizeof(double complex)*(NPara));
 
   Proj     = Para;
   ProjBF   = Para + NProj;
@@ -362,7 +364,7 @@ void SetMemory() {
 
     SROptData = (double complex*)malloc( sizeof(double complex)*(NSROptItrSmp*(2+NPara)) );
     
-    if(RealEvolve==1){
+    if(RealEvolve>0){
       PhysCisAjs  = (double complex*)malloc(sizeof(double complex)
                     *(NCisAjs+NCisAjsCktAlt+NCisAjsCktAltDC+NCisAjs));
       PhysCisAjsCktAlt   = PhysCisAjs       + NCisAjs;
@@ -448,7 +450,7 @@ void FreeMemory() {
   if(NVMCCalMode==0){
     free(SROptData);
     free(SROptOO);
-    if(RealEvolve==1){
+    if(RealEvolve>0){
       free(PhysCisAjs);
       if(NLanczosMode>0){
         free(QQQQ);
@@ -472,9 +474,12 @@ void FreeMemory() {
   free(EleProjCnt);
   free(EleIdx);
   free(EleCfg);
-
+  
   free(Para);
-
+  if(RealEvolve==2){
+    free(Para_new);
+    free(Paran);
+  }
   return;
 }
 

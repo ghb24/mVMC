@@ -235,7 +235,7 @@ void VMCMainCal(MPI_Comm comm) {
       } 
     
       //below needs to extended for cases where NLanczosMode>1
-      if(RealEvolve==1) CalculateGreenFunc(w,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
+      if(RealEvolve>0) CalculateGreenFunc(w,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
       StopTimer(43);
     
     } else if(NVMCCalMode==1) {

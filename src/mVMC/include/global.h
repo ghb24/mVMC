@@ -173,6 +173,7 @@ int FlagBinary=0;
 /* flag for file flush */
 int NFileFlushInterval=1;
 
+double factor, factor2; /*used in Runge-Kutta*/
 /***** Variational Parameters *****/
 int NPara; /* the total number of variational prameters NPara= NProj + NSlater+ NOptTrans */ 
 int NProj;    /* the number of correlation factor */
@@ -182,6 +183,8 @@ int NOptTrans; /* the number of weights for OptTrans. This is used only for vari
                /* NOptTrans = 0 (not OptTrans mode) or NQPOptTrans (OptTrans mode) */
 int **etaFlag;   /* Back Flow correlation factor (eta = 1.0 or ProjBF[0])*/
 double complex *Para;   /* variatonal parameters */
+double complex *Paran;
+double complex *Para_new;
 double complex *Proj;   /* correlation factor (Proj    =Para) */
 double complex *ProjBF; /* Back flow correlation factor (Proj    =Para) */
 double complex *Slater; /* pair orbital       (Slater  =Para+NProj) */

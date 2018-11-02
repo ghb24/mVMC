@@ -55,6 +55,8 @@ int StochasticOpt(MPI_Comm comm) {
   int int_x,int_y,j,i;
 
   double complex *para=Para;
+  double complex *paran=Paran;
+  double complex *para_new=Para_new;
 
   int rank,size;
   MPI_Comm_rank(comm,&rank);
@@ -180,15 +182,21 @@ int StochasticOpt(MPI_Comm comm) {
       if(pi%2==0){
         if(RealEvolve==0){
           para[pi/2] += r[si];  
-        }else{
+        }else if(RealEvolve==1){
           para[pi/2] += r[si]*I;  
+        }else{
+          para[pi/2] = paran[pi/2] + factor*r[si]*I;
+          para_new[pi/2] += factor2*r[si]*I;
         }
       }else{
         if(RealEvolve==0){
           para[(pi-1)/2] += r[si]*I;                                                                     
-        }else{
+        }else if(RealEvolve==1){
           para[(pi-1)/2] += -1.0*r[si];                                                                  
-        }
+        }else{
+          para[(pi-1)/2] = paran[(pi-1)/2] - factor*r[si];
+          para_new[(pi-1)/2] += -1.0*factor2*r[si];
+       }
       }
     }
   }

@@ -35,6 +35,7 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 // #define _DEBUG_DUMP_PARA
 
 int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2);
+int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2);
 int VMCPhysCal(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2);
 void outputData();
 void printUsageError();
@@ -347,11 +348,11 @@ int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
       OutputTime(step);
       if(NSROptItrStep<20){
         iprogress = (int) (100.0*step/NSROptItrStep);
-        printf("Progress of Optimization: %d %%.\n", iprogress);
+        printf("Progress of Optimization: %d %%\n", iprogress);
       }
       else if(step%(NSROptItrStep/20)==0){
         iprogress = (int) (100.0*step/NSROptItrStep);
-        printf("Progress of Optimization: %d %%.\n", iprogress);
+        printf("Progress of Optimization: %d %%\n", iprogress);
       }
     }
     
@@ -534,9 +535,13 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
   int rank;
   int tmp_i;//DEBUG
   int iprogress;
+  int i;
+
   MPI_Comm_rank(comm_parent, &rank);
   
   InitFilePhysCal(0, rank);  
+
+  for(i=0;i<NPara;i++) Para_new[i] = Para[i];
 
   for(step=0;step<NSROptItrStep;step++) {
     //printf("0 DUBUG make:step=%d TwoSz=%d\n",step,TwoSz);
@@ -544,147 +549,77 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
       OutputTime(step);
       if(NSROptItrStep<20){
         iprogress = (int) (100.0*step/NSROptItrStep);
-        printf("Progress of Optimization: %d %%.\n", iprogress);
+        printf("Progress of Simulation: %d %%\n", iprogress);
       }
       else if(step%(NSROptItrStep/20)==0){
         iprogress = (int) (100.0*step/NSROptItrStep);
-        printf("Progress of Optimization: %d %%.\n", iprogress);
+        printf("Progress of Simulation: %d %%\n", iprogress);
       }
     }
     
+    for(i=0;i<NPara;i++) Paran[i] = Para[i]; 
+ 
+    //////////////////////////////////
+    //Calculation of K1 term
     StartTimer(20);
-    //printf("1 DUBUG make:step=%d \n",step);
-    if(iFlgOrbitalGeneral==0){//sz is conserved
-      UpdateSlaterElm_fcmp();
-    }else{
-      UpdateSlaterElm_fsz();
-    } 
-    //printf("2 DUBUG make:step=%d \n",step);
+    UpdateSlaterElm_fcmp();
     UpdateQPWeight();
     StopTimer(20);
+
     StartTimer(3);
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, MakeSample.\n", step);
 #endif
-    if(AllComplexFlag==0 && iFlgOrbitalGeneral==0){ // real & sz=0
-      // only for real TBC
-      StartTimer(69);
-#pragma omp parallel for default(shared) private(tmp_i)
-      for(tmp_i=0;tmp_i<NQPFull*(2*Nsite)*(2*Nsite);tmp_i++) SlaterElm_real[tmp_i]= creal(SlaterElm[tmp_i]);
-#pragma omp parallel for default(shared) private(tmp_i)
-      for(tmp_i=0;tmp_i<NQPFull*(Nsize*Nsize+1);tmp_i++)     InvM_real[tmp_i]= creal(InvM[tmp_i]);
-      StopTimer(69);
-      if(NProjBF ==0){
-        // SlaterElm_real will be used in CalculateMAll, note that SlaterElm will not change before SR
-        VMCMakeSample_real(comm_child1);
-      }else{
-        VMC_BF_MakeSample_real(comm_child1);
-      }
-      // only for real TBC
-      StartTimer(69);
-#pragma omp parallel for default(shared) private(tmp_i)
-      for(tmp_i=0;tmp_i<NQPFull*(Nsize*Nsize+1);tmp_i++)     InvM[tmp_i]      = InvM_real[tmp_i]+0.0*I;
-      StopTimer(69);
-      // only for real TBC
-    }else{
-      if(NProjBF ==0) {
-        if(iFlgOrbitalGeneral==0){// sz =0 & complex
-          VMCMakeSample(comm_child1);//VMCMakeSample(comm_child1);
-        }else{
-          VMCMakeSample_fsz(comm_child1);//VMCMakeSample(comm_child1);
-        } 
-      }
-      else {
-        VMC_BF_MakeSample(comm_child1);
-      }
-    } 
+    //needs to have start/stoptimer(69) here?
+    VMCMakeSample(comm_child1);
     StopTimer(3);
-    StartTimer(4);
 
+    StartTimer(4);
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, MainCal.\n", step);
 #endif
-    if(NProjBF ==0) {
-      if(iFlgOrbitalGeneral==0){//sz is conserved
-        VMCMainCal(comm_child1);
-      }else{//fsz
-        VMCMainCal_fsz(comm_child1); 
-      }
-    }else{
-      VMC_BF_MainCal(comm_child1);
-    }
+    VMCMainCal(comm_child1);
     StopTimer(4);
+
     StartTimer(21);
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, AverageWE.\n", step);
 #endif
     WeightAverageWE(comm_parent);
-    if(RealEvolve==1) WeightAverageGreenFunc(comm_parent); 
+    WeightAverageGreenFunc(comm_parent); 
     StartTimer(25);//DEBUG
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, SROpt.\n", step);
 #endif
-    if(AllComplexFlag==0 && iFlgOrbitalGeneral==0){ //real & sz =0
-      WeightAverageSROpt_real(comm_parent);
-    }else{
-      WeightAverageSROpt(comm_parent);
-    }
+    WeightAverageSROpt(comm_parent);
     StopTimer(25);
     ReduceCounter(comm_child2);
     StopTimer(21);
     StartTimer(22);
     /* output files */
     if(rank==0) outputData();
-    
     StopTimer(22);
 
 #ifdef _DEBUG_DUMP_SROPTO_STORE
     if(rank==0){
-      if(AllComplexFlag==0 && iFlgOrbitalGeneral==0){ //real & sz=0
-        for(i=0;i<SROptSize*NVMCSample;i++){
-          fprintf(stderr, "DEBUG: SROptO_Store_real[%d]=%lf +I*%lf\n",i,creal(SROptO_Store_real[i]),cimag(SROptO_Store_real[i]));
-        } 
-      }else{
-        for(i=0;i<2*SROptSize*NVMCSample;i++){
-          fprintf(stderr, "DEBUG: SROptO_Store[%d]=%lf +I*%lf\n",i,creal(SROptO_Store[i]),cimag(SROptO_Store[i]));
-        } 
-      }
+      for(i=0;i<2*SROptSize*NVMCSample;i++){
+        fprintf(stderr, "DEBUG: SROptO_Store[%d]=%lf +I*%lf\n",i,creal(SROptO_Store[i]),cimag(SROptO_Store[i]));
+      } 
     }
 #endif
 
 #ifdef _DEBUG_DUMP_SROPTOO
     if(rank==0){
-      if(AllComplexFlag==0 && iFlgOrbitalGeneral==0){ //real & sz=0
-        for(i=0;i<(NSRCG==0 ? SROptSize*SROptSize: SROptSize*2);i++){
-          fprintf(stderr, "DEBUG: SROptOO_real[%d]=%lf +I*%lf\n",i,creal(SROptOO_real[i]),cimag(SROptOO_real[i]));
-        } 
-        for(i=0;i<SROptSize;i++){
-          fprintf(stderr, "DEBUG: SROptHO_real[%d]=%lf +I*%lf\n",i,creal(SROptHO_real[i]),cimag(SROptHO_real[i]));
-        } 
-        for(i=0;i<SROptSize;i++){
-          fprintf(stderr, "DEBUG: SROptO_real[%d]=%lf +I*%lf\n",i,creal(SROptO_real[i]),cimag(SROptO_real[i]));
-        } 
-      }else{
-        for(i=0;i<(NSRCG==0 ? 2*SROptSize*(2*SROptSize): 2*SROptSize*2);i++){
+      for(i=0;i<(NSRCG==0 ? 2*SROptSize*(2*SROptSize): 2*SROptSize*2);i++){
           fprintf(stderr, "DEBUG: SROptOO[%d]=%lf +I*%lf\n",i,creal(SROptOO[i]),cimag(SROptOO[i]));
-        } 
-        for(i=0;i<2*SROptSize;i++){
-          fprintf(stderr, "DEBUG: SROptHO[%d]=%lf +I*%lf\n",i,creal(SROptHO[i]),cimag(SROptHO[i]));
-        } 
-        for(i=0;i<2*SROptSize;i++){
-          fprintf(stderr, "DEBUG: SROptO[%d]=%lf +I*%lf\n",i,creal(SROptO[i]),cimag(SROptO[i]));
-        } 
-      }
+        }
     }
 #endif
 
     StartTimer(5);
-    if(NSRCG!=0){
-      info = StochasticOptCG(comm_parent);
-    }else{
-      info = StochasticOpt(comm_parent);
-    }
-    //info = StochasticOptDiag(comm_parent);
+    factor = 0.5;
+    factor2 = 1./6.;
+    info = StochasticOpt(comm_parent);
     StopTimer(5);
 
 #ifdef _DEBUG_DUMP_PARA
@@ -693,13 +628,217 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
     }
 #endif
 
-    // DEBUG
-    // abort();
+    if(info!=0) {
+      if(rank==0) fprintf(stderr, "Error: StcOpt info=%d step=%d\n",info,step);
+      return info;
+    }
+
+    //////////////////////////////////
+    //Calculation of K2 term
+    StartTimer(20);
+    UpdateSlaterElm_fcmp();
+    UpdateQPWeight();
+    StopTimer(20);
+
+    StartTimer(3);
+#ifdef _DEBUG_DETAIL
+    printf("Debug: step %d, MakeSample.\n", step);
+#endif
+    //needs to have start/stoptimer(69) here?
+    VMCMakeSample(comm_child1);
+    StopTimer(3);
+
+    StartTimer(4);
+#ifdef _DEBUG_DETAIL
+    printf("Debug: step %d, MainCal.\n", step);
+#endif
+    VMCMainCal(comm_child1);
+    StopTimer(4);
+
+    StartTimer(21);
+#ifdef _DEBUG_DETAIL
+    printf("Debug: step %d, AverageWE.\n", step);
+#endif
+    StartTimer(25);//DEBUG
+#ifdef _DEBUG_DETAIL
+    printf("Debug: step %d, SROpt.\n", step);
+#endif
+    WeightAverageSROpt(comm_parent);
+    StopTimer(25);
+    ReduceCounter(comm_child2);
+    StopTimer(21);
+
+#ifdef _DEBUG_DUMP_SROPTO_STORE
+    if(rank==0){
+      for(i=0;i<2*SROptSize*NVMCSample;i++){
+        fprintf(stderr, "DEBUG: SROptO_Store[%d]=%lf +I*%lf\n",i,creal(SROptO_Store[i]),cimag(SROptO_Store[i]));
+      } 
+    }
+#endif
+
+#ifdef _DEBUG_DUMP_SROPTOO
+    if(rank==0){
+      for(i=0;i<(NSRCG==0 ? 2*SROptSize*(2*SROptSize): 2*SROptSize*2);i++){
+          fprintf(stderr, "DEBUG: SROptOO[%d]=%lf +I*%lf\n",i,creal(SROptOO[i]),cimag(SROptOO[i]));
+        }
+    }
+#endif
+
+    StartTimer(5);
+    factor2 = 1./3.;
+    info = StochasticOpt(comm_parent);
+    StopTimer(5);
+
+#ifdef _DEBUG_DUMP_PARA
+    for(int i=0; i<NPara; ++i){
+      fprintf(stderr, "DEBUG: Para[%d] = %lf %lf\n", i, creal(Para[i]), cimag(Para[i]));
+    }
+#endif
 
     if(info!=0) {
       if(rank==0) fprintf(stderr, "Error: StcOpt info=%d step=%d\n",info,step);
       return info;
     }
+    
+    //////////////////////////////////
+    //Calculation of K3 term
+    StartTimer(20);
+    UpdateSlaterElm_fcmp();
+    UpdateQPWeight();
+    StopTimer(20);
+
+    StartTimer(3);
+#ifdef _DEBUG_DETAIL
+    printf("Debug: step %d, MakeSample.\n", step);
+#endif
+    //needs to have start/stoptimer(69) here?
+    VMCMakeSample(comm_child1);
+    StopTimer(3);
+
+    StartTimer(4);
+#ifdef _DEBUG_DETAIL
+    printf("Debug: step %d, MainCal.\n", step);
+#endif
+    VMCMainCal(comm_child1);
+    StopTimer(4);
+
+    StartTimer(21);
+#ifdef _DEBUG_DETAIL
+    printf("Debug: step %d, AverageWE.\n", step);
+#endif
+    StartTimer(25);//DEBUG
+#ifdef _DEBUG_DETAIL
+    printf("Debug: step %d, SROpt.\n", step);
+#endif
+    WeightAverageSROpt(comm_parent);
+    StopTimer(25);
+    ReduceCounter(comm_child2);
+    StopTimer(21);
+
+#ifdef _DEBUG_DUMP_SROPTO_STORE
+    if(rank==0){
+      for(i=0;i<2*SROptSize*NVMCSample;i++){
+        fprintf(stderr, "DEBUG: SROptO_Store[%d]=%lf +I*%lf\n",i,creal(SROptO_Store[i]),cimag(SROptO_Store[i]));
+      } 
+    }
+#endif
+
+#ifdef _DEBUG_DUMP_SROPTOO
+    if(rank==0){
+      for(i=0;i<(NSRCG==0 ? 2*SROptSize*(2*SROptSize): 2*SROptSize*2);i++){
+          fprintf(stderr, "DEBUG: SROptOO[%d]=%lf +I*%lf\n",i,creal(SROptOO[i]),cimag(SROptOO[i]));
+        }
+    }
+#endif
+
+    StartTimer(5);
+    factor = 1.0;
+    factor2 = 1./3.;
+    info = StochasticOpt(comm_parent);
+    StopTimer(5);
+
+#ifdef _DEBUG_DUMP_PARA
+    for(int i=0; i<NPara; ++i){
+      fprintf(stderr, "DEBUG: Para[%d] = %lf %lf\n", i, creal(Para[i]), cimag(Para[i]));
+    }
+#endif
+
+    if(info!=0) {
+      if(rank==0) fprintf(stderr, "Error: StcOpt info=%d step=%d\n",info,step);
+      return info;
+    }
+    
+    //////////////////////////////////
+    //Calculation of K4 term
+    StartTimer(20);
+    UpdateSlaterElm_fcmp();
+    UpdateQPWeight();
+    StopTimer(20);
+
+    StartTimer(3);
+#ifdef _DEBUG_DETAIL
+    printf("Debug: step %d, MakeSample.\n", step);
+#endif
+    //needs to have start/stoptimer(69) here?
+    VMCMakeSample(comm_child1);
+    StopTimer(3);
+
+    StartTimer(4);
+#ifdef _DEBUG_DETAIL
+    printf("Debug: step %d, MainCal.\n", step);
+#endif
+    VMCMainCal(comm_child1);
+    StopTimer(4);
+
+    StartTimer(21);
+#ifdef _DEBUG_DETAIL
+    printf("Debug: step %d, AverageWE.\n", step);
+#endif
+    StartTimer(25);//DEBUG
+#ifdef _DEBUG_DETAIL
+    printf("Debug: step %d, SROpt.\n", step);
+#endif
+    WeightAverageSROpt(comm_parent);
+    StopTimer(25);
+    ReduceCounter(comm_child2);
+    StopTimer(21);
+
+#ifdef _DEBUG_DUMP_SROPTO_STORE
+    if(rank==0){
+      for(i=0;i<2*SROptSize*NVMCSample;i++){
+        fprintf(stderr, "DEBUG: SROptO_Store[%d]=%lf +I*%lf\n",i,creal(SROptO_Store[i]),cimag(SROptO_Store[i]));
+      } 
+    }
+#endif
+
+#ifdef _DEBUG_DUMP_SROPTOO
+    if(rank==0){
+      for(i=0;i<(NSRCG==0 ? 2*SROptSize*(2*SROptSize): 2*SROptSize*2);i++){
+          fprintf(stderr, "DEBUG: SROptOO[%d]=%lf +I*%lf\n",i,creal(SROptOO[i]),cimag(SROptOO[i]));
+        }
+    }
+#endif
+
+    StartTimer(5);
+    factor2 = 1./6.;
+    info = StochasticOpt(comm_parent);
+    StopTimer(5);
+
+#ifdef _DEBUG_DUMP_PARA
+    for(int i=0; i<NPara; ++i){
+      fprintf(stderr, "DEBUG: Para[%d] = %lf %lf\n", i, creal(Para[i]), cimag(Para[i]));
+    }
+#endif
+
+    if(info!=0) {
+      if(rank==0) fprintf(stderr, "Error: StcOpt info=%d step=%d\n",info,step);
+      return info;
+    }
+
+    //////////////////////////////////
+    //Assigns new state and writes to file
+
+    for(i=0;i<NPara;i++) Para[i] = Para_new[i];
 
     StartTimer(23);
     SyncModifiedParameter(comm_parent);
@@ -847,7 +986,7 @@ void outputData() {
  //         creal((Etot2 - Etot * Etot) / (Etot * Etot)));
 //[e] MERGE BY TM
 //
-  if (NVMCCalMode == 0 && RealEvolve==0) {
+  if (NVMCCalMode == 0 && RealEvolve == 0) {
     /* zvo_out.dat */
     fprintf(FileOut, "% .18e % .18e  % .18e % .18e %.18e %.18e\n", creal(Etot),cimag(Etot), creal(Etot2), creal((Etot2 - Etot*Etot)/(Etot*Etot)),creal(Sztot),creal(Sztot2));
     /* zvo_var.dat */
@@ -861,7 +1000,7 @@ void outputData() {
     }  
   }
 
-  if(RealEvolve==1) {
+  if(RealEvolve > 0) {
     /* zvo_out.dat */
     fprintf(FileOut, "% .18e % .18e  % .18e % .18e %.18e %.18e\n", creal(Etot),cimag(Etot), creal(Etot2), creal((Etot2 - Etot*Etot)/(Etot*Etot)),creal(Sztot),creal(Sztot2));
     /* zvo_var.dat */

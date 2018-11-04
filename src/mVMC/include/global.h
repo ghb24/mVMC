@@ -174,6 +174,7 @@ int FlagBinary=0;
 int NFileFlushInterval=1;
 
 double factor, factor2; /*used in Runge-Kutta*/
+int gf=1; /*dictates if Green's functions are calculated during real-time evolution*/
 /***** Variational Parameters *****/
 int NPara; /* the total number of variational prameters NPara= NProj + NSlater+ NOptTrans */ 
 int NProj;    /* the number of correlation factor */

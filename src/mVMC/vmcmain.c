@@ -570,7 +570,6 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, MakeSample.\n", step);
 #endif
-    //needs to have start/stoptimer(69) here?
     VMCMakeSample(comm_child1);
     StopTimer(3);
 
@@ -635,6 +634,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
 
     //////////////////////////////////
     //Calculation of K2 term
+    gf=0; /*stops Green's functions being calculated again*/
     StartTimer(20);
     UpdateSlaterElm_fcmp();
     UpdateQPWeight();
@@ -644,7 +644,6 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, MakeSample.\n", step);
 #endif
-    //needs to have start/stoptimer(69) here?
     VMCMakeSample(comm_child1);
     StopTimer(3);
 
@@ -711,7 +710,6 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, MakeSample.\n", step);
 #endif
-    //needs to have start/stoptimer(69) here?
     VMCMakeSample(comm_child1);
     StopTimer(3);
 
@@ -779,7 +777,6 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, MakeSample.\n", step);
 #endif
-    //needs to have start/stoptimer(69) here?
     VMCMakeSample(comm_child1);
     StopTimer(3);
 
@@ -839,6 +836,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
     //Assigns new state and writes to file
 
     for(i=0;i<NPara;i++) Para[i] = Para_new[i];
+    gf=1; 
 
     StartTimer(23);
     SyncModifiedParameter(comm_parent);
@@ -1013,12 +1011,12 @@ void outputData() {
     }
     /* zvo_cisajs.dat */
     if(NCisAjs > 0) {
-      for (i = 0; i < NCisAjs; i++) fprintf(FileCisAjs, "% .18e  % .18e 0.0", creal(PhysCisAjs[i]), cimag(PhysCisAjs[i]));
+      for (i = 0; i < NCisAjs; i++) fprintf(FileCisAjs, "% .18e  % .18e 0.0 ", creal(PhysCisAjs[i]), cimag(PhysCisAjs[i]));
       fprintf(FileCisAjs, "\n");
     }
     /* zvo_cisajscktaltdc.dat */
     if(NCisAjsCktAltDC > 0) {
-      for (i = 0; i < NCisAjsCktAltDC; i++) fprintf(FileCisAjsCktAltDC, "% .18e  % .18e 0.0", creal(PhysCisAjsCktAltDC[i]), cimag(PhysCisAjsCktAltDC[i]));
+      for (i = 0; i < NCisAjsCktAltDC; i++) fprintf(FileCisAjsCktAltDC, "% .18e  % .18e 0.0 ", creal(PhysCisAjsCktAltDC[i]), cimag(PhysCisAjsCktAltDC[i]));
       fprintf(FileCisAjsCktAltDC, "\n"); 
     }
   }  

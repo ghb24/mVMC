@@ -171,10 +171,11 @@ void VMCMainCal(MPI_Comm comm) {
       continue;
     }
 
+    if(RealEvolve>0 && gf==1) CalculateGreenFunc(w,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
     Wc += w;
     Etot  += w * e;
     Etot2 += w * conj(e) * e;
-    //CalculateGreenFunc(w,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
+
 #ifdef _DEBUG_VMCCAL
     printf("  Debug: sample=%d: calculateOpt \n",sample);
 #endif
@@ -235,7 +236,7 @@ void VMCMainCal(MPI_Comm comm) {
       } 
     
       //below needs to extended for cases where NLanczosMode>1
-      if(RealEvolve>0) CalculateGreenFunc(w,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
+      //if(RealEvolve>0) CalculateGreenFunc(w,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
       StopTimer(43);
     
     } else if(NVMCCalMode==1) {

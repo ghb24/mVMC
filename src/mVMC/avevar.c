@@ -146,6 +146,14 @@ void OutputOptData() {
       count_i +=2*5*NDoublonHolon4siteIdx;
     }
 
+    if(NGPWIdx != 0){
+      sprintf(fileName, "%s_gpw_opt.dat", CParaFileHead);
+      Child_OutputOptData(fp, fileName, "NGPWIdx",
+			  NGPWIdx, NGPWIdx,
+			  count_i, n);
+      count_i += NGPWIdx;
+    }
+
     if(NSlater != 0){
       if(iFlgOrbitalGeneral==0) {
         sprintf(fileName, "%s_orbital_opt.dat", CParaFileHead);

@@ -226,7 +226,7 @@ void SetMemoryDef() {
     }
   }
   
-  // GPW trainig set
+  // GPW trainig set, TODO: include in joint memory for all other definition terms
   GPWTrnSize = (int*)malloc(sizeof(int)*(NGPWIdx));
   GPWTrnCfg = (int**)malloc(sizeof(int*)*(NGPWIdx));
 

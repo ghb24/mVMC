@@ -44,6 +44,7 @@ void VMCMainCal_fsz(MPI_Comm comm) {
 
   /* optimazation for Kei */
   const int nProj=NProj;
+  const int nGPWIdx=NGPWIdx;
   double complex *srOptO = SROptO;
 //  double         *srOptO_real = SROptO_real;
 
@@ -130,6 +131,12 @@ void VMCMainCal_fsz(MPI_Comm comm) {
       for(i=0;i<nProj;i++){
         srOptO[(i+1)*2]     = (double)(eleProjCnt[i]); // even real
         srOptO[(i+1)*2+1]   = 0.0+0.0*I;               // odd  comp
+      }
+
+      #pragma loop noalias
+      for(i=0;i<nGPWIdx;i++){
+        srOptO[(nProj+2+i)*2]     = eleGPWKern[i];    // even real
+        srOptO[(nProj+2+i)*2+1]   = eleGPWKern[i]*I;  // odd  comp
       }
 
       StartTimer(42);

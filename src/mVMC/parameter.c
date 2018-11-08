@@ -40,7 +40,7 @@ void InitParameter() {
   for(i=0;i<NGPWIdx;i++) GPWVar[i] = 0.0+0.0*I;
   if(AllComplexFlag==0){
     for(i=0;i<NSlater;i++){
-      if(OptFlag[2*i+2*NProj] > 0){ //TBC
+      if(OptFlag[2*i+2*NProj+2*NGPWIdx] > 0){ //TBC
         Slater[i] =  1*genrand_real2(); /* uniform distribution [0,1) */
         //Slater[i] += 1*I*genrand_real2(); /* uniform distribution [0,1) */
         //printf("DEBUG: i=%d slater=%lf %lf \n",i,creal(Slater[i]),cimag(Slater[i]));
@@ -51,7 +51,7 @@ void InitParameter() {
   }
   else{
     for(i=0;i<NSlater;i++){
-      if(OptFlag[2*i+2*NProj] > 0){ //TBC
+      if(OptFlag[2*i+2*NProj+2*NGPWIdx] > 0){ //TBC
         Slater[i] =  2*(genrand_real2()-0.5); /* uniform distribution [-1,1) */
         Slater[i] += 2*I*(genrand_real2()-0.5); /* uniform distribution [-1,1) */
         Slater[i] /=sqrt(2.0);
@@ -69,7 +69,7 @@ void InitParameter() {
   return;
 }
 
-/* read initial vaules of variational parameters from initFile */
+/* read initial vaules of variational parameters from initFile */ // TODO include GPW parameters
 int ReadInitParameter(char *initFile) {
   FILE *fp;
   int i, xi;

@@ -83,6 +83,7 @@ void VMCMainCal(MPI_Comm comm) {
 
   /* optimazation for Kei */
   const int nProj=NProj;
+  const int nGPWIdx=NGPWIdx;
   double complex *srOptO = SROptO;
   double         *srOptO_real = SROptO_real;
 
@@ -180,7 +181,7 @@ void VMCMainCal(MPI_Comm comm) {
 #ifdef _DEBUG_VMCCAL
     printf("  Debug: sample=%d: calculateOpt \n",sample);
 #endif
-    if(NVMCCalMode==0) { // TODO include GPW parameters into SR method
+    if(NVMCCalMode==0) {
       /* Calculate O for correlation fauctors */
       srOptO[0] = 1.0+0.0*I;//   real
       srOptO[1] = 0.0+0.0*I;//   real
@@ -191,13 +192,20 @@ void VMCMainCal(MPI_Comm comm) {
         srOptO[(i+1)*2+1]   = (double)(eleProjCnt[i])*I;  // odd  comp
       }
 
+#pragma loop noalias
+      for(i=0;i<nGPWIdx;i++){
+        srOptO[(nProj+2+i)*2]     = eleGPWKern[i];    // even real
+        srOptO[(nProj+2+i)*2+1]   = eleGPWKern[i]*I;  // odd  comp
+      }
+
+
       StartTimer(42);
       /* SlaterElmDiff */
-      SlaterElmDiff_fcmp(SROptO+2*NProj+2,ip,eleIdx); //TBC: using InvM not InvM_real
+      SlaterElmDiff_fcmp(SROptO+2*NProj+2*NGPWIdx+2,ip,eleIdx); //TBC: using InvM not InvM_real
       StopTimer(42);
 
       if(FlagOptTrans>0) { // this part will be not used
-        calculateOptTransDiff(SROptO+2*NProj+2*NSlater+2, ip); //TBC
+        calculateOptTransDiff(SROptO+2*NProj+2*NGPWIdx+2*NSlater+2, ip); //TBC
       }
       //[s] this part will be used for real varaibles
       if(AllComplexFlag==0){

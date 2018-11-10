@@ -37,6 +37,7 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2);
 int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2);
 int VMCPhysCal(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2);
+void interaction();
 void outputData();
 void printUsageError();
 void printOption();
@@ -542,6 +543,12 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
   InitFilePhysCal(0, rank);  
 
   for(i=0;i<NPara;i++) Para_new[i] = Para[i];
+  
+  NSROptItrStep = (int) round((tramp + tcst)/DSROptStepDt);
+ 
+  //initial values of the interaction and time
+  Ut = Ui;
+  tc = 0.0;
 
   for(step=0;step<NSROptItrStep;step++) {
     //printf("0 DUBUG make:step=%d TwoSz=%d\n",step,TwoSz);
@@ -561,6 +568,9 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
  
     //////////////////////////////////
     //Calculation of K1 term
+    interaction();
+    for(i=0;i<NCoulombIntra;i++) ParaCoulombIntra[i] = Ut;
+
     StartTimer(20);
     UpdateSlaterElm_fcmp();
     UpdateQPWeight();
@@ -634,6 +644,10 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
 
     //////////////////////////////////
     //Calculation of K2 term
+    tc += DSROptStepDt/2.0; 
+    interaction();
+    for(i=0;i<NCoulombIntra;i++) ParaCoulombIntra[i] = Ut;
+
     gf=0; /*stops Green's functions being calculated again*/
     StartTimer(20);
     UpdateSlaterElm_fcmp();
@@ -768,6 +782,10 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
     
     //////////////////////////////////
     //Calculation of K4 term
+    tc += DSROptStepDt/2.0;
+    interaction();
+    for(i=0;i<NCoulombIntra;i++) ParaCoulombIntra[i] = Ut;
+
     StartTimer(20);
     UpdateSlaterElm_fcmp();
     UpdateQPWeight();
@@ -970,6 +988,13 @@ int VMCPhysCal(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
   return 0;
 }
 
+void interaction() {
+  if(tc<=tramp) {
+    Ut = Ui + tc*(Uf - Ui)/tramp;
+  }else{
+    Ut = Uf;
+  } 
+}
 
 void outputData() {
   int i;

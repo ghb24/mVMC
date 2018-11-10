@@ -628,6 +628,10 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
   NBackFlowIdx = bufInt[IdxNBF];
   Nz = bufInt[IdxNNz];
   NSROptCGMaxIter = bufInt[IdxSROptCGMaxIter];
+  Ui = bufDouble[IdxUi];
+  Uf = bufDouble[IdxUf];
+  tramp = bufDouble[Idxtramp];
+  tcst = bufDouble[Idxtcst];
   DSROptRedCut = bufDouble[IdxSROptRedCut];
   DSROptStaDel = bufDouble[IdxSROptStaDel];
   DSROptStepDt = bufDouble[IdxSROptStepDt];
@@ -1478,6 +1482,10 @@ void SetDefaultValuesModPara(int *bufInt, double *bufDouble) {
   bufInt[Idx2Sz] = -1;// -1: sz is not fixed :fsz
   bufInt[IdxNCond] = -1;
 
+  bufDouble[IdxUi] = 0.0;
+  bufDouble[IdxUf] = 6.0;
+  bufDouble[Idxtramp] = 5.0;
+  bufDouble[Idxtcst] = 0.0;
   bufDouble[IdxSROptRedCut] = 0.001;
   bufDouble[IdxSROptStaDel] = 0.02;
   bufDouble[IdxSROptStepDt] = 0.02;
@@ -1573,6 +1581,14 @@ int GetInfoFromModPara(int *bufInt, double *bufDouble) {
               bufInt[IdxSROptItrStep] = (int) dtmp;
             } else if (CheckWords(ctmp, "NSROptItrSmp") == 0) {
               bufInt[IdxSROptItrSmp] = (int) dtmp;
+            } else if (CheckWords(ctmp, "Ui") == 0) {
+              bufDouble[IdxUi] = (double) dtmp;
+            } else if (CheckWords(ctmp, "Uf") == 0) {
+              bufDouble[IdxUf] = (double) dtmp;
+            } else if (CheckWords(ctmp, "tramp") == 0) {
+              bufDouble[Idxtramp] = (double) dtmp;
+            } else if (CheckWords(ctmp, "tcst") == 0) {
+              bufDouble[Idxtcst] = (double) dtmp;
             } else if (CheckWords(ctmp, "DSROptRedCut") == 0) {
               bufDouble[IdxSROptRedCut] = (double) dtmp;
             } else if (CheckWords(ctmp, "DSROptStaDel") == 0) {

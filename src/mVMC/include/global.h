@@ -42,7 +42,8 @@ int NVMCCalMode; /* calculation mode
 
 int RealEvolve; /* evolution in real or imaginary time
                    0: imaginary time (SR)
-                   1: real time (tVMC) */
+                   1: real time (tVMC) under RK1 
+                   2: real time (tVMC) under RK4 */
 
 int NLanczosMode; /* mode of the single Lanczos step
                      0: none, 1: only energy, 2: Green functions */
@@ -175,6 +176,16 @@ int NFileFlushInterval=1;
 
 double factor, factor2; /*used in Runge-Kutta*/
 int gf=1; /*dictates if Green's functions are calculated during real-time evolution*/
+
+/* Linear-ramp quench inputs */
+double Ui; /* initial interaction, U(0) */
+double Uf; /* final interaction */
+double tramp; /* time over which the interaction is changed */
+double tcst; /* time after ramp in which interaction is constant. total time = tramp + tcst */
+/* Used during quench simulations */
+double tc; /* current time in simulation */
+double Ut; /* interaction at time tc */
+ 
 /***** Variational Parameters *****/
 int NPara; /* the total number of variational prameters NPara= NProj + NSlater+ NOptTrans */ 
 int NProj;    /* the number of correlation factor */

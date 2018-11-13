@@ -4,6 +4,6 @@
 #define _GPW_KERN_INCLUDE_FILES
 
 // Computes the simple k(1) kernel
-int GPWKernel1(const int *configA, const int sizeA, const int *configB, const int sizeB);
+double GPWKernel1(const int *configA, const int sizeA, const int *configB, const int sizeB);
 
 #endif // _GPW_KERN_INCLUDE_FILES

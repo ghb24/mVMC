@@ -5,7 +5,6 @@ TODO: Add License + Description*/
 #include "gpw_kernel.h"
 
 
-//TODO: parallelise?
 inline double complex LogGPWVal(const double *eleGPWKern) {
   int idx;
   double complex z=0.0+0.0*I;
@@ -37,7 +36,7 @@ void CalculateGPWKern(double *eleGPWKern, const int *eleNum) {
   const int nGPWIdx=NGPWIdx;
   int i;
 
-  // TODO Parallelise this loop!!!
+  #pragma omp parallel for default(shared) private(i)
   for(i=0; i<nGPWIdx;i++) {
     eleGPWKern[i] = (double)GPWKernel1(eleNum, Nsite, GPWTrnCfg[i], GPWTrnSize[i]);
   }

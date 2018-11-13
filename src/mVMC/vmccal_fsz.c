@@ -135,17 +135,17 @@ void VMCMainCal_fsz(MPI_Comm comm) {
 
       #pragma loop noalias
       for(i=0;i<nGPWIdx;i++){
-        srOptO[(nProj+2+i)*2]     = eleGPWKern[i];    // even real
-        srOptO[(nProj+2+i)*2+1]   = eleGPWKern[i]*I;  // odd  comp
+        srOptO[(nProj+1+i)*2]     = eleGPWKern[i];    // even real
+        srOptO[(nProj+1+i)*2+1]   = eleGPWKern[i]*I;  // odd  comp
       }
 
       StartTimer(42);
       /* SlaterElmDiff */
-      SlaterElmDiff_fsz(SROptO+2*NProj+2,ip,eleIdx,eleSpn) ;//SlaterElmDiff_fcmp(SROptO+2*NProj+2,ip,eleIdx); //TBC: using InvM not InvM_real
+      SlaterElmDiff_fsz(SROptO+2*NProj+2*NGPWIdx+2,ip,eleIdx,eleSpn) ;//SlaterElmDiff_fcmp(SROptO+2*NProj+2,ip,eleIdx); //TBC: using InvM not InvM_real
       StopTimer(42);
 
       if(FlagOptTrans>0) { // this part will be not used
-        calculateOptTransDiff(SROptO+2*NProj+2*NSlater+2, ip); //TBC
+        calculateOptTransDiff(SROptO+2*NProj+2*NGPWIdx+2*NSlater+2, ip); //TBC
       }
       StartTimer(43);
       /* Calculate OO and HO */

@@ -5,12 +5,12 @@
 #include <math.h>
 #include "gpw_kernel.h"
 
-int GPWKernel1(const int *configA, const int sizeA, const int *configB, const int sizeB) {
+double GPWKernel1(const int *configA, const int sizeA, const int *configB, const int sizeB) {
   int countA[4]={0,0,0,0};
   int countB[4]={0,0,0,0};
   int up,down;
   int i;
-  int kernel=0;
+  double kernel=0.0;
 
   for(i=0;i<sizeA;i++) {
     up = configA[i];
@@ -33,7 +33,7 @@ int GPWKernel1(const int *configA, const int sizeA, const int *configB, const in
   }
 
   for(i=0;i<4;i++) {
-    kernel += countA[i]*countB[i];
+    kernel += (double)(countA[i]*countB[i]);
   }
 
   return kernel;

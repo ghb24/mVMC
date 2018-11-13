@@ -96,9 +96,11 @@ int StochasticOpt(MPI_Comm comm) {
   sDiag = r[0];
   sDiagMax=sDiag; sDiagMin=sDiag;
   for(pi=0;pi<2*nPara;pi++) {
-    sDiag = r[pi];
-    if(sDiag>sDiagMax) sDiagMax=sDiag;
-    if(sDiag<sDiagMin) sDiagMin=sDiag;
+    if (!(pi >= 2*NProj && pi < 2*(NProj+NGPWIdx))) { // TODO: Include GPW factors in sanity check
+      sDiag = r[pi];
+      if(sDiag>sDiagMax) sDiagMax=sDiag;
+      if(sDiag<sDiagMin) sDiagMin=sDiag;
+    }
   }
 
 // threshold

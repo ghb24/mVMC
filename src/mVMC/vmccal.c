@@ -194,8 +194,8 @@ void VMCMainCal(MPI_Comm comm) {
 
 #pragma loop noalias
       for(i=0;i<nGPWIdx;i++){
-        srOptO[(nProj+2+i)*2]     = eleGPWKern[i];    // even real
-        srOptO[(nProj+2+i)*2+1]   = eleGPWKern[i]*I;  // odd  comp
+        srOptO[(nProj+1+i)*2]     = eleGPWKern[i];    // even real
+        srOptO[(nProj+1+i)*2+1]   = eleGPWKern[i]*I;  // odd  comp
       }
 
 

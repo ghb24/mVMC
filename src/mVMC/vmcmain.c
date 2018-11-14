@@ -340,8 +340,16 @@ int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
   int tmp_i;//DEBUG
   int iprogress;
   MPI_Comm_rank(comm_parent, &rank);
-  
+  int i;
+
   if(RealEvolve==1) InitFilePhysCal(0, rank);  
+
+  if(RealEvolve==1){
+    NSROptItrStep = (int) round((tramp + tcst)/DSROptStepDt) + 1;
+    //initial values of the interaction and time
+    Ut = Ui;
+    tc = 0.0;
+  }
 
   for(step=0;step<NSROptItrStep;step++) {
     //printf("0 DUBUG make:step=%d TwoSz=%d\n",step,TwoSz);
@@ -506,11 +514,17 @@ int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
       return info;
     }
 
+    if(RealEvolve==1 && tc<tramp){
+        tc += DSROptStepDt;
+        interaction();
+        for(i=0;i<Nsite;i++) ParaCoulombIntra[i] = Ut;
+    }
+
     StartTimer(23);
     SyncModifiedParameter(comm_parent);
     StopTimer(23);
 
-    if(step >= NSROptItrStep-NSROptItrSmp) {
+    if(RealEvolve==0 && step >= NSROptItrStep-NSROptItrSmp) {
       StoreOptData(step-(NSROptItrStep-NSROptItrSmp));
     }
     
@@ -520,7 +534,7 @@ int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
   if(rank==0) OutputTime(NSROptItrStep);
 
   /* output zqp_opt */
-  if(rank==0) {
+  if(rank==0 && RealEvolve==0) {
     fprintf(stdout, "Start: Output opt params.\n");
     OutputOptData();
     fprintf(stdout, "End: Output opt params.\n");
@@ -544,7 +558,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
 
   for(i=0;i<NPara;i++) Para_new[i] = Para[i];
   
-  NSROptItrStep = (int) round((tramp + tcst)/DSROptStepDt);
+  NSROptItrStep = (int) round((tramp + tcst)/DSROptStepDt) + 1;
  
   //initial values of the interaction and time
   Ut = Ui;
@@ -570,7 +584,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
     //Calculation of K1 term
     interaction();
     for(i=0;i<NCoulombIntra;i++) ParaCoulombIntra[i] = Ut;
-
+    
     StartTimer(20);
     UpdateSlaterElm_fcmp();
     UpdateQPWeight();
@@ -860,21 +874,10 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
     SyncModifiedParameter(comm_parent);
     StopTimer(23);
 
-    if(step >= NSROptItrStep-NSROptItrSmp) {
-      StoreOptData(step-(NSROptItrStep-NSROptItrSmp));
-    }
-    
     FlushFile(step,rank);
   }
 
   if(rank==0) OutputTime(NSROptItrStep);
-
-  /* output zqp_opt */
-  if(rank==0) {
-    fprintf(stdout, "Start: Output opt params.\n");
-    OutputOptData();
-    fprintf(stdout, "End: Output opt params.\n");
-  }
 
   return 0;
 }
@@ -989,7 +992,10 @@ int VMCPhysCal(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
 }
 
 void interaction() {
-  if(tc<=tramp) {
+  //if tramp=0.0 then simulation will run with constant Ut=Ui
+  if(tramp==0.0) {
+    Ut = Ui; 
+  }else if(tc<=tramp) {
     Ut = Ui + tc*(Uf - Ui)/tramp;
   }else{
     Ut = Uf;

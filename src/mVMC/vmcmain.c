@@ -357,11 +357,11 @@ int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
       OutputTime(step);
       if(NSROptItrStep<20){
         iprogress = (int) (100.0*step/NSROptItrStep);
-        printf("Progress of Optimization: %d %%\n", iprogress);
+        printf("Progress of Optimization: %d%%\n", iprogress);
       }
       else if(step%(NSROptItrStep/20)==0){
         iprogress = (int) (100.0*step/NSROptItrStep);
-        printf("Progress of Optimization: %d %%\n", iprogress);
+        printf("Progress of Optimization: %d%%\n", iprogress);
       }
     }
     
@@ -556,13 +556,14 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
   
   InitFilePhysCal(0, rank);  
 
-  for(i=0;i<NPara;i++) Para_new[i] = Para[i];
-  
+  //for(i=0;i<NPara;i++) Para_new[i] = Para[i];
+
   NSROptItrStep = (int) round((tramp + tcst)/DSROptStepDt) + 1;
  
   //initial values of the interaction and time
   Ut = Ui;
   tc = 0.0;
+  for(i=0;i<NCoulombIntra;i++) ParaCoulombIntra[i] = Ut;
 
   for(step=0;step<NSROptItrStep;step++) {
     //printf("0 DUBUG make:step=%d TwoSz=%d\n",step,TwoSz);
@@ -570,21 +571,21 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
       OutputTime(step);
       if(NSROptItrStep<20){
         iprogress = (int) (100.0*step/NSROptItrStep);
-        printf("Progress of Simulation: %d %%\n", iprogress);
+        printf("Progress of Simulation: %d%%\n", iprogress);
       }
       else if(step%(NSROptItrStep/20)==0){
         iprogress = (int) (100.0*step/NSROptItrStep);
-        printf("Progress of Simulation: %d %%\n", iprogress);
+        printf("Progress of Simulation: %d%%\n", iprogress);
       }
     }
     
-    for(i=0;i<NPara;i++) Paran[i] = Para[i]; 
- 
+    for(i=0;i<NPara;i++) {
+      Paran[i] = Para[i]; 
+      Para_new[i] = Para[i];
+    }
+
     //////////////////////////////////
     //Calculation of K1 term
-    interaction();
-    for(i=0;i<NCoulombIntra;i++) ParaCoulombIntra[i] = Ut;
-    
     StartTimer(20);
     UpdateSlaterElm_fcmp();
     UpdateQPWeight();
@@ -686,6 +687,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, AverageWE.\n", step);
 #endif
+    WeightAverageWE(comm_parent);
     StartTimer(25);//DEBUG
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, SROpt.\n", step);
@@ -752,6 +754,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, AverageWE.\n", step);
 #endif
+    WeightAverageWE(comm_parent);
     StartTimer(25);//DEBUG
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, SROpt.\n", step);
@@ -779,7 +782,6 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
 
     StartTimer(5);
     factor = 1.0;
-    factor2 = 1./3.;
     info = StochasticOpt(comm_parent);
     StopTimer(5);
 
@@ -823,6 +825,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, AverageWE.\n", step);
 #endif
+    WeightAverageWE(comm_parent);
     StartTimer(25);//DEBUG
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, SROpt.\n", step);
@@ -865,8 +868,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
     }
 
     //////////////////////////////////
-    //Assigns new state and writes to file
-
+    //Assigns new state
     for(i=0;i<NPara;i++) Para[i] = Para_new[i];
     gf=1; 
 
@@ -1045,7 +1047,7 @@ void outputData() {
       for (i = 0; i < NCisAjs; i++) fprintf(FileCisAjs, "% .18e  % .18e 0.0 ", creal(PhysCisAjs[i]), cimag(PhysCisAjs[i]));
       fprintf(FileCisAjs, "\n");
     }
-    /* zvo_cisajscktaltdc.dat */
+    /* zvo_cisajscktalt.dat */
     if(NCisAjsCktAltDC > 0) {
       for (i = 0; i < NCisAjsCktAltDC; i++) fprintf(FileCisAjsCktAltDC, "% .18e  % .18e 0.0 ", creal(PhysCisAjsCktAltDC[i]), cimag(PhysCisAjsCktAltDC[i]));
       fprintf(FileCisAjsCktAltDC, "\n"); 

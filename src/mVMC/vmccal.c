@@ -71,7 +71,7 @@ void calculateQCACAQ_real(double *qcacaq, const double *lslca, const double w,
 void VMCMainCal(MPI_Comm comm) {
   int *eleIdx,*eleCfg,*eleNum,*eleProjCnt;
   double complex e,ip;
-  double w;
+  double w,db;
   double sqrtw;
   double complex we;
 
@@ -171,7 +171,12 @@ void VMCMainCal(MPI_Comm comm) {
       continue;
     }
 
-    if(RealEvolve>0 && gf==1) CalculateGreenFunc(w,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
+    if(RealEvolve>0 && gf==1) {
+        CalculateGreenFunc(w,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
+        db = CalculateDoubleOccupation(eleIdx, eleCfg, eleNum, eleProjCnt);
+        Dbtot += w * db/Nsite;
+    }
+
     Wc += w;
     Etot  += w * e;
     Etot2 += w * conj(e) * e;

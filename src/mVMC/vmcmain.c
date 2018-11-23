@@ -431,6 +431,7 @@ int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, AverageWE.\n", step);
 #endif
+    Dbtot /= Wc;
     WeightAverageWE(comm_parent);
     if(RealEvolve==1) WeightAverageGreenFunc(comm_parent); 
     StartTimer(25);//DEBUG
@@ -609,6 +610,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, AverageWE.\n", step);
 #endif
+    Dbtot /= Wc;
     WeightAverageWE(comm_parent);
     WeightAverageGreenFunc(comm_parent); 
     StartTimer(25);//DEBUG
@@ -1033,7 +1035,8 @@ void outputData() {
 
   if(RealEvolve > 0) {
     /* zvo_out.dat */
-    fprintf(FileOut, "% .18e % .18e  % .18e % .18e %.18e %.18e\n", creal(Etot),cimag(Etot), creal(Etot2), creal((Etot2 - Etot*Etot)/(Etot*Etot)),creal(Sztot),creal(Sztot2));
+    //fprintf(FileOut, "% .18e % .18e  % .18e % .18e %.18e %.18e\n", creal(Etot),cimag(Etot), creal(Etot2), creal((Etot2 - Etot*Etot)/(Etot*Etot)),creal(Sztot),creal(Sztot2));
+    fprintf(FileOut, "% .18e % .18e  % .18e % .18e %.18e %.18e\n", creal(Etot),cimag(Etot), creal(Etot2), creal((Etot2 - Etot*Etot)/(Etot*Etot)),creal(Sztot),creal(Dbtot));
     /* zvo_var.dat */
     if (FlagBinary == 0) { /* formatted output*/
       fprintf(FileVar, "% .18e % .18e 0.0 % .18e % .18e 0.0 ", creal(Etot), cimag(Etot), creal(Etot2), cimag(Etot2));

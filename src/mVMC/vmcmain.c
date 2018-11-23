@@ -541,7 +541,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
   
   InitFilePhysCal(0, rank);  
 
-  for(i=0;i<NPara;i++) Para_new[i] = Para[i];
+  //for(i=0;i<NPara;i++) Para_new[i] = Para[i];
 
   for(step=0;step<NSROptItrStep;step++) {
     //printf("0 DUBUG make:step=%d TwoSz=%d\n",step,TwoSz);
@@ -557,8 +557,11 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
       }
     }
     
-    for(i=0;i<NPara;i++) Paran[i] = Para[i]; 
- 
+    for(i=0;i<NPara;i++) {
+      Paran[i] = Para[i]; 
+      Para_new[i] = Para[i];
+    }
+
     //////////////////////////////////
     //Calculation of K1 term
     StartTimer(20);
@@ -658,6 +661,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, AverageWE.\n", step);
 #endif
+    WeightAverageWE(comm_parent);
     StartTimer(25);//DEBUG
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, SROpt.\n", step);
@@ -724,6 +728,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, AverageWE.\n", step);
 #endif
+    WeightAverageWE(comm_parent);
     StartTimer(25);//DEBUG
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, SROpt.\n", step);
@@ -791,6 +796,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, AverageWE.\n", step);
 #endif
+    WeightAverageWE(comm_parent);
     StartTimer(25);//DEBUG
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, SROpt.\n", step);

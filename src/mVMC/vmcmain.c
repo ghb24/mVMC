@@ -37,7 +37,8 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2);
 int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2);
 int VMCPhysCal(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2);
-void interaction();
+void conversion();
+void WriteToTrans();
 void outputData();
 void printUsageError();
 void printOption();
@@ -284,6 +285,8 @@ int main(int argc, char* argv[])
   if(rank0==0) fprintf(stdout,"End  : Initialize variables for quantum projection.\n");
   /* initialize output files */
   if(rank0==0) InitFile(fileDefList, rank0);
+  
+  if(NVMCCalMode==0 && RealEvolve>0) conversion();
 
   StopTimer(1);
   if(NVMCCalMode==0) {
@@ -345,9 +348,7 @@ int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
   if(RealEvolve==1) InitFilePhysCal(0, rank);  
 
   if(RealEvolve==1){
-    NSROptItrStep = (int) round((tramp + tcst)/DSROptStepDt) + 1;
-    //initial values of the interaction and time
-    Ut = Ui;
+    NSROptItrStep = (int) round(cycles/DSROptStepDt) + 1;
     tc = 0.0;
   }
 
@@ -432,6 +433,7 @@ int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
     printf("Debug: step %d, AverageWE.\n", step);
 #endif
     Dbtot /= Wc;
+    etatot /=Wc;
     WeightAverageWE(comm_parent);
     if(RealEvolve==1) WeightAverageGreenFunc(comm_parent); 
     StartTimer(25);//DEBUG
@@ -515,10 +517,9 @@ int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
       return info;
     }
 
-    if(RealEvolve==1 && tc<tramp){
+    if(RealEvolve==1){
         tc += DSROptStepDt;
-        interaction();
-        for(i=0;i<Nsite;i++) ParaCoulombIntra[i] = Ut;
+        WriteToTrans();
     }
 
     StartTimer(23);
@@ -557,14 +558,8 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
   
   InitFilePhysCal(0, rank);  
 
-  //for(i=0;i<NPara;i++) Para_new[i] = Para[i];
-
-  NSROptItrStep = (int) round((tramp + tcst)/DSROptStepDt) + 1;
- 
-  //initial values of the interaction and time
-  Ut = Ui;
+  NSROptItrStep = (int) round(cycles/DSROptStepDt) + 1;
   tc = 0.0;
-  for(i=0;i<NCoulombIntra;i++) ParaCoulombIntra[i] = Ut;
 
   for(step=0;step<NSROptItrStep;step++) {
     //printf("0 DUBUG make:step=%d TwoSz=%d\n",step,TwoSz);
@@ -611,6 +606,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
     printf("Debug: step %d, AverageWE.\n", step);
 #endif
     Dbtot /= Wc;
+    etatot /=Wc;
     WeightAverageWE(comm_parent);
     WeightAverageGreenFunc(comm_parent); 
     StartTimer(25);//DEBUG
@@ -662,8 +658,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
     //////////////////////////////////
     //Calculation of K2 term
     tc += DSROptStepDt/2.0; 
-    interaction();
-    for(i=0;i<NCoulombIntra;i++) ParaCoulombIntra[i] = Ut;
+    WriteToTrans();
 
     gf=0; /*stops Green's functions being calculated again*/
     StartTimer(20);
@@ -801,8 +796,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
     //////////////////////////////////
     //Calculation of K4 term
     tc += DSROptStepDt/2.0;
-    interaction();
-    for(i=0;i<NCoulombIntra;i++) ParaCoulombIntra[i] = Ut;
+    WriteToTrans();
 
     StartTimer(20);
     UpdateSlaterElm_fcmp();
@@ -995,15 +989,34 @@ int VMCPhysCal(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
   return 0;
 }
 
-void interaction() {
-  //if tramp=0.0 then simulation will run with constant Ut=Ui
-  if(tramp==0.0) {
-    Ut = Ui; 
-  }else if(tc<=tramp) {
-    Ut = Ui + tc*(Uf - Ui)/tramp;
-  }else{
-    Ut = Uf;
-  } 
+//converts from the input units (THz etc) to t0-normalised atomic units
+void conversion() {
+  double convfac;
+  double t0 = creal(ParaTransfer[0]);
+  int i;
+
+  convfac = 1./(t0*0.03674903); 
+  for(i=0;i<NCoulombIntra;i++) ParaCoulombIntra[i] /= t0;  
+  for(i=0;i<NTransfer;i++) ParaTransfer[i] = 1.0;  
+  wL *= convfac*0.0000241888;  
+  a *= 1.889726125/convfac;
+  F0 *= 1.944689151e-4*pow(convfac,2.);
+}
+
+void WriteToTrans() {
+  double complex hopping;
+  double phi;
+  int i;
+
+  phi = (a*F0/wL) * pow(sin(M_PI*tc/cycles),2.) * sin(2.*M_PI*tc);
+  hopping = cexp(I*phi);
+  for(i=0;i<NTransfer;i++) {
+    if(i%2==0) {
+      ParaTransfer[i] = hopping;
+    }else{
+      ParaTransfer[i] = conj(hopping);
+    }
+  }
 }
 
 void outputData() {
@@ -1036,7 +1049,7 @@ void outputData() {
   if(RealEvolve > 0) {
     /* zvo_out.dat */
     //fprintf(FileOut, "% .18e % .18e  % .18e % .18e %.18e %.18e\n", creal(Etot),cimag(Etot), creal(Etot2), creal((Etot2 - Etot*Etot)/(Etot*Etot)),creal(Sztot),creal(Sztot2));
-    fprintf(FileOut, "% .18e % .18e  % .18e % .18e %.18e %.18e\n", creal(Etot),cimag(Etot), creal(Etot2), creal((Etot2 - Etot*Etot)/(Etot*Etot)),creal(Sztot),creal(Dbtot));
+    fprintf(FileOut, "% .18e % .18e  % .18e % .18e %.18e %.18e\n", creal(Etot),cimag(Etot), creal(Etot2), creal((Etot2 - Etot*Etot)/(Etot*Etot)),etatot,Dbtot);
     /* zvo_var.dat */
     if (FlagBinary == 0) { /* formatted output*/
       fprintf(FileVar, "% .18e % .18e 0.0 % .18e % .18e 0.0 ", creal(Etot), cimag(Etot), creal(Etot2), cimag(Etot2));

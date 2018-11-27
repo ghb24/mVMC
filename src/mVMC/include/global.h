@@ -177,15 +177,13 @@ int NFileFlushInterval=1;
 double factor, factor2; /*used in Runge-Kutta*/
 int gf=1; /*dictates if Green's functions are calculated during real-time evolution*/
 
-/* Linear-ramp quench inputs */
-double Ui; /* initial interaction, U(0) */
-double Uf; /* final interaction */
-double tramp; /* time over which the interaction is changed */
-double tcst; /* time after ramp in which interaction is constant. total time = tramp + tcst */
-/* Used during quench simulations */
+/*High Harmonic Generation Variables*/
 double tc; /* current time in simulation */
-double Ut; /* interaction at time tc */
- 
+double wL; /* Pulse frequency*/
+double F0; /*Peak amplitude*/
+double a; /*Lattice constant*/
+double cycles; /*Number of optical cycles*/
+
 /***** Variational Parameters *****/
 int NPara; /* the total number of variational prameters NPara= NProj + NSlater+ NOptTrans */ 
 int NProj;    /* the number of correlation factor */
@@ -281,8 +279,11 @@ double complex *SROptData; /* [2+NPara] storage for energy and variational param
 double complex Wc; /* Weight for correlation sampling = <psi|x> */
 double complex Etot; /* <H> */
 double complex Etot2; /* <H^2> */
-double complex Dbtot;
+//double complex Dbtot;
+double Dbtot;
 double complex Dbtot2;
+//double complex etatot;
+double etatot;
 
 double complex *PhysCisAjs; /* [NCisAjs] */
 double complex *PhysCisAjsCktAlt; /* [NCisAjsCktAlt] */

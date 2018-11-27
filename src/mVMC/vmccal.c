@@ -71,7 +71,7 @@ void calculateQCACAQ_real(double *qcacaq, const double *lslca, const double w,
 void VMCMainCal(MPI_Comm comm) {
   int *eleIdx,*eleCfg,*eleNum,*eleProjCnt;
   double complex e,ip;
-  double w,db;
+  double w,db,eta;
   double sqrtw;
   double complex we;
 
@@ -172,9 +172,11 @@ void VMCMainCal(MPI_Comm comm) {
     }
 
     if(RealEvolve>0 && gf==1) {
-        CalculateGreenFunc(w,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
-        db = CalculateDoubleOccupation(eleIdx, eleCfg, eleNum, eleProjCnt);
-        Dbtot += w * db/Nsite;
+      CalculateGreenFunc(w,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
+      db = CalculateDoubleOccupation(eleIdx, eleCfg, eleNum, eleProjCnt);
+      Dbtot += w * db/Nsite;
+      eta = CalculateSpinCorrelation(eleIdx, eleCfg, eleNum, eleProjCnt);
+      etatot += w * eta/Nsite;
     }
 
     Wc += w;
@@ -562,7 +564,7 @@ void clearPhysQuantity(){
 //[s] MERGE BY TM
   Wc = Etot = Etot2 = Sztot=Sztot2 =0.0;//fsz
   //Wc = Etot = Etot2 = 0.0;
-  Dbtot = Dbtot2 = 0.0;
+  Dbtot = Dbtot2 = etatot = 0.0;
 //[e] MERGE BY TM
   if(NVMCCalMode==0) {
     /* SROptOO, SROptHO, SROptO */

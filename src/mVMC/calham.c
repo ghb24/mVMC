@@ -56,6 +56,21 @@ double CalculateDoubleOccupation(int *eleIdx, const int *eleCfg,
   return db;
 }
 
+double CalculateSpinCorrelation(int *eleIdx, const int *eleCfg,
+                                 int *eleNum, const int *eleProjCnt) {
+  const int *n0 = eleNum;
+  const int *n1 = eleNum + Nsite;
+  double eta=0.0;
+  int i,j;
+
+#pragma omp parallel for private(i) reduction(+:eta)
+  for(i=0;i<Nsite;i++) {
+    j = i%Nsite;
+    eta += (1./4.)*(double)(n1[i]*n1[j] + n0[i]*n0[j] - n1[i]*n0[j] - n0[i]*n1[j]);
+  }
+
+  return creal(eta);
+}
 double complex CalculateHamiltonian(const double complex ip, int *eleIdx, const int *eleCfg,
                              int *eleNum, const int *eleProjCnt) {
   const int *n0 = eleNum;

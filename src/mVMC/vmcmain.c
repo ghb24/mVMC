@@ -286,8 +286,7 @@ int main(int argc, char* argv[])
   /* initialize output files */
   if(rank0==0) InitFile(fileDefList, rank0);
   
-  if(NVMCCalMode==0 && RealEvolve>0) conversion();
-  //printf("wL=%e, a=%e, F0=%e, t0=%e",creal(wL),creal(a),creal(F0),creal(ParaTransfer[0]));
+  if(NVMCCalMode==0) conversion();
   
   StopTimer(1);
   if(NVMCCalMode==0) {

@@ -175,8 +175,8 @@ void VMCMainCal(MPI_Comm comm) {
       CalculateGreenFunc(w,ip,eleIdx,eleCfg,eleNum,eleProjCnt);
       db = CalculateDoubleOccupation(eleIdx, eleCfg, eleNum, eleProjCnt);
       Dbtot += w * db/Nsite;
-      eta = CalculateSpinCorrelation(eleIdx, eleCfg, eleNum, eleProjCnt);
-      etatot += w * eta/Nsite;
+      //eta = CalculateSpinCorrelation(ip, eleIdx, eleCfg, eleNum, eleProjCnt);
+      //etatot += w * eta/Nsite;
     }
 
     Wc += w;

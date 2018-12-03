@@ -287,7 +287,8 @@ int main(int argc, char* argv[])
   if(rank0==0) InitFile(fileDefList, rank0);
   
   if(NVMCCalMode==0 && RealEvolve>0) conversion();
-
+  //printf("wL=%e, a=%e, F0=%e, t0=%e",creal(wL),creal(a),creal(F0),creal(ParaTransfer[0]));
+  
   StopTimer(1);
   if(NVMCCalMode==0) {
     StartTimer(2);
@@ -433,7 +434,7 @@ int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
     printf("Debug: step %d, AverageWE.\n", step);
 #endif
     Dbtot /= Wc;
-    etatot /=Wc;
+    //etatot /=Wc;
     WeightAverageWE(comm_parent);
     if(RealEvolve==1) WeightAverageGreenFunc(comm_parent); 
     StartTimer(25);//DEBUG
@@ -575,10 +576,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
       }
     }
     
-    for(i=0;i<NPara;i++) {
-      Paran[i] = Para[i]; 
-      Para_new[i] = Para[i];
-    }
+    for(i=0;i<NPara;i++) Paran[i] = Para_new[i] = Para[i]; 
 
     //////////////////////////////////
     //Calculation of K1 term
@@ -606,7 +604,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
     printf("Debug: step %d, AverageWE.\n", step);
 #endif
     Dbtot /= Wc;
-    etatot /=Wc;
+    //etatot /=Wc;
     WeightAverageWE(comm_parent);
     WeightAverageGreenFunc(comm_parent); 
     StartTimer(25);//DEBUG
@@ -1049,7 +1047,7 @@ void outputData() {
   if(RealEvolve > 0) {
     /* zvo_out.dat */
     //fprintf(FileOut, "% .18e % .18e  % .18e % .18e %.18e %.18e\n", creal(Etot),cimag(Etot), creal(Etot2), creal((Etot2 - Etot*Etot)/(Etot*Etot)),creal(Sztot),creal(Sztot2));
-    fprintf(FileOut, "% .18e % .18e  % .18e % .18e %.18e %.18e\n", creal(Etot),cimag(Etot), creal(Etot2), creal((Etot2 - Etot*Etot)/(Etot*Etot)),etatot,Dbtot);
+    fprintf(FileOut, "% .18e % .18e  % .18e % .18e %.18e %.18e\n", creal(Etot),cimag(Etot), creal(Etot2), creal((Etot2 - Etot*Etot)/(Etot*Etot)),creal(Sztot),creal(Dbtot));
     /* zvo_var.dat */
     if (FlagBinary == 0) { /* formatted output*/
       fprintf(FileVar, "% .18e % .18e 0.0 % .18e % .18e 0.0 ", creal(Etot), cimag(Etot), creal(Etot2), cimag(Etot2));

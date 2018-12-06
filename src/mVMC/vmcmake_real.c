@@ -107,7 +107,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
         /* The mi-th electron with spin s hops to site rj */
         updateEleConfig(mi, ri, rj, s, TmpEleIdx, TmpEleCfg, TmpEleNum);
         UpdateProjCnt(ri, rj, s, projCntNew, TmpEleProjCnt, TmpEleNum);
-        UpdateGPWKern(ri, rj, s, eleGPWKernNew, TmpEleGPWKern, TmpEleNum);
+        UpdateGPWKern(ri, rj, eleGPWKernNew, TmpEleGPWKern, TmpEleNum);
         StopTimer(60);
         StartTimer(61);
         //CalculateNewPfM2(mi,s,pfMNew,TmpEleIdx,qpStart,qpEnd);
@@ -164,11 +164,11 @@ void VMCMakeSample_real(MPI_Comm comm) {
         /* The mi-th electron with spin s hops to rj */
         updateEleConfig(mi, ri, rj, s, TmpEleIdx, TmpEleCfg, TmpEleNum);
         UpdateProjCnt(ri, rj, s, projCntNew, TmpEleProjCnt, TmpEleNum);
-        UpdateGPWKern(ri, rj, s, eleGPWKernNew, TmpEleGPWKern, TmpEleNum);
+        UpdateGPWKern(ri, rj, eleGPWKernNew, TmpEleGPWKern, TmpEleNum);
         /* The mj-th electron with spin t hops to ri */
         updateEleConfig(mj, rj, ri, t, TmpEleIdx, TmpEleCfg, TmpEleNum);
         UpdateProjCnt(rj, ri, t, projCntNew, projCntNew, TmpEleNum);
-        UpdateGPWKern(rj, ri, t, eleGPWKernNew, eleGPWKernNew, TmpEleNum);
+        UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWKernNew, TmpEleNum);
 
         StopTimer(65);
         StartTimer(66);

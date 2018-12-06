@@ -37,26 +37,18 @@ void CalculateGPWKern(double *eleGPWKern, const int *eleNum) {
   int i;
 
   #pragma omp parallel for default(shared) private(i)
-  for(i=0; i<nGPWIdx;i++) {
-    eleGPWKern[i] = (double)GPWKernel1(eleNum, Nsite, GPWTrnCfg[i], GPWTrnSize[i]);
+  for(i=0;i<nGPWIdx;i++) {
+    if (KernelFunc == 0) {
+      eleGPWKern[i] = GPWKernelInPlace(eleNum, Nsite, GPWTrnCfg[i], GPWTrnSize[i], CutRad, Theta0, ThetaC);
+    }
+    else {
+      eleGPWKern[i] = GPWKernelN(eleNum, Nsite, GPWTrnCfg[i], GPWTrnSize[i], KernelFunc);
+    }
   }
 
   return;
 }
 
-
-// TODO more efficient way?
-void UpdateGPWKern(const int ri, const int rj, const int s,
-									 double *eleGPWKernNew, const double *eleGPWKernOld,
-									 const int *eleNum) {
+void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew, const double *eleGPWKernOld, const int *eleNum) {
   CalculateGPWKern(eleGPWKernNew, eleNum);
-  return;
-}
-
-// TODO more efficient way?
-void UpdateGPWKern_fsz(const int ri, const int rj, const int s, const int t,
-											 double *eleGPWKernNew, const double *eleGPWKernOld,
-											 const int *eleNum) {
-  CalculateGPWKern(eleGPWKernNew, eleNum);
-  return;
 }

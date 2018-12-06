@@ -86,6 +86,15 @@ int NExUpdatePath; /* update by exchange hopping  0: off, 1: on */
 int RndSeed; /* seed for pseudorandom number generator */
 int NSplitSize; /* the number of inner MPI processes */
  
+int KernelFunc; /* which kernel function should be used for the GPW part
+                   0: full kernel
+                   n > 0: simple plaquette kernel with plaquette size n */
+
+int CutRad; /* cutoff radius for full GPW kernel */
+double Theta0; /*theta0 parameter for full GPW kernel */
+double ThetaC; /*thetac parameter for full GPW kernel */
+
+
 /* total length of def array */
 int NTotalDefInt, NTotalDefDouble;
 
@@ -130,7 +139,9 @@ int NDoublonHolon2siteIdx, **DoublonHolon2siteIdx; /* DoublonHolon2siteIdx[idx][
 int NDoublonHolon4siteIdx, **DoublonHolon4siteIdx; /* DoublonHolon4siteIdx[idx][4*Nsite] */
 int NGPWIdx; /* NGPWIdx = total number of training configurations */
 int *GPWTrnSize; /* [NGPWIdx] Lattice sizes of training configurations*/
-int **GPWTrnCfg; /*[NGPWIdx][2*trnSize], training configurations representation as in EleNum*/
+int **GPWTrnCfg; /*[NGPWIdx][2*trnSize], training configurations representation as in EleNum */
+int **PairDelta; /* [NGPWIdx][NSite*TrnSize], delta function matrix for full GPW kernel */
+double **RangeSum; /* [NGPWIdx][NSite*TrnSize], sum matrix for full GPW kernel */
 int NOrbitalIdx, **OrbitalIdx; /* [Nsite][Nsite] */
 int **OrbitalSgn; /* OrbitalSgn[Nsite][Nsite] = +1 or -1 */
 int iFlgOrbitalGeneral=0;
@@ -177,7 +188,7 @@ int FlagBinary=0;
 int NFileFlushInterval=1;
 
 /***** Variational Parameters *****/
-int NPara; /* the total number of variational prameters NPara= NProj + NGPWIdx + NSlater+ NOptTrans */ 
+int NPara; /* the total number of variational prameters NPara= NProj + NGPWIdx + NSlater+ NOptTrans */
 int NProj;    /* the number of correlation factor */
 int NProjBF;    /* the number of correlation factor */
 int NSlater;  /* the number of pair orbital (f_ij) = NOrbitalIdx */

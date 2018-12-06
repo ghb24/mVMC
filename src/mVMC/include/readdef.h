@@ -85,12 +85,14 @@ enum ParamIdxInt{
   IdxNTwoBodyGEx, IdxNInterAll, IdxNQPOptTrans,
   IdxSROptCGMaxIter,
   IdxNBF,IdxNrange, IdxNNz, Idx2Sz, IdxNCond,
+  IdxKernelFunc, IdxCutRad,
   ParamIdxInt_End
 };
 
 enum ParamIdxDouble{
   IdxSROptRedCut, IdxSROptStaDel, IdxSROptStepDt,
   IdxSROptCGTol,
+  IdxTheta0, IdxThetaC,
   ParamIdxDouble_End
 };
 
@@ -111,3 +113,5 @@ int iComplexFlgDH2=0;
 int iComplexFlgDH4=0;
 int iComplexFlgGPW=0;
 int iComplexFlgOrbital=0;
+
+int IgnoreLinesDefGPW=0; // number of additional lines in GPW file that need to be skipped

@@ -165,11 +165,11 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
         updateEleConfig_fsz(mi,ri,rj,s,t,TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleSpn);
         if(s==t){
           UpdateProjCnt(ri,rj,s,projCntNew,TmpEleProjCnt,TmpEleNum);
-          UpdateGPWKern(ri,rj,s,eleGPWKernNew,TmpEleGPWKern,TmpEleNum);
+          UpdateGPWKern(ri,rj,eleGPWKernNew,TmpEleGPWKern,TmpEleNum);
         }else{
           UpdateProjCnt_fsz(ri,rj,s,t,projCntNew,TmpEleProjCnt,TmpEleNum);
-          UpdateGPWKern_fsz(ri,rj,s,t,eleGPWKernNew,TmpEleGPWKern,TmpEleNum);
-        }   
+          UpdateGPWKern(ri,rj,eleGPWKernNew,TmpEleGPWKern,TmpEleNum);
+        }
         StopTimer(60);
         StartTimer(61);
         CalculateNewPfM2_fsz(mi,t,pfMNew,TmpEleIdx,TmpEleSpn,qpStart,qpEnd); // fsz: s->t 
@@ -225,11 +225,11 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
         /* The mi-th electron with spin s hops to rj */
         updateEleConfig_fsz(mi,ri,rj,s,s,TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleSpn);
         UpdateProjCnt(ri,rj,s,projCntNew,TmpEleProjCnt,TmpEleNum);
-        UpdateGPWKern(ri,rj,s,eleGPWKernNew,TmpEleGPWKern,TmpEleNum);
+        UpdateGPWKern(ri,rj,eleGPWKernNew,TmpEleGPWKern,TmpEleNum);
         /* The mj-th electron with spin t hops to ri */
         updateEleConfig_fsz(mj,rj,ri,t,t,TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleSpn);
         UpdateProjCnt(rj,ri,t,projCntNew,projCntNew,TmpEleNum);
-        UpdateGPWKern(ri,rj,t,eleGPWKernNew,eleGPWKernNew,TmpEleNum);
+        UpdateGPWKern(ri,rj,eleGPWKernNew,eleGPWKernNew,TmpEleNum);
 
         StopTimer(65);
         StartTimer(66);
@@ -281,7 +281,7 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
         //
         updateEleConfig_fsz(mi,ri,rj,s,t,TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleSpn);
         UpdateProjCnt_fsz(ri,rj,s,t,projCntNew,TmpEleProjCnt,TmpEleNum);
-        UpdateGPWKern_fsz(ri,rj,s,t,eleGPWKernNew,TmpEleGPWKern,TmpEleNum);
+        UpdateGPWKern(ri,rj,eleGPWKernNew,TmpEleGPWKern,TmpEleNum);
         StopTimer(600);
         StartTimer(601);
         CalculateNewPfM2_fsz(mi,t,pfMNew,TmpEleIdx,TmpEleSpn,qpStart,qpEnd); // fsz: s->t 

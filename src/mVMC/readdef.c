@@ -135,6 +135,43 @@ char *ReadBuffIntCmpFlg(FILE *fp, int *iNbuf, int *iComplexFlag) {
   return cerr;
 }
 
+char *ReadBuffGPWKernInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iKernBuf, int *iCutRadBuf, double *iTheta0Buf, double *iThetaCBuf) {
+  char *cerr;
+  char ctmp[D_FileNameMax];
+  char ctmp2[D_FileNameMax];
+
+  int read = 1;
+  double dtmp;
+
+  cerr = ReadBuffIntCmpFlg(fp, iNbuf, iComplexFlag);
+
+  while (cerr != NULL && read == 1) {
+    cerr = fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
+    sscanf(ctmp, "%s %lf\n", ctmp2, &dtmp);
+
+    if (CheckWords(ctmp2, "KernelFunc") == 0) {
+      *iKernBuf = (int) dtmp;
+      IgnoreLinesDefGPW ++;
+    } else if (CheckWords(ctmp2, "CutRad") == 0) {
+      *iCutRadBuf = (int) dtmp;
+      IgnoreLinesDefGPW ++;
+    } else if (CheckWords(ctmp2, "Theta0") == 0) {
+      *iTheta0Buf = dtmp;
+      IgnoreLinesDefGPW ++;
+    } else if (CheckWords(ctmp2, "ThetaC") == 0) {
+      *iThetaCBuf = dtmp;
+      IgnoreLinesDefGPW ++;
+    } else {
+      read = 0;
+    }
+  }
+  return cerr;
+}
+
+
+
+
+
 void SetDefaultValuesModPara(int *buf, double *bufDouble);
 
 int GetInfoFromModPara(int *buf, double *bufDouble);
@@ -402,7 +439,7 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
             break;
 
           case KWGPW:
-            cerr = ReadBuffIntCmpFlg(fp, &bufInt[IdxNGPW], &iComplexFlgGPW);
+            cerr = ReadBuffGPWKernInfo(fp, &bufInt[IdxNGPW], &iComplexFlgGPW, &bufInt[IdxKernelFunc], &bufInt[IdxCutRad], &bufDouble[IdxTheta0], &bufDouble[IdxThetaC]);
             break;
 
           case KWOrbital:
@@ -511,6 +548,8 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
       bufInt[IdxNOneBodyG] = CountOneBodyGForLanczos(xNameListFile, NCisAjsLz, bufInt[IdxNTwoBodyG],
                                                      bufInt[IdxNsite], CisAjsLzIdx, iOneBodyGIdx);
     }
+
+    // TODO: sanity check of kernel input parameters
 
     //CalcNCond
     if (bufInt[IdxNCond] != -1) {
@@ -635,10 +674,14 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
   NBackFlowIdx = bufInt[IdxNBF];
   Nz = bufInt[IdxNNz];
   NSROptCGMaxIter = bufInt[IdxSROptCGMaxIter];
+  KernelFunc = bufInt[IdxKernelFunc];
+  CutRad = bufInt[IdxCutRad];
   DSROptRedCut = bufDouble[IdxSROptRedCut];
   DSROptStaDel = bufDouble[IdxSROptStaDel];
   DSROptStepDt = bufDouble[IdxSROptStepDt];
   DSROptCGTol = bufDouble[IdxSROptCGTol];
+  Theta0 = bufDouble[IdxTheta0];
+  ThetaC = bufDouble[IdxThetaC];
   TwoSz = bufInt[Idx2Sz];
 
   if (NMPTrans < 0) {
@@ -820,6 +863,7 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
           break;
 
         case KWGPW:
+          for (i = 0; i < IgnoreLinesDefGPW; i++) fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
           fidx = NGutzwillerIdx + NJastrowIdx + 2 * 3 * NDoublonHolon2siteIdx + 2 * 5 * NDoublonHolon4siteIdx;
           if (GetInfoGPW(fp, GPWTrnSize, GPWTrnCfg, OptFlag, iComplexFlgGPW, &count_idx, fidx, defname) != 0)
             info = 1;
@@ -1501,11 +1545,15 @@ void SetDefaultValuesModPara(int *bufInt, double *bufDouble) {
   bufInt[IdxNNz] = 0;
   bufInt[Idx2Sz] = -1;// -1: sz is not fixed :fsz
   bufInt[IdxNCond] = -1;
+  bufInt[IdxKernelFunc] = 0;
+  bufInt[IdxCutRad] = 2;
 
   bufDouble[IdxSROptRedCut] = 0.001;
   bufDouble[IdxSROptStaDel] = 0.02;
   bufDouble[IdxSROptStepDt] = 0.02;
   bufDouble[IdxSROptCGTol] = 1.0e-10;
+  bufDouble[IdxTheta0] = 1.0;
+  bufDouble[IdxThetaC] = 1.0;
   NStoreO = 1;
   NSRCG = 0;
 }
@@ -1916,11 +1964,15 @@ int GetInfoGPW(FILE *fp, int *trnSize, int **trnCfg, int *ArrayOpt, int iComplxF
       trnSize[i] = trnSz;
       trnCfg[i] = (int*)malloc(sizeof(int)*2*trnSz);
 
-      // TODO: Maybe this should be optimised...
       for(j=0;j<trnSz;j++) {
         trnCfg[i][j] = (trnCfgUp >> j) & 1;
         trnCfg[i][j+trnSz] = (trnCfgDown >> j) & 1;
       }
+
+      // if(KernelFunc == 0) {
+      //   PairDelta[i] = (int*)malloc(sizeof(int)*trnSz*Nsite);
+      //   RangeSum[i] = (double*)malloc(sizeof(double)*trnSz*Nsite);
+      // }
 
       idx0++;
       if (idx0 == NGPWIdx) break;

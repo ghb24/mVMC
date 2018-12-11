@@ -35,7 +35,7 @@ static char cKWListOfFileNameList[][D_CharTmpReadDef]={
   "Trans", "CoulombIntra", "CoulombInter",
   "Hund", "PairHop", "Exchange",
   "Gutzwiller", "Jastrow",
-  "DH2", "DH4", "GPW", "Orbital", "OrbitalAntiParallel",
+  "DH2", "DH4", "GPW", "Topology", "Orbital", "OrbitalAntiParallel",
   "OrbitalParallel", "OrbitalGeneral",
   "TransSym", "InGutzwiller", "InJastrow",
   "InDH2", "InDH4", "InGPW", "InOrbital", "InOrbitalAntiParallel",
@@ -53,7 +53,7 @@ enum KWIdxInt{
   KWTrans, KWCoulombIntra,KWCoulombInter,
   KWHund, KWPairHop, KWExchange,
   KWGutzwiller, KWJastrow,
-  KWDH2, KWDH4, KWGPW, KWOrbital, KWOrbitalAntiParallel,
+  KWDH2, KWDH4, KWGPW, KWTopology, KWOrbital, KWOrbitalAntiParallel,
 	KWOrbitalParallel, KWOrbitalGeneral,
   KWTransSym, KWInGutzwiller, KWInJastrow,
   KWInDH2, KWInDH4, KWInGPW, KWInOrbital,KWInOrbitalAntiParallel,
@@ -80,7 +80,8 @@ enum ParamIdxInt{
   IdxNLocSpin,IdxNTrans,IdxNCoulombIntra,
   IdxNCoulombInter, IdxNHund, IdxNPairHop, 
   IdxNExchange, IdxNGutz, IdxNJast,
-  IdxNDH2, IdxNDH4, IdxNGPW, IdxNOrbit, IdxNOrbitGeneral,
+  IdxNDH2, IdxNDH4, IdxNGPW, IdxNGPWTrnLat, IdxDim,
+  IdxNOrbit, IdxNOrbitGeneral,
 	IdxNQPTrans, IdxNOneBodyG, IdxNTwoBodyG,
   IdxNTwoBodyGEx, IdxNInterAll, IdxNQPOptTrans,
   IdxSROptCGMaxIter,
@@ -114,4 +115,5 @@ int iComplexFlgDH4=0;
 int iComplexFlgGPW=0;
 int iComplexFlgOrbital=0;
 
-int IgnoreLinesDefGPW=0; // number of additional lines in GPW file that need to be skipped
+int IgnoreLinesDefGPW=1; // number of additional lines in GPW file that need to be skipped
+int IgnoreLinesDefTopology=5; // number of lines that need to be skipped in topology file

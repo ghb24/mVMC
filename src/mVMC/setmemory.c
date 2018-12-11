@@ -225,20 +225,23 @@ void SetMemoryDef() {
       CisAjsCktAltLzIdx[i] = malloc(sizeof(int) * 2);
     }
   }
-  
-  // GPW trainig set, TODO: include in joint memory for all other definition terms
-  GPWTrnSize = (int*)malloc(sizeof(int)*(NGPWIdx));
-  GPWTrnCfg = (int**)malloc(sizeof(int*)*(NGPWIdx));
+
+  // GPW trainig data, TODO: include in joint memory for all other definition terms
+  GPWTrnSize = (int*)malloc(sizeof(int)*(NGPWIdx+NGPWTrnLat+Nsite*2*Dim));
+  GPWTrnLat = GPWTrnSize + NGPWTrnLat;
+  SysNeighbours = GPWTrnLat + NGPWIdx;
+  GPWTrnNeighbours = (int**)malloc(sizeof(int*)*(NGPWIdx+NGPWTrnLat));
+  GPWTrnCfg = GPWTrnNeighbours + NGPWTrnLat;
 
   return;
 }
 
 void FreeMemoryDef() {
   int i;
-  for(i=0;i<NGPWIdx;i++) {
-    free(GPWTrnCfg[i]);
+  for(i=0;i<NGPWTrnLat+NGPWIdx;i++) {
+    free(GPWTrnNeighbours[i]);
   }
-  free(GPWTrnCfg);
+  free(GPWTrnNeighbours);
   free(GPWTrnSize);
   
   free(ParaTransfer);

@@ -72,7 +72,10 @@ int
 GetInfoDH4(FILE *fp, int **ArrayIdx, int *ArrayOpt, int iComplxFlag, int *iOptCount, int _fidx, int Nsite, int NArray,
            char *defname);
 
-int GetInfoGPW(FILE *fp, int *trnSize, int **trnCfg, int *ArrayOpt, int iComplxFlag, int *iOptCount, int _fidx, char *defname);
+int GetInfoGPW(FILE *fp, int *trnSize, int **trnNeighbours, int *trnLattices, int **trnCfg,
+               int *ArrayOpt, int iComplxFlag, int *iOptCount, int _fidx, char *defname);
+
+int GetInfoTopology(FILE *fp, int *sysNeighbours, char *defname);
 
 int GetInfoTransSym(FILE *fp, int **Array, int **ArraySgn, int **ArrayInv, double complex *ArrayPara, int _APFlag,
                     int Nsite, int NArray, char *defname);
@@ -135,7 +138,8 @@ char *ReadBuffIntCmpFlg(FILE *fp, int *iNbuf, int *iComplexFlag) {
   return cerr;
 }
 
-char *ReadBuffGPWKernInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iKernBuf, int *iCutRadBuf, double *iTheta0Buf, double *iThetaCBuf) {
+char *ReadBuffGPWKernInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, int *iKernBuf,
+                          int *iCutRadBuf, double *iTheta0Buf, double *iThetaCBuf) {
   char *cerr;
   char ctmp[D_FileNameMax];
   char ctmp2[D_FileNameMax];
@@ -144,6 +148,12 @@ char *ReadBuffGPWKernInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iKernBuf
   double dtmp;
 
   cerr = ReadBuffIntCmpFlg(fp, iNbuf, iComplexFlag);
+
+  // read number of different training lattices
+  cerr = fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
+  if (cerr != NULL) {
+    sscanf(ctmp, "%s %d\n", ctmp2, iNLatBuf);
+  }
 
   while (cerr != NULL && read == 1) {
     cerr = fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
@@ -168,7 +178,17 @@ char *ReadBuffGPWKernInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iKernBuf
   return cerr;
 }
 
-
+char *ReadBuffTopology(FILE *fp, int *dim) {
+  char *cerr;
+  char ctmp[D_FileNameMax];
+  char ctmp2[D_FileNameMax];
+  cerr = fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
+  if (cerr != NULL) {
+    cerr = fgets(ctmp2, sizeof(ctmp2) / sizeof(char), fp);
+    sscanf(ctmp2, "%s %d\n", ctmp, dim); //2
+  }
+  return cerr;
+}
 
 
 
@@ -439,7 +459,12 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
             break;
 
           case KWGPW:
-            cerr = ReadBuffGPWKernInfo(fp, &bufInt[IdxNGPW], &iComplexFlgGPW, &bufInt[IdxKernelFunc], &bufInt[IdxCutRad], &bufDouble[IdxTheta0], &bufDouble[IdxThetaC]);
+            cerr = ReadBuffGPWKernInfo(fp, &bufInt[IdxNGPW], &iComplexFlgGPW, &bufInt[IdxNGPWTrnLat], &bufInt[IdxKernelFunc],
+                                       &bufInt[IdxCutRad], &bufDouble[IdxTheta0], &bufDouble[IdxThetaC]);
+            break;
+
+          case KWTopology:
+            cerr = ReadBuffTopology(fp, &bufInt[IdxDim]);
             break;
 
           case KWOrbital:
@@ -662,7 +687,9 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
   NJastrowIdx = bufInt[IdxNJast];
   NDoublonHolon2siteIdx = bufInt[IdxNDH2];
   NDoublonHolon4siteIdx = bufInt[IdxNDH4];
+  Dim = bufInt[IdxDim];
   NGPWIdx = bufInt[IdxNGPW];
+  NGPWTrnLat = bufInt[IdxNGPWTrnLat];
   NOrbitalIdx = bufInt[IdxNOrbit];
   NQPTrans = bufInt[IdxNQPTrans];
   NCisAjs = bufInt[IdxNOneBodyG];
@@ -865,7 +892,13 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
         case KWGPW:
           for (i = 0; i < IgnoreLinesDefGPW; i++) fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
           fidx = NGutzwillerIdx + NJastrowIdx + 2 * 3 * NDoublonHolon2siteIdx + 2 * 5 * NDoublonHolon4siteIdx;
-          if (GetInfoGPW(fp, GPWTrnSize, GPWTrnCfg, OptFlag, iComplexFlgGPW, &count_idx, fidx, defname) != 0)
+          if (GetInfoGPW(fp, GPWTrnSize, GPWTrnNeighbours, GPWTrnLat, GPWTrnCfg, OptFlag,
+                         iComplexFlgGPW, &count_idx, fidx, defname) != 0)
+            info = 1;
+          break;
+
+        case KWTopology:
+          if (GetInfoTopology(fp, SysNeighbours, defname) != 0)
             info = 1;
           break;
 
@@ -1531,7 +1564,9 @@ void SetDefaultValuesModPara(int *bufInt, double *bufDouble) {
   bufInt[IdxNJast] = 0;
   bufInt[IdxNDH2] = 0;
   bufInt[IdxNDH4] = 0;
+  bufInt[IdxDim] = 1;
   bufInt[IdxNGPW] = 0;
+  bufInt[IdxNGPWTrnLat] = 0;
   bufInt[IdxNOrbit] = 0;
   bufInt[IdxNQPTrans] = 0;
   bufInt[IdxNOneBodyG] = 0;
@@ -1955,24 +1990,41 @@ GetInfoDH4(FILE *fp, int **ArrayIdx, int *ArrayOpt, int iComplxFlag, int *iOptCo
   return info;
 }
 
-int GetInfoGPW(FILE *fp, int *trnSize, int **trnCfg, int *ArrayOpt, int iComplxFlag, int *iOptCount, int _fidx, char *defname) {
-  int trnSz = 0, trnCfgUp = 0, trnCfgDown = 0, idx0 = 0, idx1 = 0, i = 0, j = 0, info = 0;
+int GetInfoGPW(FILE *fp, int *trnSize, int **trnNeighbours, int *trnLattices, int **trnCfg,
+               int *ArrayOpt, int iComplxFlag, int *iOptCount, int _fidx, char *defname) {
+  char ctmp[D_CharTmpReadDef];
+  int trnSz,i,j,k,tmp,ind,ind2;
+  int trnCfgUp = 0, trnCfgDown = 0, idx0 = 0, idx1 = 0, info = 0;
   int fidx = _fidx;
+  // TODO: sanity checks!!
   if (NGPWIdx > 0) {
-    while (fscanf(fp, "%d %d %d %d\n", &trnSz, &trnCfgUp, &trnCfgDown, &i) != EOF) {
-      //TODO insert sanity checks. do we want to allow #alpha values != #training configs (different training configs share same alpha value)? probably not sensible.
-      trnSize[i] = trnSz;
-      trnCfg[i] = (int*)malloc(sizeof(int)*2*trnSz);
-
+    for(i=0;i<NGPWTrnLat;i++) {
+      fscanf(fp, "%s %d\n", ctmp, &tmp);
+      fscanf(fp, "%s %d\n", ctmp, &trnSz);
+      trnSize[tmp] = trnSz;
+      trnNeighbours[tmp] = (int*)malloc(sizeof(int)*trnSz*Dim*2);
+      fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
       for(j=0;j<trnSz;j++) {
-        trnCfg[i][j] = (trnCfgUp >> j) & 1;
-        trnCfg[i][j+trnSz] = (trnCfgDown >> j) & 1;
+        fscanf(fp, "%d", &ind);
+        for(k=0;k<2*Dim;k++) {
+          fscanf(fp, "%d", &ind2);
+          trnNeighbours[tmp][ind*2*Dim + k] = ind2;
+        }
+        fscanf(fp, "\n");
       }
+      fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
+      fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
+    }
 
-      // if(KernelFunc == 0) {
-      //   PairDelta[i] = (int*)malloc(sizeof(int)*trnSz*Nsite);
-      //   RangeSum[i] = (double*)malloc(sizeof(double)*trnSz*Nsite);
-      // }
+    while (fscanf(fp, "%d %d %d %d\n", &trnCfgUp, &trnCfgDown, &i, &j) != EOF) {
+      trnLattices[j] = i;
+      trnSz = trnSize[i];
+      trnCfg[j] = (int*)malloc(sizeof(int)*2*trnSz);
+
+      for(k=0;k<trnSz;k++) {
+        trnCfg[j][k] = (trnCfgUp >> k) & 1;
+        trnCfg[j][k+trnSz] = (trnCfgDown >> k) & 1;
+      }
 
       idx0++;
       if (idx0 == NGPWIdx) break;
@@ -1981,6 +2033,29 @@ int GetInfoGPW(FILE *fp, int *trnSize, int **trnCfg, int *ArrayOpt, int iComplxF
     if (idx0 != NGPWIdx || idx1 != NGPWIdx) {
       info = ReadDefFileError(defname);
     }
+  }
+  return info;
+}
+
+int GetInfoTopology(FILE *fp, int *sysNeighbours, char *defname) {
+  char ctmp[D_CharTmpReadDef];
+  int i,j,ind,ind2;
+  int info = 0;
+
+  for(i=0;i<Nsite;i++) {
+    info = fscanf(fp, "%d", &ind);
+    for(j=0;j<2*Dim;j++) {
+      info = fscanf(fp, "%d", &ind2);
+      sysNeighbours[ind*2*Dim + j] = ind2;
+    }
+    fscanf(fp, "\n");
+  }
+
+  if (info != 1) {
+    info = ReadDefFileError(defname);
+  }
+  else {
+    info = 0;
   }
   return info;
 }

@@ -132,16 +132,20 @@ int NInterAll;
 int **InterAll; /* [NInterAll][8] */
 double complex*ParaInterAll;
 
+int Dim; /* lattice dimension for GPW */
+int *SysNeighbours; /* [Nsite*2*dim] system neighbour cells required for GPW */
+
 /* for variational parameters */
 int NGutzwillerIdx, *GutzwillerIdx; /* [Nsite] */
 int NJastrowIdx, **JastrowIdx; /* [Nsite][Nsite] */
 int NDoublonHolon2siteIdx, **DoublonHolon2siteIdx; /* DoublonHolon2siteIdx[idx][2*Nsite] */
 int NDoublonHolon4siteIdx, **DoublonHolon4siteIdx; /* DoublonHolon4siteIdx[idx][4*Nsite] */
 int NGPWIdx; /* NGPWIdx = total number of training configurations */
-int *GPWTrnSize; /* [NGPWIdx] Lattice sizes of training configurations*/
+int NGPWTrnLat; /* NGPWTrnLat = total number of different training lattices */
+int *GPWTrnSize; /* [NGPWTrnLat] Lattice sizes of training configurations*/
+int **GPWTrnNeighbours; /* [NGPWTrnLat][GPWTrnSize*2*dim] neighbours in the training system required for GPW */
+int *GPWTrnLat; /* [NGPWIdx] Lattice associated with training configuration */
 int **GPWTrnCfg; /*[NGPWIdx][2*trnSize], training configurations representation as in EleNum */
-int **PairDelta; /* [NGPWIdx][NSite*TrnSize], delta function matrix for full GPW kernel */
-double **RangeSum; /* [NGPWIdx][NSite*TrnSize], sum matrix for full GPW kernel */
 int NOrbitalIdx, **OrbitalIdx; /* [Nsite][Nsite] */
 int **OrbitalSgn; /* OrbitalSgn[Nsite][Nsite] = +1 or -1 */
 int iFlgOrbitalGeneral=0;

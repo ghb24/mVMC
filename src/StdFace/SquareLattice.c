@@ -235,4 +235,21 @@ void StdFace_Tetragonal(struct StdIntList *StdI)
   fprintf(fp, "plot \'-\' w d lc 7\n0.0 0.0\nend\npause -1\n");
   fclose(fp);
   StdFace_PrintGeometry(StdI);
+
+  // print the lattice topology for GPW
+  fp = fopen("lattice_topology.dat", "w");
+  fprintf(fp, "============\n");
+  fprintf(fp, "Dimension  2\n");
+  fprintf(fp, "NSite  %d\n", StdI->NCell);
+  fprintf(fp, "NsiteUC  %d\n", StdI->NsiteUC);
+  fprintf(fp, "============\n");
+  for(kCell=0;kCell<StdI->NCell;kCell++) {
+    int left, right, top, down;
+    StdFace_FindSite(StdI, StdI->Cell[kCell][0], StdI->Cell[kCell][1], StdI->Cell[kCell][2], 1, 0, 0, 0, 0, &isite, &right, &Cphase, dR);
+    StdFace_FindSite(StdI, StdI->Cell[kCell][0], StdI->Cell[kCell][1], StdI->Cell[kCell][2], -1, 0, 0, 0, 0, &isite, &left, &Cphase, dR);
+    StdFace_FindSite(StdI, StdI->Cell[kCell][0], StdI->Cell[kCell][1], StdI->Cell[kCell][2], 0, 1, 0, 0, 0, &isite, &top, &Cphase, dR);
+    StdFace_FindSite(StdI, StdI->Cell[kCell][0], StdI->Cell[kCell][1], StdI->Cell[kCell][2], 0, -1, 0, 0, 0, &isite, &down, &Cphase, dR);
+    fprintf(fp, "%d  %d  %d  %d  %d\n", isite, right, left, top, down);
+  }
+  fclose(fp);
 }

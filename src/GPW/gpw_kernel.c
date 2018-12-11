@@ -136,15 +136,13 @@ void CalculatePairDelta(int *delta, const int *sysCfg, const int sysSize, const 
 }
 
 double CalculateRangeSum(const int i, const int a, const int *delta, const int sysSize,
-                         const int trnSize, const int d, int **neighbours, const int rC,
-                         const double theta0, const double thetaC, int *workspace) {
+                         const int trnSize, const int d, const int *sysNeighbours,
+                         const int *trnNeighbours, const int rC, const double theta0,
+                         const double thetaC, int *workspace) {
   int j,b,k,l,dist,count,tmpCount,dim;
   double rangeSum = 0.0;
 
   int multiple = 2*d*rC;
-
-  int **neighboursSys = neighbours;
-  int **neighboursTrn = neighbours + sysSize;
 
   // TODO: store this in bitstrings
   int *visitedSys = workspace;
@@ -195,8 +193,8 @@ double CalculateRangeSum(const int i, const int a, const int *delta, const int s
         int dir = directions[d*k+dim]>=0?0:1; // positive or negative direction
 
         // add neighbour in respective direction
-        j = neighboursSys[prevIndSys[k]][dim*2+dir];
-        b = neighboursTrn[prevIndTrn[k]][dim*2+dir];
+        j = sysNeighbours[prevIndSys[k]*2*d+dim*2+dir];
+        b = trnNeighbours[prevIndTrn[k]*2*d+dim*2+dir];
 
         if(!visitedSys[j] && !visitedTrn[b]) {
 
@@ -220,8 +218,8 @@ double CalculateRangeSum(const int i, const int a, const int *delta, const int s
         // add neighbour in opposing direction if coordinate = 0
         if(directions[d*k+dim] == 0) {
           dir = dir ^ 1;
-          j = neighboursSys[prevIndSys[k]][dim*2+dir];
-          b = neighboursTrn[prevIndTrn[k]][dim*2+dir];
+          j = sysNeighbours[prevIndSys[k]*2*d+dim*2+dir];
+          b = trnNeighbours[prevIndTrn[k]*2*d+dim*2+dir];
 
           if(!visitedSys[j] && !visitedTrn[b]) {
             tmpPrevIndSys[tmpCount] = j;
@@ -275,37 +273,15 @@ double GPWKernel(const double kernelOld, const double *termMatr, const int updat
   return kernel;
 }
 
-double GPWKernelInPlace(const int *sysCfg, const int sysSize, const int *trnCfg,
-                        const int trnSize, const int rC, const double theta0, const double thetaC) {
+double GPWKernelInPlace(const int *sysCfg, const int *sysNeighbours, const int sysSize,
+                        const int *trnCfg, const int *trnNeighbours, const int trnSize,
+                        const int d, const int rC, const double theta0, const double thetaC) {
   int i, a, power, k;
 
   double kernel = 0.0;
-  int *delta = (int*)malloc(sizeof(int)*trnSize*sysSize);
-
-  int d = 1;
+  int *delta = (int*)malloc(sizeof(int)*(trnSize*sysSize));
 
   int *workspace = (int*)malloc((trnSize+sysSize+8*d*rC+4*d*rC*d)*sizeof(int));
-
-
-
-  int **neighboursSys = (int**)malloc((sysSize+trnSize)*sizeof(int*));
-  int **neighboursTrn = neighboursSys+sysSize;
-
-  for(i=0; i<sysSize; i++) {
-    neighboursSys[i] = (int*)malloc(2*sizeof(int));
-
-    neighboursSys[i][0] = (i+1)>=0?(i+1)%sysSize:(i+1)%sysSize+sysSize;
-    neighboursSys[i][1] = (i-1)>=0?(i-1)%sysSize:(i-1)%sysSize+sysSize;
-  }
-
-  for(i=0; i<trnSize; i++) {
-    neighboursTrn[i] = (int*)malloc(2*sizeof(int));
-
-    neighboursTrn[i][0] = (i+1)>=0?(i+1)%trnSize:(i+1)%trnSize+trnSize;
-    neighboursTrn[i][1] = (i-1)>=0?(i-1)%trnSize:(i-1)%trnSize+trnSize;
-  }
-
-
 
   if (trnSize <= sysSize) {
     power = trnSize-1;
@@ -320,21 +296,11 @@ double GPWKernelInPlace(const int *sysCfg, const int sysSize, const int *trnCfg,
   for (i=0;i<sysSize;i++) {
     for (a=0;a<trnSize;a++) {
       if (delta[i*trnSize+a]) {
-        kernel += pow(CalculateRangeSum(i, a, delta, sysSize, trnSize, d, neighboursSys, rC, theta0, thetaC, workspace), power);
+        kernel += pow(CalculateRangeSum(i, a, delta, sysSize, trnSize, d, sysNeighbours, trnNeighbours, rC, theta0, thetaC, workspace), power);
       }
     }
   }
 
-
-  for(i=0; i<trnSize; i++) {
-    free(neighboursTrn[i]);
-  }
-
-  for(i=0; i<sysSize; i++) {
-    free(neighboursSys[i]);
-  }
-
-  free(neighboursSys);
   free(workspace);
   free(delta);
 

@@ -211,6 +211,21 @@ void StdFace_Chain(
   fprintf(fp, "plot \'-\' w d lc 7\n0.0 0.0\nend\npause -1\n");
   fclose(fp);
   StdFace_PrintGeometry(StdI);
+
+  // print the lattice topology for GPW
+  fp = fopen("lattice_topology.dat", "w");
+  fprintf(fp, "============\n");
+  fprintf(fp, "Dimension  1\n");
+  fprintf(fp, "NSite     %d\n", StdI->NCell);
+  fprintf(fp, "NsiteUC   %d\n", StdI->NsiteUC);
+  fprintf(fp, "============\n");
+  for(iL=0;iL<StdI->NCell;iL++) {
+    int left, right;
+    StdFace_FindSite(StdI, StdI->Cell[iL][0], StdI->Cell[iL][1], StdI->Cell[iL][2], 0, 1, 0, 0, 0, &isite, &right, &Cphase, dR);
+    StdFace_FindSite(StdI, StdI->Cell[iL][0], StdI->Cell[iL][1], StdI->Cell[iL][2], 0, -1, 0, 0, 0, &isite, &left, &Cphase, dR);
+    fprintf(fp, "%d  %d  %d\n", isite, right, left);
+  }
+  fclose(fp);
 }/*void StdFace_Chain*/
 
 #if defined(_HPhi)

@@ -287,6 +287,7 @@ int main(int argc, char* argv[])
   if(rank0==0) InitFile(fileDefList, rank0);
   
   if(NVMCCalMode==0) conversion();
+  //printf("wL=%e, F0=%e, a=%e, t0=%e, U=%e", wL, F0, a, creal(ParaTransfer[0]), creal(ParaCoulombIntra[0]));
   
   StopTimer(1);
   if(NVMCCalMode==0) {
@@ -667,7 +668,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, MakeSample.\n", step);
 #endif
-    VMCMakeSample(comm_child1);
+    //VMCMakeSample(comm_child1);
     StopTimer(3);
 
     StartTimer(4);
@@ -741,7 +742,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, MainCal.\n", step);
 #endif
-    VMCMainCal(comm_child1);
+    //VMCMainCal(comm_child1);
     StopTimer(4);
 
     StartTimer(21);
@@ -811,7 +812,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
 #ifdef _DEBUG_DETAIL
     printf("Debug: step %d, MainCal.\n", step);
 #endif
-    VMCMainCal(comm_child1);
+    //VMCMainCal(comm_child1);
     StopTimer(4);
 
     StartTimer(21);

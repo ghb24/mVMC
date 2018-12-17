@@ -236,6 +236,9 @@ int main(int argc, char* argv[])
   if(rank0==0) fprintf(stdout,"End  : Set memories.\n");
   StopTimer(12);
   
+  if(NVMCCalMode==0) conversion();
+  //printf("wL=%e, F0=%e, a=%e, t0=%e, U=%e", wL, F0, a, creal(ParaTransfer[0]), creal(ParaCoulombIntra[0]));
+  
   /* split MPI coummunicator */
 #ifdef _mpi_use
   StartTimer(10);
@@ -286,7 +289,7 @@ int main(int argc, char* argv[])
   /* initialize output files */
   if(rank0==0) InitFile(fileDefList, rank0);
   
-  if(NVMCCalMode==0) conversion();
+  //if(NVMCCalMode==0) conversion();
   //printf("wL=%e, F0=%e, a=%e, t0=%e, U=%e", wL, F0, a, creal(ParaTransfer[0]), creal(ParaCoulombIntra[0]));
   
   StopTimer(1);
@@ -1006,7 +1009,7 @@ void WriteToTrans() {
   double phi;
   int i;
 
-  phi = (a*F0/wL) * pow(sin(M_PI*tc/cycles),2.) * sin(2.*M_PI*tc);
+  phi = a*F0/(2.*M_PI*wL) * pow(sin(M_PI*tc/cycles),2.) * sin(2.*M_PI*tc);
   hopping = cexp(I*phi);
   for(i=0;i<NTransfer;i++) {
     if(i%2==0) {

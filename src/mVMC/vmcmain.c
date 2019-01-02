@@ -798,6 +798,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
     //Calculation of K4 term
     tc += DSROptStepDt/2.0;
     WriteToTrans();
+    //for(i=0;i<NTransfer;i++) printf("real %e, imag %e\n",creal(ParaTransfer[i]),cimag(ParaTransfer[i])); 
 
     StartTimer(20);
     UpdateSlaterElm_fcmp();
@@ -998,19 +999,21 @@ void conversion() {
 
   convfac = 1./(t0*0.03674903); 
   for(i=0;i<NCoulombIntra;i++) ParaCoulombIntra[i] /= t0;  
-  for(i=0;i<NTransfer;i++) ParaTransfer[i] = 1.0;  
+  for(i=0;i<NTransfer;i++) ParaTransfer[i] = 1.0+0.0*I;  
   wL *= convfac*0.0000241888;  
   a *= 1.889726125/convfac;
   F0 *= 1.944689151e-4*pow(convfac,2.);
 }
 
 void WriteToTrans() {
-  double complex hopping;
-  double phi;
+  double complex hopping, phi;
   int i;
 
   phi = a*F0/(2.*M_PI*wL) * pow(sin(M_PI*tc/cycles),2.) * sin(2.*M_PI*tc);
   hopping = cexp(I*phi);
+  //printf("%e",phi);
+  //printf("real %e, imag %e \n",creal(hopping),cimag(hopping));
+
   for(i=0;i<NTransfer;i++) {
     if(i%2==0) {
       ParaTransfer[i] = hopping;

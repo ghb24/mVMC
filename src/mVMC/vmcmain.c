@@ -578,7 +578,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
         printf("Progress of Simulation: %d%%\n", iprogress);
       }
     }
-    
+
     for(i=0;i<NPara;i++) Paran[i] = Para_new[i] = Para[i]; 
 
     //////////////////////////////////
@@ -1012,7 +1012,7 @@ void WriteToTrans() {
   phi = a*F0/(2.*M_PI*wL) * pow(sin(M_PI*tc/cycles),2.) * sin(2.*M_PI*tc);
   hopping = cexp(I*phi);
   //printf("%e",phi);
-  //printf("real %e, imag %e \n",creal(hopping),cimag(hopping));
+  //printf("real hop %e, imag hop %e \n",creal(hopping),cimag(hopping));
 
   for(i=0;i<NTransfer;i++) {
     if(i%2==0) {
@@ -1021,6 +1021,11 @@ void WriteToTrans() {
       ParaTransfer[i] = conj(hopping);
     }
   }
+
+  //printf("real %f, imag %e\n",creal(ParaTransfer[0]),cimag(ParaTransfer[0]));
+  //printf("real %f, imag %e\n",creal(ParaTransfer[1]),cimag(ParaTransfer[1]));
+  //printf("real %f, imag %e\n",creal(ParaTransfer[30]),cimag(ParaTransfer[30]));
+  //printf("real %f, imag %e\n",creal(ParaTransfer[35]),cimag(ParaTransfer[35]));
 }
 
 void outputData() {

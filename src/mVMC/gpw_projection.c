@@ -43,7 +43,7 @@ void CalculateGPWKern(double *eleGPWKern, const int *eleNum) {
                                        GPWTrnSize[GPWTrnLat[i]], Dim, CutRad, Theta0, ThetaC);
     }
     else {
-      eleGPWKern[i] = GPWKernelN(eleNum, Nsite, GPWTrnCfg[i], GPWTrnSize[i], KernelFunc);
+      eleGPWKern[i] = GPWKernelN(eleNum, Nsite, GPWTrnCfg[i], GPWTrnSize[GPWTrnLat[i]], KernelFunc);
     }
   }
 

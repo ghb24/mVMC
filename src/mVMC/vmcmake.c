@@ -617,7 +617,7 @@ void VMC_BF_MakeSample(MPI_Comm comm)
         /* Metroplis */
         x = LogProjRatio(projCntNew, TmpEleProjCnt);
         w = cexp((x + (logIpNew - logIpOld)));
-        if (!isfinite(w)) w = -1.0; /* should be rejected */
+        if (!isfinite(cabs(w))) w = -1.0; /* should be rejected */
 
         if (cabs(w) > genrand_real2()) { /* accept */
           // UpdateMAll will change SlaterElm, InvM (including PfM)
@@ -679,7 +679,7 @@ void VMC_BF_MakeSample(MPI_Comm comm)
         /* Metroplis */
         x = LogProjRatio(projCntNew, TmpEleProjCnt);
         w = cexp(2.0 * (x + (logIpNew - logIpOld))); //TBC
-        if (!isfinite(w)) w = -1.0; /* should be rejected */
+        if (!isfinite(cabs(w))) w = -1.0; /* should be rejected */
 
         if (cabs(w) > genrand_real2()) { /* accept */
           StartTimer(68);

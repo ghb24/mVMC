@@ -193,7 +193,16 @@ void SetMemoryDef() {
 
   OptFlag = pInt;
 
-  ParaTransfer = (double complex*)malloc(sizeof(double complex)*(NTransfer+NInterAll));  
+  // GPW trainig data
+  GPWTrnSize = OptFlag + 2 * NPara;
+  GPWTrnLat = GPWTrnSize + NGPWTrnLat;
+  SysNeighbours = GPWTrnLat + NGPWIdx;
+  GPWTrnNeighboursFlat = SysNeighbours + Nsite*2*Dim;
+  GPWTrnCfgFlat = GPWTrnNeighboursFlat + GPWTrnLatNeighboursSz;
+  GPWTrnCfg = (int**)malloc(sizeof(int*)*(NGPWIdx+NGPWTrnLat));
+  GPWTrnNeighbours = GPWTrnCfg+NGPWIdx;
+
+  ParaTransfer = (double complex*)malloc(sizeof(double complex)*(NTransfer+NInterAll));
   ParaInterAll = ParaTransfer+NTransfer;
 
   ParaCoulombIntra = (double*)malloc(sizeof(double)*(NTotalDefDouble));
@@ -226,25 +235,13 @@ void SetMemoryDef() {
     }
   }
 
-  // GPW trainig data, TODO: include in joint memory for all other definition terms
-  GPWTrnSize = (int*)malloc(sizeof(int)*(NGPWIdx+NGPWTrnLat+Nsite*2*Dim));
-  GPWTrnLat = GPWTrnSize + NGPWTrnLat;
-  SysNeighbours = GPWTrnLat + NGPWIdx;
-  GPWTrnNeighbours = (int**)malloc(sizeof(int*)*(NGPWIdx+NGPWTrnLat));
-  GPWTrnCfg = GPWTrnNeighbours + NGPWTrnLat;
-
   return;
 }
 
 void FreeMemoryDef() {
   int i;
-  for(i=0;i<NGPWTrnLat+NGPWIdx;i++) {
-    free(GPWTrnNeighbours[i]);
-  }
-  free(GPWTrnNeighbours);
-  free(GPWTrnSize);
-  
   free(ParaTransfer);
+  free(GPWTrnCfg);
 
   free(QPOptTransSgn);
   free(QPOptTrans);

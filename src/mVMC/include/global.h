@@ -142,9 +142,13 @@ int NDoublonHolon2siteIdx, **DoublonHolon2siteIdx; /* DoublonHolon2siteIdx[idx][
 int NDoublonHolon4siteIdx, **DoublonHolon4siteIdx; /* DoublonHolon4siteIdx[idx][4*Nsite] */
 int NGPWIdx; /* NGPWIdx = total number of training configurations */
 int NGPWTrnLat; /* NGPWTrnLat = total number of different training lattices */
+int GPWTrnLatNeighboursSz; /* total size of the training lattice neighbours array (sum_(all training lattices) 2*Dim*latSize) */
+int GPWTrnCfgSz; /* total size of the training configurations array (sum_(all training configs) 2*latSize) */
 int *GPWTrnSize; /* [NGPWTrnLat] Lattice sizes of training configurations*/
-int **GPWTrnNeighbours; /* [NGPWTrnLat][GPWTrnSize*2*dim] neighbours in the training system required for GPW */
-int *GPWTrnLat; /* [NGPWIdx] Lattice associated with training configuration */
+int *GPWTrnLat; /* [NGPWIdx] Training lattice reference for each training configuration */
+int *GPWTrnNeighboursFlat; /* [GPWTrnLatNeighboursSz] flat array of all the neighbours in the training system required for GPW */
+int **GPWTrnNeighbours; /* [NGPWTrnLat][GPWTrnSize*2*dim] neighbours in the training system required for GPW*/
+int *GPWTrnCfgFlat; /* [GPWTrnCfgSz] flat array of all the training configurations*/
 int **GPWTrnCfg; /*[NGPWIdx][2*trnSize], training configurations representation as in EleNum */
 int NOrbitalIdx, **OrbitalIdx; /* [Nsite][Nsite] */
 int **OrbitalSgn; /* OrbitalSgn[Nsite][Nsite] = +1 or -1 */

@@ -39,8 +39,8 @@ void CalculateGPWKern(double *eleGPWKern, const int *eleNum) {
   #pragma omp parallel for default(shared) private(i)
   for(i=0;i<nGPWIdx;i++) {
     if (KernelFunc == 0) {
-      eleGPWKern[i] = GPWKernelInPlace(eleNum, SysNeighbours, Nsite, GPWTrnCfg[i], GPWTrnNeighbours[GPWTrnLat[i]],
-                                       GPWTrnSize[GPWTrnLat[i]], Dim, CutRad, Theta0, ThetaC);
+      eleGPWKern[i] = GPWKernel(eleNum, SysNeighbours, Nsite, GPWTrnCfg[i], GPWTrnNeighbours[GPWTrnLat[i]],
+                                GPWTrnSize[GPWTrnLat[i]], Dim, CutRad, Theta0, ThetaC);
     }
     else {
       eleGPWKern[i] = GPWKernelN(eleNum, Nsite, GPWTrnCfg[i], GPWTrnSize[GPWTrnLat[i]], KernelFunc);

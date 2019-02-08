@@ -93,7 +93,13 @@ int StochasticOpt(MPI_Comm comm) {
   }
 
 // search for max and min
-  sDiag = r[0];
+  // TODO: modify if GPW variables are included in sanity check
+  if(NProj > 0) {
+    sDiag = r[0];
+  }
+  else {
+    sDiag = r[2*NGPWIdx];
+  }
   sDiagMax=sDiag; sDiagMin=sDiag;
   for(pi=0;pi<2*nPara;pi++) {
     if (!(pi >= 2*NProj && pi < 2*(NProj+NGPWIdx))) { // TODO: Include GPW factors in sanity check

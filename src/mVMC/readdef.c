@@ -72,7 +72,7 @@ int
 GetInfoDH4(FILE *fp, int **ArrayIdx, int *ArrayOpt, int iComplxFlag, int *iOptCount, int _fidx, int Nsite, int NArray,
            char *defname);
 
-int GetInfoGPW(FILE *fp, int *trnSize, int **trnNeighbours, int *trnLattices, int **trnCfg,
+int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int *trnCfg,
                int *ArrayOpt, int iComplxFlag, int *iOptCount, int _fidx, char *defname);
 
 int GetInfoTopology(FILE *fp, int *sysNeighbours, char *defname);
@@ -138,14 +138,21 @@ char *ReadBuffIntCmpFlg(FILE *fp, int *iNbuf, int *iComplexFlag) {
   return cerr;
 }
 
-char *ReadBuffGPWKernInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, int *iKernBuf,
-                          int *iCutRadBuf, double *iTheta0Buf, double *iThetaCBuf) {
+char *ReadBuffGPWInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, int *iLatNbSzBuf,
+                      int *iTrnCfgSzBuf, int *iKernBuf, int *iCutRadBuf, double *iTheta0Buf,
+                      double *iThetaCBuf) {
   char *cerr;
   char ctmp[D_FileNameMax];
   char ctmp2[D_FileNameMax];
+  int i, j, k, l, trnSz, latIdIntern, latIdFile, mappingFound;
 
   int read = 1;
   double dtmp;
+
+  int *latSz, *mapping;
+
+  *iLatNbSzBuf = 0;
+  *iTrnCfgSzBuf = 0;
 
   cerr = ReadBuffIntCmpFlg(fp, iNbuf, iComplexFlag);
 
@@ -155,7 +162,7 @@ char *ReadBuffGPWKernInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf
     sscanf(ctmp, "%s %d\n", ctmp2, iNLatBuf);
   }
 
-  while (cerr != NULL && read == 1) {
+  while (cerr != NULL && read) {
     cerr = fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
     sscanf(ctmp, "%s %lf\n", ctmp2, &dtmp);
 
@@ -175,6 +182,52 @@ char *ReadBuffGPWKernInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf
       read = 0;
     }
   }
+
+  // array to temporarily store the sizes of the training lattices
+  latSz = (int*)malloc(sizeof(int)*(*iNLatBuf*2));
+  // mapping between specified lattice reference and internal lattice index
+  mapping = latSz + *iNLatBuf;
+
+  // skip one line
+  fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
+
+  // read in the sizes of the training lattices
+  for(i = 0; i < *iNLatBuf; i++) {
+    cerr = fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
+    sscanf(ctmp, "%s %d\n", ctmp2, &(mapping[i]));
+    cerr = fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
+    sscanf(ctmp, "%s %d\n", ctmp2, &trnSz);
+
+    *iLatNbSzBuf += trnSz;
+    latSz[i] = trnSz;
+    cerr = fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
+    for(j = 0; j < trnSz; j++) {
+      cerr = fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
+    }
+    cerr = fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
+    cerr = fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
+  }
+
+  for(i = 0; i < *iNbuf; i++) {
+    cerr = fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
+    sscanf(ctmp, "%d %d %d %d\n", &j, &k, &latIdFile, &l);
+
+    mappingFound = 0;
+    for(k = 0; k < *iNLatBuf; k++) {
+      if (latIdFile == mapping[k]) {
+        latIdIntern = k;
+        mappingFound = 1;
+        break;
+      }
+    }
+    if (!mappingFound) {
+      fprintf(stderr, "Error: Lattice reference (in gpwidx.def) not found.\n");
+    }
+
+    *iTrnCfgSzBuf += latSz[latIdIntern];
+  }
+
+  free(latSz);
   return cerr;
 }
 
@@ -459,8 +512,9 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
             break;
 
           case KWGPW:
-            cerr = ReadBuffGPWKernInfo(fp, &bufInt[IdxNGPW], &iComplexFlgGPW, &bufInt[IdxNGPWTrnLat], &bufInt[IdxKernelFunc],
-                                       &bufInt[IdxCutRad], &bufDouble[IdxTheta0], &bufDouble[IdxThetaC]);
+            cerr = ReadBuffGPWInfo(fp, &bufInt[IdxNGPW], &iComplexFlgGPW, &bufInt[IdxNGPWTrnLat],
+                                   &bufInt[IdxTrnLatNbSz], &bufInt[IdxTrnCfgSz], &bufInt[IdxKernelFunc],
+                                   &bufInt[IdxCutRad], &bufDouble[IdxTheta0], &bufDouble[IdxThetaC]);
             break;
 
           case KWTopology:
@@ -690,6 +744,8 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
   Dim = bufInt[IdxDim];
   NGPWIdx = bufInt[IdxNGPW];
   NGPWTrnLat = bufInt[IdxNGPWTrnLat];
+  GPWTrnLatNeighboursSz = 2 * Dim * bufInt[IdxTrnLatNbSz];
+  GPWTrnCfgSz = 2 * bufInt[IdxTrnCfgSz];
   NOrbitalIdx = bufInt[IdxNOrbit];
   NQPTrans = bufInt[IdxNQPTrans];
   NCisAjs = bufInt[IdxNOneBodyG];
@@ -771,7 +827,12 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
                  + 8 * NInterAll /* InterAll */
                  + Nsite * NQPOptTrans /* QPOptTrans */
                  + Nsite * NQPOptTrans /* QPOptTransSgn */
-                 + 2 * NPara; /* OptFlag */ // TBC
+                 + 2 * NPara /* OptFlag */ // TBC
+                 + NGPWTrnLat /* GPWTrnSize */
+                 + NGPWIdx /* GPWTrnLat */
+                 + Nsite*2*Dim /* SysNeighbours */
+                 + GPWTrnLatNeighboursSz /* GPWTrnNeighboursFlat */
+                 + GPWTrnCfgSz; /* GPWTrnCfgFlat */
 
   //Orbitalidx
   if (iFlgOrbitalGeneral == 0) {
@@ -892,7 +953,7 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
         case KWGPW:
           for (i = 0; i < IgnoreLinesDefGPW; i++) fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
           fidx = NGutzwillerIdx + NJastrowIdx + 2 * 3 * NDoublonHolon2siteIdx + 2 * 5 * NDoublonHolon4siteIdx;
-          if (GetInfoGPW(fp, GPWTrnSize, GPWTrnNeighbours, GPWTrnLat, GPWTrnCfg, OptFlag,
+          if (GetInfoGPW(fp, GPWTrnSize, GPWTrnNeighboursFlat, GPWTrnLat, GPWTrnCfgFlat, OptFlag,
                          iComplexFlgGPW, &count_idx, fidx, defname) != 0)
             info = 1;
           break;
@@ -1075,6 +1136,19 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
       if (FlagShiftDH4 == 1) fprintf(stderr, "DH4 ");
       fprintf(stderr, ") is turned on.\n");
     }
+  }
+
+  // set GPWTrnCfg and GPWTrnNeighbours
+  j = 0;
+  for (i = 0; i < NGPWIdx; i++) {
+    GPWTrnCfg[i] = GPWTrnCfgFlat+j;
+    j += 2*GPWTrnSize[GPWTrnLat[i]];
+  }
+
+  j = 0;
+  for (i = 0; i < NGPWTrnLat; i++) {
+    GPWTrnNeighbours[i] = GPWTrnNeighboursFlat+j;
+    j += 2*Dim*GPWTrnSize[i];
   }
 
   return 0;
@@ -1990,45 +2064,71 @@ GetInfoDH4(FILE *fp, int **ArrayIdx, int *ArrayOpt, int iComplxFlag, int *iOptCo
   return info;
 }
 
-int GetInfoGPW(FILE *fp, int *trnSize, int **trnNeighbours, int *trnLattices, int **trnCfg,
+int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int *trnCfg,
                int *ArrayOpt, int iComplxFlag, int *iOptCount, int _fidx, char *defname) {
   char ctmp[D_CharTmpReadDef];
-  int trnSz,i,j,k,tmp,ind,ind2;
-  int trnCfgUp = 0, trnCfgDown = 0, idx0 = 0, idx1 = 0, info = 0;
+  int trnSz, i, j, k, tmp, ind, ind2, mappingFound, latIdFile, latIdIntern;
+  int trnCfgUp = 0, trnCfgDown = 0, idx0 = 0, idx1 = 0, info = 0, storeId = 0;
   int fidx = _fidx;
   // TODO: sanity checks!!
+  int *mapping = (int*)malloc(sizeof(int)*NGPWTrnLat);
+
   if (NGPWIdx > 0) {
-    for(i=0;i<NGPWTrnLat;i++) {
+    for (i = 0; i < NGPWTrnLat; i++) {
       fscanf(fp, "%s %d\n", ctmp, &tmp);
       fscanf(fp, "%s %d\n", ctmp, &trnSz);
-      trnSize[tmp] = trnSz;
-      trnNeighbours[tmp] = (int*)malloc(sizeof(int)*trnSz*Dim*2);
+      trnSize[i] = trnSz;
+      mapping[i] = tmp;
       fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
-      for(j=0;j<trnSz;j++) {
+      for (j = 0; j < trnSz; j++) {
         fscanf(fp, "%d", &ind);
-        for(k=0;k<2*Dim;k++) {
+        for (k = 0; k < 2*Dim; k++) {
           fscanf(fp, "%d", &ind2);
-          trnNeighbours[tmp][ind*2*Dim + k] = ind2;
+          trnNeighbours[storeId+ind*2*Dim+k] = ind2;
         }
         fscanf(fp, "\n");
       }
+      storeId += trnSz*2*Dim;
+
       fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
       fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
     }
 
-    while (fscanf(fp, "%d %d %d %d\n", &trnCfgUp, &trnCfgDown, &i, &j) != EOF) {
-      trnLattices[j] = i;
-      trnSz = trnSize[i];
-      trnCfg[j] = (int*)malloc(sizeof(int)*2*trnSz);
-
-      for(k=0;k<trnSz;k++) {
-        trnCfg[j][k] = (trnCfgUp >> k) & 1;
-        trnCfg[j][k+trnSz] = (trnCfgDown >> k) & 1;
+    storeId  = 0;
+    while (fscanf(fp, "%d %d %d %d\n", &trnCfgUp, &trnCfgDown, &latIdFile, &j) != EOF) {
+      mappingFound = 0;
+      for (k = 0; k < NGPWTrnLat; k++) {
+        if (latIdFile == mapping[k]) {
+          latIdIntern = k;
+          mappingFound = 1;
+          break;
+        }
       }
+      if (!mappingFound) {
+        fprintf(stderr, "Error: Lattice reference (in gpwidx.def) not found.\n");
+        info = 1;
+        break;
+      }
+
+      if (CheckSite(j, NGPWIdx) != 0) {
+        fprintf(stderr, "Error: Site index is incorrect. \n");
+        info = 1;
+        break;
+      }
+
+      trnLattices[j] = latIdIntern;
+      trnSz = trnSize[latIdIntern];
+
+      for (k = 0; k < trnSz; k++) {
+        trnCfg[storeId+k] = (trnCfgUp >> k) & 1;
+        trnCfg[storeId+k+trnSz] = (trnCfgDown >> k) & 1;
+      }
+      storeId += 2*trnSz;
 
       idx0++;
       if (idx0 == NGPWIdx) break;
     }
+
     idx1 = GetInfoOpt(fp, ArrayOpt, iComplxFlag, iOptCount, fidx);
     if (idx0 != NGPWIdx || idx1 != NGPWIdx) {
       info = ReadDefFileError(defname);
@@ -2042,9 +2142,9 @@ int GetInfoTopology(FILE *fp, int *sysNeighbours, char *defname) {
   int i,j,ind,ind2;
   int info = 0;
 
-  for(i=0;i<Nsite;i++) {
+  for(i = 0; i < Nsite; i++) {
     info = fscanf(fp, "%d", &ind);
-    for(j=0;j<2*Dim;j++) {
+    for(j = 0; j < 2*Dim; j++) {
       info = fscanf(fp, "%d", &ind2);
       sysNeighbours[ind*2*Dim + j] = ind2;
     }

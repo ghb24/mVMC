@@ -118,7 +118,7 @@ double calHCA_real(const int ri, const int rj, const int s,
     if(eleNum[rsi]==1) return 0.0;
   }
 
-  g = checkGF1_real(ri,rj,s,ip,eleIdx,eleCfg,eleNum);
+  g = checkGF1_real(ri,rj,s,ip/creal(RBMVal(eleNum)),eleIdx,eleCfg,eleNum);
   if(fabs(g)>1.0e-12) {
     val = calHCA1_real(ri,rj,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
   } else {
@@ -217,6 +217,7 @@ double calHCA1_real(const int ri, const int rj, const int s,
 
   UpdateMAll_real(mj,s,eleIdx,0,NQPFull);
   ipNew = CalculateIP_real(PfM_real,0,NQPFull,MPI_COMM_SELF);
+  ipNew *= RBMVal(eleNum);
 
   e = CalculateHamiltonian_real(ipNew,eleIdx,eleCfg,eleNum,projCntNew,eleGPWKernNew);
 
@@ -483,7 +484,7 @@ double calHCACA_real(const int ri, const int rj, const int rk, const int rl,
     if(eleNum[rsi]==1) return 0.0;
   }
 
-  g = checkGF2_real(ri,rj,rk,rl,si,sk,ip,eleIdx,eleCfg,eleNum);
+  g = checkGF2_real(ri,rj,rk,rl,si,sk,ip/creal(RBMVal(eleNum)),eleIdx,eleCfg,eleNum);
   if(fabs(g)>1.0e-12) {
     val = calHCACA1_real(ri,rj,rk,rl,si,sk,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
   } else {
@@ -593,6 +594,7 @@ double calHCACA1_real(const int ri, const int rj, const int rk, const int rl,
 
   UpdateMAllTwo_real(ml, sk, mj, si, rl, rj, eleIdx, 0, NQPFull);
   ipNew = CalculateIP_real(PfM_real,0,NQPFull,MPI_COMM_SELF);
+  ipNew *= RBMVal(eleNum);
 
   e = CalculateHamiltonian_real(ipNew,eleIdx,eleCfg,eleNum,projCntNew,eleGPWKernNew);
 

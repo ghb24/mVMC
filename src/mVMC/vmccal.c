@@ -71,6 +71,7 @@ void calculateQCACAQ_real(double *qcacaq, const double *lslca, const double w,
 void VMCMainCal(MPI_Comm comm) {
   int *eleIdx,*eleCfg,*eleNum,*eleProjCnt;
   double *eleGPWKern;
+  double complex innerSum, differential;
   double complex e,ip;
   double w;
   double sqrtw;
@@ -79,11 +80,14 @@ void VMCMainCal(MPI_Comm comm) {
   const int qpStart=0;
   const int qpEnd=NQPFull;
   int sample,sampleStart,sampleEnd,sampleSize;
-  int i,info,tmp_i;
+  int i,info,tmp_i,j,offset,idx;
 
   /* optimazation for Kei */
   const int nProj=NProj;
   const int nGPWIdx=NGPWIdx;
+  const int nRBMVis=RBMNVisibleIdx;
+  const int nRBMHidden=RBMNHiddenIdx;
+  const int nsite2=Nsite2;
   double complex *srOptO = SROptO;
   double         *srOptO_real = SROptO_real;
 
@@ -132,6 +136,8 @@ void VMCMainCal(MPI_Comm comm) {
     }else{
       ip = CalculateIP_fcmp(PfM,qpStart,qpEnd,MPI_COMM_SELF);
     }
+
+    ip *= RBMVal(eleNum);
 
 #ifdef _DEBUG_VMCCAL
     printf("  Debug: sample=%d: LogProjVal \n",sample);
@@ -191,21 +197,54 @@ void VMCMainCal(MPI_Comm comm) {
        // srOptO[(i+1)*2+1]   = 0.0+0.0*I;  // odd  comp
         srOptO[(i+1)*2+1]   = (double)(eleProjCnt[i])*I;  // odd  comp
       }
+      offset = nProj+1;
 
 #pragma loop noalias
       for(i=0;i<nGPWIdx;i++){
-        srOptO[(nProj+1+i)*2]     = eleGPWKern[i];    // even real
-        srOptO[(nProj+1+i)*2+1]   = eleGPWKern[i]*I;  // odd  comp
+        srOptO[(offset+i)*2]     = eleGPWKern[i];    // even real
+        srOptO[(offset+i)*2+1]   = eleGPWKern[i]*I;  // odd  comp
+      }
+      offset += nGPWIdx;
+
+      // TODO: parallelise
+      if (nRBMVis > 0) {
+        for(i = 0; i < nRBMVis; i++) {
+          srOptO[(offset+i)*2]     = 0.0;    // even real
+          srOptO[(offset+i)*2+1]   = 0.0;  // odd
+        }
+        for(i = 0; i < nsite2; i++) {
+          j = RBMVisIdx[i];
+          srOptO[(offset+j)*2]     += (eleNum[i]*2-1);    // even real
+          srOptO[(offset+j)*2+1]   += (eleNum[i]*2-1)*I;  // odd
+        }
+        offset += nRBMVis;
       }
 
+      for(i = 0; i < nRBMHidden; i++) {
+        innerSum = RBMHiddenLayerSum(i, eleNum);
+        differential = (cexp(innerSum) - cexp(-innerSum))/(cexp(innerSum) + cexp(-innerSum));
+
+        srOptO[(offset+i)*2]     = differential;    // even real
+        srOptO[(offset+i)*2+1]   = differential*I;  // odd  comp
+
+        //TODO: parallelise
+        for(j = 0; j < nsite2; j++) {
+          idx = RBMWeightMatrIdx[j][i];
+          srOptO[(offset+nRBMHidden+idx)*2]     = (eleNum[j]*2-1)*differential;    // even real
+          srOptO[(offset+nRBMHidden+idx)*2+1]   = (eleNum[j]*2-1)*differential*I;  // odd  comp
+        }
+      }
+      offset += nsite2*nRBMHidden+nRBMHidden;
 
       StartTimer(42);
       /* SlaterElmDiff */
-      SlaterElmDiff_fcmp(SROptO+2*NProj+2*NGPWIdx+2,ip,eleIdx); //TBC: using InvM not InvM_real
+      SlaterElmDiff_fcmp(SROptO+2*offset,ip/RBMVal(eleNum),eleIdx); //TBC: using InvM not InvM_real
       StopTimer(42);
 
+      offset += NSlater;
+
       if(FlagOptTrans>0) { // this part will be not used
-        calculateOptTransDiff(SROptO+2*NProj+2*NGPWIdx+2*NSlater+2, ip); //TBC
+        calculateOptTransDiff(SROptO+2*offset, ip/RBMVal(eleNum)); //TBC
       }
       //[s] this part will be used for real varaibles
       if(AllComplexFlag==0){

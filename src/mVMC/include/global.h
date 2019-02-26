@@ -149,7 +149,12 @@ int *GPWTrnLat; /* [NGPWIdx] Training lattice reference for each training config
 int *GPWTrnNeighboursFlat; /* [GPWTrnLatNeighboursSz] flat array of all the neighbours in the training system required for GPW */
 int **GPWTrnNeighbours; /* [NGPWTrnLat][GPWTrnSize*2*dim] neighbours in the training system required for GPW*/
 int *GPWTrnCfgFlat; /* [GPWTrnCfgSz] flat array of all the training configurations*/
-int **GPWTrnCfg; /*[NGPWIdx][2*trnSize], training configurations representation as in EleNum */
+int **GPWTrnCfg; /* [NGPWIdx][2*trnSize], training configurations representation as in EleNum */
+int RBMNVisibleIdx; /* Number of different variational parameters associated with the visible layer in the RBM */
+int RBMNHiddenIdx; /* Number of neurons in the hidden layer */
+int NRBMTotal; /* Total number of of RBM variational parameters (NRBMTotal = RBMNVisibleIdx + RBMNHiddenIdx + Nsite2*RBMNHiddenIdx) */
+int *RBMVisIdx; /* [2*Nsite] */
+int **RBMWeightMatrIdx; /* [2*Nsite][RBMNHiddenIdx] */
 int NOrbitalIdx, **OrbitalIdx; /* [Nsite][Nsite] */
 int **OrbitalSgn; /* OrbitalSgn[Nsite][Nsite] = +1 or -1 */
 int iFlgOrbitalGeneral=0;
@@ -207,8 +212,9 @@ double complex *Para;   /* variatonal parameters */
 double complex *Proj;   /* correlation factor (Proj    =Para) */
 double complex *ProjBF; /* Back flow correlation factor (Proj    =Para) */
 double complex *GPWVar;   /* Variational parameters of the GPW training sets (GPWVar = Proj+NProj) */
-double complex *Slater; /* pair orbital       (Slater  =Para+NProj+NGPWIdx) */
-double complex *OptTrans; /* weights          (OptTrans=Para+NProj+NGPWIdx+NSlater) */
+double complex *RBMVar; /* Variational parameters of the RBM projector (GPWVar = GPWVar+NGPWIdx)*/
+double complex *Slater; /* pair orbital       (Slater  =Para+NProj+NGPWIdx+RBMNVisibleIdx + RBMNHiddenIdx + RBMNHiddenIdx * Nsite2) */
+double complex *OptTrans; /* weights          (OptTrans=Para+NProj+NGPWIdx+RBMNVisibleIdx + RBMNHiddenIdx + RBMNHiddenIdx * Nsite2 + NSlater) */
 double complex **eta;   /* Back Flow correlation factor (eta = 1.0 or ProjBF[0])*/
 
 /***** Back Flow ******/

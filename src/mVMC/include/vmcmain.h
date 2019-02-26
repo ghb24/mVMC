@@ -82,6 +82,7 @@ extern int omp_get_thread_num(void);
 #include "../parameter.c"
 #include "../projection.c"
 #include "../gpw_projection.c"
+#include "../rbm_projection.c"
 #include "../slater.c"
 #include "../slater_fsz.c"
 #include "../qp.c"

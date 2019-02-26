@@ -71,6 +71,7 @@ double complex GreenFunc1_fsz(const int ri, const int rj, const int s, const dou
   z = ProjRatio(projCntNew,eleProjCnt);
   UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWKern, eleNum);
   z *= GPWRatio(eleGPWKernNew,eleGPWKern);
+  z *= RBMVal(eleNum);
 
   /* calculate Pfaffian */
   CalculateNewPfM_fsz(mj, s, pfMNew, eleIdx,eleSpn, 0, NQPFull);//fsz
@@ -112,6 +113,7 @@ double complex GreenFunc1_fsz2(const int ri, const int rj, const int s,const int
   z = ProjRatio(projCntNew,eleProjCnt);
   UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWKern, eleNum);
   z *= GPWRatio(eleGPWKernNew, eleGPWKern);
+  z *= RBMVal(eleNum);
 
   /* calculate Pfaffian */
   CalculateNewPfM_fsz(mj, s, pfMNew, eleIdx,eleSpn, 0, NQPFull);//fsz: note EleSpn[mj]=s
@@ -204,6 +206,7 @@ double complex GreenFunc2_fsz(const int ri, const int rj, const int rk, const in
 
   z = ProjRatio(projCntNew,eleProjCnt);
   z *= GPWRatio(eleGPWKernNew,eleGPWKern);
+  z *= RBMVal(eleNum);
 
   /* calculate Pfaffian */
   CalculateNewPfMTwo_fsz(ml, t, mj, s, pfMNew, eleIdx,eleSpn, 0, NQPFull, bufV);
@@ -333,6 +336,7 @@ double complex GreenFunc2_fsz2(const int ri, const int rj, const int rk, const i
 
   z = ProjRatio(projCntNew,eleProjCnt);
   z *= GPWRatio(eleGPWKernNew,eleGPWKern);
+  z *= RBMVal(eleNum);
 
   /* calculate Pfaffian */
   CalculateNewPfMTwo_fsz(ml, u, mj, s, pfMNew, eleIdx,eleSpn, 0, NQPFull, bufV); // ml -> rk,u; mj -> ri,s

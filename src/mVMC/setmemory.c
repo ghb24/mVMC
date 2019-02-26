@@ -192,21 +192,36 @@ void SetMemoryDef() {
   }
 
   OptFlag = pInt;
+  pInt += 2 * NPara;
 
   // GPW trainig data
-  GPWTrnSize = OptFlag + 2 * NPara;
-  GPWTrnLat = GPWTrnSize + NGPWTrnLat;
-  SysNeighbours = GPWTrnLat + NGPWIdx;
-  GPWTrnNeighboursFlat = SysNeighbours + Nsite*2*Dim;
-  GPWTrnCfgFlat = GPWTrnNeighboursFlat + GPWTrnLatNeighboursSz;
+  GPWTrnSize = pInt;
+  pInt += NGPWTrnLat;
+  GPWTrnLat = pInt;
+  pInt += NGPWIdx;
+  SysNeighbours = pInt;
+  pInt += Nsite*2*Dim;
+  GPWTrnNeighboursFlat = pInt;
+  pInt += GPWTrnLatNeighboursSz;
+  GPWTrnCfgFlat = pInt;
+  pInt += GPWTrnCfgSz;
   GPWTrnCfg = (int**)malloc(sizeof(int*)*(NGPWIdx+NGPWTrnLat));
   GPWTrnNeighbours = GPWTrnCfg+NGPWIdx;
+
+  // RBM data
+  RBMVisIdx = pInt;
+  pInt += Nsite2;
+  RBMWeightMatrIdx = (int**)malloc(sizeof(int*)*Nsite2);
+  for(i=0;i<Nsite2;i++) {
+    RBMWeightMatrIdx[i] = pInt;
+    pInt += RBMNHiddenIdx;
+  }
 
   ParaTransfer = (double complex*)malloc(sizeof(double complex)*(NTransfer+NInterAll));
   ParaInterAll = ParaTransfer+NTransfer;
 
   ParaCoulombIntra = (double*)malloc(sizeof(double)*(NTotalDefDouble));
-  pDouble = ParaCoulombIntra +NCoulombIntra; 
+  pDouble = ParaCoulombIntra +NCoulombIntra;
 
   ParaCoulombInter = pDouble;
   pDouble += NCoulombInter;
@@ -241,6 +256,7 @@ void SetMemoryDef() {
 void FreeMemoryDef() {
   int i;
   free(ParaTransfer);
+  free(RBMWeightMatrIdx);
   free(GPWTrnCfg);
 
   free(QPOptTransSgn);
@@ -277,8 +293,9 @@ void SetMemory() {
   Proj     = Para;
   ProjBF   = Para + NProj;
   GPWVar   = Para + NProj + NProjBF;
-  Slater   = Para + NProj + NProjBF + NGPWIdx;
-  OptTrans = Para + NProj + NProjBF + NGPWIdx + NSlater;
+  RBMVar   = Para + NProj + NProjBF + NGPWIdx;
+  Slater   = Para + NProj + NProjBF + NGPWIdx + NRBMTotal;
+  OptTrans = Para + NProj + NProjBF + NGPWIdx + NRBMTotal + NSlater;
 
   /***** Electron Configuration ******/
   EleIdx            = (int*)malloc(sizeof(int)*( NVMCSample*2*Ne ));

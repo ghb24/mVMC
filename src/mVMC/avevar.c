@@ -154,6 +154,14 @@ void OutputOptData() {
       count_i += NGPWIdx;
     }
 
+    if(NRBMTotal != 0){
+      sprintf(fileName, "%s_rbm_opt.dat", CParaFileHead);
+      Child_OutputOptData(fp, fileName, "NRBMTotal",
+			  NRBMTotal, NRBMTotal,
+			  count_i, n);
+      count_i += NRBMTotal;
+    }
+
     if(NSlater != 0){
       if(iFlgOrbitalGeneral==0) {
         sprintf(fileName, "%s_orbital_opt.dat", CParaFileHead);

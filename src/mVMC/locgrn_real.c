@@ -64,6 +64,7 @@ double  GreenFunc1_real(const int ri, const int rj, const int s, const double ip
   z = ProjRatio(projCntNew,eleProjCnt);
   UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWKern, eleNum);
   z *= GPWRatio(eleGPWKernNew,eleGPWKern);
+  z *= RBMVal(eleNum);
 
   /* calculate Pfaffian */
   CalculateNewPfM_real(mj, s, pfMNew_real, eleIdx, 0, NQPFull);
@@ -152,6 +153,7 @@ double GreenFunc2_real(const int ri, const int rj, const int rk, const int rl,
 
   z = ProjRatio(projCntNew,eleProjCnt);
   z *= GPWRatio(eleGPWKernNew,eleGPWKern);
+  z *= RBMVal(eleNum);
 
   /* calculate Pfaffian */
   CalculateNewPfMTwo_real(ml, t, mj, s, pfMNew_real, eleIdx, 0, NQPFull, bufV);
@@ -287,6 +289,7 @@ double GreenFuncN_real(const int n, int *rsi, int *rsj, const double  ip,
   CalculateGPWKern(eleGPWKernNew,eleNum);
   x = ProjRatio(projCntNew,eleProjCnt);
   x *= GPWRatio(eleGPWKernNew,eleGPWKern);
+  x *= RBMVal(eleNum);
 
   /* calculateNewPfM */
   for(qpidx=0;qpidx<NQPFull;qpidx++) {

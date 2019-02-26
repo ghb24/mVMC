@@ -32,8 +32,8 @@ int makeInitialSample_fsz(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt
 void copyFromBurnSample_fsz(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,int *eleSpn, double *eleGPWKern);
 void copyToBurnSample_fsz(const int *eleIdx, const int *eleCfg, const int *eleNum, const int *eleProjCnt,
                       const int *eleSpn, const double *eleGPWKern);
-void saveEleConfig_fsz(const int sample, const double complex logIp, const int *eleIdx,
-                   const int *eleCfg, const int *eleNum, const int *eleProjCnt,
+void saveEleConfig_fsz(const int sample, const double complex logIp, const double complex rbmVal,
+                   const int *eleIdx, const int *eleCfg, const int *eleNum, const int *eleProjCnt,
                    const int *eleSpn, const double *eleGPWKern);
 //void sortEleConfig(int *eleIdx, int *eleCfg, const int *eleNum);
 void makeCandidate_hopping_fsz(int *mi_, int *ri_, int *rj_, int *s_,int *t_, int *rejectFlag_,
@@ -67,6 +67,7 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
   double complex logIpOld,logIpNew; /* logarithm of inner product <phi|L|x> */ // is this ok ? TBC
   int projCntNew[NProj];
   double eleGPWKernNew[NGPWIdx];
+  double complex rbmValOld, rbmValNew; /* value of the RBM projector */
   double complex pfMNew[NQPFull];
   double x,w; // TBC x will be complex number
 
@@ -112,6 +113,7 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
     logIpOld = CalculateLogIP_fcmp(PfM,qpStart,qpEnd,comm);
     BurnFlag = 0;
   }
+  rbmValOld = RBMVal(TmpEleNum);
   StopTimer(30);
 
   nOutStep = (BurnFlag==0) ? NVMCWarmUp+NVMCSample : NVMCSample+1;
@@ -172,7 +174,7 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
         }
         StopTimer(60);
         StartTimer(61);
-        CalculateNewPfM2_fsz(mi,t,pfMNew,TmpEleIdx,TmpEleSpn,qpStart,qpEnd); // fsz: s->t 
+        CalculateNewPfM2_fsz(mi,t,pfMNew,TmpEleIdx,TmpEleSpn,qpStart,qpEnd); // fsz: s->t
         StopTimer(61);
 
         StartTimer(62);
@@ -181,10 +183,13 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
         logIpNew = CalculateLogIP_fcmp(pfMNew,qpStart,qpEnd,comm);
         StopTimer(62);
 
+        rbmValNew = RBMVal(TmpEleNum);
+
         /* Metroplis */
         x = LogProjRatio(projCntNew,TmpEleProjCnt);
         x += LogGPWRatio(eleGPWKernNew, TmpEleGPWKern);
         w = exp(2.0*(x+creal(logIpNew-logIpOld)));
+        w *= pow(cabs(rbmValNew/rbmValOld),2);
         if( !isfinite(w) ) w = -1.0; /* should be rejected */
 
         if(w > genrand_real2()) { /* accept */
@@ -196,6 +201,7 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
           for(i=0;i<NProj;i++) TmpEleProjCnt[i] = projCntNew[i];
           for(i=0;i<NGPWIdx;i++) TmpEleGPWKern[i] = eleGPWKernNew[i];
           logIpOld = logIpNew;
+          rbmValOld = rbmValNew;
           nAccept++;
           if(flag_hop==1){// hopping
             Counter[1]++;
@@ -243,10 +249,13 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
 
         StopTimer(67);
 
+        rbmValNew = RBMVal(TmpEleNum);
+
         /* Metroplis */
         x = LogProjRatio(projCntNew,TmpEleProjCnt);
         x += LogGPWRatio(eleGPWKernNew, TmpEleGPWKern);
         w = exp(2.0*(x+creal(logIpNew-logIpOld))); //TBC
+        w *= pow(cabs(rbmValNew/rbmValOld),2);
         if( !isfinite(w) ) w = -1.0; /* should be rejected */
 
         if(w > genrand_real2()) { /* accept */
@@ -257,6 +266,7 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
           for(i=0;i<NProj;i++) TmpEleProjCnt[i] = projCntNew[i];
           for(i=0;i<NGPWIdx;i++) TmpEleGPWKern[i] = eleGPWKernNew[i];
           logIpOld = logIpNew;
+          rbmValOld = rbmValNew;
           nAccept++;
           Counter[3]++;
         } else { /* reject */
@@ -293,10 +303,13 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
         logIpNew = CalculateLogIP_fcmp(pfMNew,qpStart,qpEnd,comm);
         StopTimer(602);
 
+        rbmValNew = RBMVal(TmpEleNum);
+
         /* Metroplis */
         x = LogProjRatio(projCntNew,TmpEleProjCnt);
         x += LogGPWRatio(eleGPWKernNew, TmpEleGPWKern);
         w = exp(2.0*(x+creal(logIpNew-logIpOld)));
+        w *= pow(cabs(rbmValNew/rbmValOld),2);
         if( !isfinite(w) ) w = -1.0; /* should be rejected */
         
 
@@ -339,7 +352,7 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
       #ifdef _DEBUG_DETAIL
       fprintf(stdout, "Debug: save Electron Configuration.\n");
       #endif
-      saveEleConfig_fsz(sample,logIpOld,TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleSpn,TmpEleGPWKern);
+      saveEleConfig_fsz(sample,logIpOld,rbmValOld,TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleSpn,TmpEleGPWKern);
     }
     StopTimer(35);
   } /* end of outstep */
@@ -476,8 +489,8 @@ void copyToBurnSample_fsz(const int *eleIdx, const int *eleCfg, const int *eleNu
   return;
 }
 
-void saveEleConfig_fsz(const int sample, const double complex logIp, const int *eleIdx,
-                   const int *eleCfg, const int *eleNum, const int *eleProjCnt,
+void saveEleConfig_fsz(const int sample, const double complex logIp, const double complex rbmVal,
+                   const int *eleIdx, const int *eleCfg, const int *eleNum, const int *eleProjCnt,
                    const int *eleSpn, const double *eleGPWKern) {
   int i,offset;
   double x;
@@ -506,6 +519,7 @@ void saveEleConfig_fsz(const int sample, const double complex logIp, const int *
   for(i=0;i<nGPWIdx;i++) EleGPWKern[offset+i] = eleGPWKern[i];
   x = LogProjVal(eleProjCnt);
   x += LogGPWVal(eleGPWKern);
+  x += clog(rbmVal);
   logSqPfFullSlater[sample] = 2.0*(x+creal(logIp));//TBC
   
   return;

@@ -75,6 +75,9 @@ GetInfoDH4(FILE *fp, int **ArrayIdx, int *ArrayOpt, int iComplxFlag, int *iOptCo
 int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int *trnCfg,
                int *ArrayOpt, int iComplxFlag, int *iOptCount, int _fidx, char *defname);
 
+int GetInfoRBM(FILE *fp, int *visibleIdx, int **weightsIdx, int *ArrayOpt, int iComplxFlag,
+               int *iOptCount, int fidx, int Nsite, int NArrayVis, int NArrayHidden, char *defname);
+
 int GetInfoTopology(FILE *fp, int *sysNeighbours, char *defname);
 
 int GetInfoTransSym(FILE *fp, int **Array, int **ArraySgn, int **ArrayInv, double complex *ArrayPara, int _APFlag,
@@ -243,6 +246,21 @@ char *ReadBuffTopology(FILE *fp, int *dim) {
   return cerr;
 }
 
+char *ReadBuffRBM(FILE *fp, int *iNVisible, int *iNHidden, int *iComplexFlag) {
+  char *cerr;
+  char ctmp[D_FileNameMax];
+  char ctmp2[D_FileNameMax];
+  cerr = fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
+  if (cerr != NULL) {
+    cerr = fgets(ctmp2, sizeof(ctmp2) / sizeof(char), fp);
+    sscanf(ctmp2, "%s %d\n", ctmp, iNVisible);
+    cerr = fgets(ctmp2, sizeof(ctmp2) / sizeof(char), fp);
+    sscanf(ctmp2, "%s %d\n", ctmp, iNHidden);
+    cerr = fgets(ctmp2, sizeof(ctmp2) / sizeof(char), fp);
+    sscanf(ctmp2, "%s %d\n", ctmp, iComplexFlag);
+  }
+  return cerr;
+}
 
 
 void SetDefaultValuesModPara(int *buf, double *bufDouble);
@@ -521,6 +539,10 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
             cerr = ReadBuffTopology(fp, &bufInt[IdxDim]);
             break;
 
+          case KWRBM:
+            cerr = ReadBuffRBM(fp, &bufInt[IdxNRBMVisible], &bufInt[IdxNRBMHidden], &iComplexFlgRBM);
+            break;
+
           case KWOrbital:
           case KWOrbitalAntiParallel:
             cerr = ReadBuffIntCmpFlg(fp, &iNOrbitalAntiParallel, &iOrbitalComplex);
@@ -746,6 +768,8 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
   NGPWTrnLat = bufInt[IdxNGPWTrnLat];
   GPWTrnLatNeighboursSz = 2 * Dim * bufInt[IdxTrnLatNbSz];
   GPWTrnCfgSz = 2 * bufInt[IdxTrnCfgSz];
+  RBMNVisibleIdx = bufInt[IdxNRBMVisible];
+  RBMNHiddenIdx = bufInt[IdxNRBMHidden];
   NOrbitalIdx = bufInt[IdxNOrbit];
   NQPTrans = bufInt[IdxNQPTrans];
   NCisAjs = bufInt[IdxNOneBodyG];
@@ -790,6 +814,8 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
           + 2 * 5 * NDoublonHolon4siteIdx;
   NOptTrans = (FlagOptTrans > 0) ? NQPOptTrans : 0;
 
+  NRBMTotal = RBMNVisibleIdx + RBMNHiddenIdx + Nsite2*RBMNHiddenIdx;
+
   /* [s] For BackFlow */
   if (NBackFlowIdx > 0) {
     NrangeIdx = 3 * (Nrange - 1) / Nz + 1; //For Nz-conectivity
@@ -802,7 +828,7 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
   }
   /* [e] For BackFlow */
 
-  NPara = NProj + NGPWIdx + NSlater + NOptTrans + NProjBF;
+  NPara = NProj + NGPWIdx + NRBMTotal + NSlater + NOptTrans + NProjBF;
   NQPFix = NSPGaussLeg * NMPTrans;
   NQPFull = NQPFix * NQPOptTrans;
   SROptSize = NPara + 1;
@@ -832,7 +858,9 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
                  + NGPWIdx /* GPWTrnLat */
                  + Nsite*2*Dim /* SysNeighbours */
                  + GPWTrnLatNeighboursSz /* GPWTrnNeighboursFlat */
-                 + GPWTrnCfgSz; /* GPWTrnCfgFlat */
+                 + GPWTrnCfgSz /* GPWTrnCfgFlat */
+                 + Nsite2 /* RBMVisIdx */
+                 + Nsite2 * RBMNHiddenIdx; /* RBMWeightMatrIdx */
 
   //Orbitalidx
   if (iFlgOrbitalGeneral == 0) {
@@ -963,10 +991,18 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
             info = 1;
           break;
 
+        case KWRBM:
+          fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
+          fidx = NProj + NGPWIdx;
+          if (GetInfoRBM(fp, RBMVisIdx, RBMWeightMatrIdx, OptFlag, iComplexFlgRBM, &count_idx,
+                         fidx, Nsite, RBMNVisibleIdx, RBMNHiddenIdx, defname) != 0)
+            info = 1;
+          break;
+
         case KWOrbital:
         case KWOrbitalAntiParallel:
           /*orbitalidxs.def------------------------------------*/
-          fidx = NProj + NGPWIdx;
+          fidx = NProj + NGPWIdx + NRBMTotal;
           if (GetInfoOrbitalAntiParallel(fp, OrbitalIdx, OptFlag, OrbitalSgn, &count_idx,
                                          fidx, iComplexFlgOrbital, iFlgOrbitalGeneral, APFlag, Nsite, iNOrbitalAntiParallel,
                                          defname) != 0)
@@ -974,7 +1010,7 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
           break;
 
         case KWOrbitalGeneral:
-          fidx = NProj + NGPWIdx;
+          fidx = NProj + NGPWIdx + NRBMTotal;
           if (GetInfoOrbitalGeneral(fp, OrbitalIdx, OptFlag, OrbitalSgn, &count_idx,
                                     fidx, iComplexFlgOrbital, iFlgOrbitalGeneral, APFlag, Nsite, NOrbitalIdx,
                                     defname) != 0)
@@ -983,7 +1019,7 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
 
         case KWOrbitalParallel:
           /*orbitalidxt.def------------------------------------*/
-          fidx = NProj + NGPWIdx + iNOrbitalAntiParallel;
+          fidx = NProj + NGPWIdx + NRBMTotal + iNOrbitalAntiParallel;
           if (GetInfoOrbitalParallel(fp, OrbitalIdx, OptFlag, OrbitalSgn, &count_idx,
                                      fidx, iComplexFlgOrbital, iFlgOrbitalGeneral, APFlag, Nsite, iNOrbitalParallel,
                                      iNOrbitalAntiParallel, defname) != 0)
@@ -1022,7 +1058,7 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
 
         case KWOptTrans:
           /*qpopttrans.def------------------------------------*/
-          fidx = NProj + NOrbitalIdx;
+          fidx = NProj + NGPWIdx + NRBMTotal + NOrbitalIdx;
           if (GetInfoOptTrans(fp, QPOptTrans, ParaQPOptTrans, OptFlag, QPOptTransSgn, FlagOptTrans, &count_idx, fidx,
                               APFlag, Nsite, NQPOptTrans, defname) != 0)
             info = 1;
@@ -1252,6 +1288,18 @@ int ReadInputParameters(char *xNameListFile, MPI_Comm comm) {
             continue;
           }
           for (i = 0; i < NGPWIdx; i++) {
+            fscanf(fp, "%d %lf %lf ", &idx, &tmp_real, &tmp_comp);
+            GPWVar[i] = tmp_real + I * tmp_comp;
+          }
+          break;
+
+        case KWInRBM:
+          fprintf(stdout, "Read InRBM File. \n");
+          if (idx != NRBMTotal) {
+            info = 1;
+            continue;
+          }
+          for (i = 0; i < NRBMTotal; i++) {
             fscanf(fp, "%d %lf %lf ", &idx, &tmp_real, &tmp_comp);
             GPWVar[i] = tmp_real + I * tmp_comp;
           }
@@ -1641,6 +1689,10 @@ void SetDefaultValuesModPara(int *bufInt, double *bufDouble) {
   bufInt[IdxDim] = 1;
   bufInt[IdxNGPW] = 0;
   bufInt[IdxNGPWTrnLat] = 0;
+  bufInt[IdxTrnLatNbSz] = 0;
+  bufInt[IdxTrnCfgSz] = 0;
+  bufInt[IdxNRBMVisible] = 0;
+  bufInt[IdxNRBMHidden] = 0;
   bufInt[IdxNOrbit] = 0;
   bufInt[IdxNQPTrans] = 0;
   bufInt[IdxNOneBodyG] = 0;
@@ -2156,6 +2208,64 @@ int GetInfoTopology(FILE *fp, int *sysNeighbours, char *defname) {
   }
   else {
     info = 0;
+  }
+  return info;
+}
+
+int GetInfoRBM(FILE *fp, int *visibleIdx, int **weightsIdx, int *ArrayOpt, int iComplxFlag,
+               int *iOptCount, int _fidx, int Nsite, int NArrayVis, int NArrayHidden, char *defname) {
+  int idx0 = 0, idx1 = 0, idx2 = 0, info = 0;
+  int i = 0, j = 0, k = 0;
+  int fidx = _fidx;
+  int nSite2 = 2 * Nsite;
+
+  if (NArrayVis > 0) {
+    while (fscanf(fp, "%d %d ", &i, &j) != EOF) {
+      if (CheckSite(i, Nsite) != 0) {
+        fprintf(stderr, "Error: Site index is incorrect. \n");
+        info = 1;
+        break;
+      }
+
+      if (CheckSite(j, 2) != 0) {
+        fprintf(stderr, "Error: Spin index is incorrect. \n");
+        info = 1;
+        break;
+      }
+
+      fscanf(fp, "%d\n", &(visibleIdx[i + Nsite*j]));
+      idx0++;
+      if (idx0 == nSite2) break;
+    }
+  }
+  if (NArrayHidden > 0) {
+    while (fscanf(fp, "%d %d %d ", &i, &j, &k) != EOF) {
+      if (CheckSite(i, Nsite) != 0) {
+        fprintf(stderr, "Error: Site index is incorrect. \n");
+        info = 1;
+        break;
+      }
+
+      if (CheckSite(j, 2) != 0) {
+        fprintf(stderr, "Error: Spin index is incorrect. \n");
+        info = 1;
+        break;
+      }
+
+      if (CheckSite(k, NArrayHidden) != 0) {
+        fprintf(stderr, "Error: Hidden layer index is incorrect. \n");
+        info = 1;
+        break;
+      }
+
+      fscanf(fp, "%d\n", &(weightsIdx[i + Nsite*j][k]));
+      idx1++;
+      if (idx1 == nSite2*NArrayHidden) break;
+    }
+  }
+  idx2 = GetInfoOpt(fp, ArrayOpt, iComplxFlag, iOptCount, fidx);
+  if ((idx0 != nSite2 && NArrayVis > 0) || idx1 != nSite2*NArrayHidden || idx2 != NRBMTotal) {
+    info = ReadDefFileError(defname);
   }
   return info;
 }

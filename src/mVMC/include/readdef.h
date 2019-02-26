@@ -35,10 +35,10 @@ static char cKWListOfFileNameList[][D_CharTmpReadDef]={
   "Trans", "CoulombIntra", "CoulombInter",
   "Hund", "PairHop", "Exchange",
   "Gutzwiller", "Jastrow",
-  "DH2", "DH4", "GPW", "Topology", "Orbital", "OrbitalAntiParallel",
+  "DH2", "DH4", "GPW", "Topology", "RBM", "Orbital", "OrbitalAntiParallel",
   "OrbitalParallel", "OrbitalGeneral",
   "TransSym", "InGutzwiller", "InJastrow",
-  "InDH2", "InDH4", "InGPW", "InOrbital", "InOrbitalAntiParallel",
+  "InDH2", "InDH4", "InGPW", "InRBM", "InOrbital", "InOrbitalAntiParallel",
 	"InOrbitalParallel", "InOrbitalGeneral",
   "OneBodyG", "TwoBodyG", "TwoBodyGEx",
   "InterAll", "OptTrans", "InOptTrans",
@@ -53,10 +53,10 @@ enum KWIdxInt{
   KWTrans, KWCoulombIntra,KWCoulombInter,
   KWHund, KWPairHop, KWExchange,
   KWGutzwiller, KWJastrow,
-  KWDH2, KWDH4, KWGPW, KWTopology, KWOrbital, KWOrbitalAntiParallel,
+  KWDH2, KWDH4, KWGPW, KWTopology, KWRBM, KWOrbital, KWOrbitalAntiParallel,
 	KWOrbitalParallel, KWOrbitalGeneral,
   KWTransSym, KWInGutzwiller, KWInJastrow,
-  KWInDH2, KWInDH4, KWInGPW, KWInOrbital,KWInOrbitalAntiParallel,
+  KWInDH2, KWInDH4, KWInGPW, KWInRBM, KWInOrbital,KWInOrbitalAntiParallel,
 	KWInOrbitalParallel, KWInorbitalGeneral,
   KWOneBodyG, KWTwoBodyG, KWTwoBodyGEx,
   KWInterAll, KWOptTrans, KWInOptTrans,
@@ -82,6 +82,7 @@ enum ParamIdxInt{
   IdxNExchange, IdxNGutz, IdxNJast,
   IdxNDH2, IdxNDH4, IdxNGPW, IdxNGPWTrnLat,
   IdxTrnLatNbSz, IdxTrnCfgSz, IdxDim,
+  IdxNRBMVisible, IdxNRBMHidden,
   IdxNOrbit, IdxNOrbitGeneral,
 	IdxNQPTrans, IdxNOneBodyG, IdxNTwoBodyG,
   IdxNTwoBodyGEx, IdxNInterAll, IdxNQPOptTrans,
@@ -114,6 +115,7 @@ int iComplexFlgJastrow=0;
 int iComplexFlgDH2=0;
 int iComplexFlgDH4=0;
 int iComplexFlgGPW=0;
+int iComplexFlgRBM=0;
 int iComplexFlgOrbital=0;
 
 int IgnoreLinesDefGPW=1; // number of additional lines in GPW file that need to be skipped

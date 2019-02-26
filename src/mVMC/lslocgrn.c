@@ -195,7 +195,7 @@ double complex calHCA(const int ri, const int rj, const int s,
     if(eleNum[rsi]==1) return 0.0;
   }
 
-  g = checkGF1(ri,rj,s,ip,eleIdx,eleCfg,eleNum);
+  g = checkGF1(ri,rj,s,ip/RBMVal(eleNum),eleIdx,eleCfg,eleNum);
   if(cabs(g)>1.0e-12) {
     val = calHCA1(ri,rj,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
   } else {
@@ -275,6 +275,7 @@ double complex calHCA1(const int ri, const int rj, const int s,
 
   UpdateMAll(mj,s,eleIdx,0,NQPFull);
   ipNew = CalculateIP_fcmp(PfM,0,NQPFull,MPI_COMM_SELF);
+  ipNew *= RBMVal(eleNum);
 
   e = CalculateHamiltonian(ipNew,eleIdx,eleCfg,eleNum,projCntNew,eleGPWKernNew);
 
@@ -486,7 +487,7 @@ double complex calHCACA(const int ri, const int rj, const int rk, const int rl,
     if(eleNum[rsi]==1) return 0.0;
   }
 
-  g = checkGF2(ri,rj,rk,rl,si,sk,ip,eleIdx,eleCfg,eleNum);
+  g = checkGF2(ri,rj,rk,rl,si,sk,ip/RBMVal(eleNum),eleIdx,eleCfg,eleNum);
   if(cabs(g)>1.0e-12) {
     val = calHCACA1(ri,rj,rk,rl,si,sk,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
   } else {
@@ -597,6 +598,7 @@ double complex calHCACA1(const int ri, const int rj, const int rk, const int rl,
 
   UpdateMAllTwo_fcmp(ml, sk, mj, si, rl, rj, eleIdx, 0, NQPFull);
   ipNew = CalculateIP_fcmp(PfM,0,NQPFull,MPI_COMM_SELF);
+  ipNew *= RBMVal(eleNum);
 
   e = CalculateHamiltonian(ipNew,eleIdx,eleCfg,eleNum,projCntNew,eleGPWKernNew);
 

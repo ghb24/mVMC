@@ -48,6 +48,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
   double logIpOld, logIpNew; /* logarithm of inner product <phi|L|x> */ // is this ok ? TBC
   int projCntNew[NProj];
   double eleGPWKernNew[NGPWIdx];
+  double complex rbmValOld, rbmValNew; /* value of the RBM projector */
   double pfMNew_real[NQPFull];
   double x, w; // TBC x will be complex number
 
@@ -80,6 +81,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
     logIpOld = CalculateLogIP_real(PfM_real, qpStart, qpEnd, comm);
     BurnFlag = 0;
   }
+  rbmValOld = RBMVal(TmpEleNum);
   StopTimer(30);
 
   nOutStep = (BurnFlag == 0) ? NVMCWarmUp + NVMCSample : NVMCSample + 1;
@@ -121,10 +123,15 @@ void VMCMakeSample_real(MPI_Comm comm) {
         logIpNew = CalculateLogIP_real(pfMNew_real, qpStart, qpEnd, comm);
         StopTimer(62);
 
+        rbmValNew = RBMVal(TmpEleNum);
+
         /* Metroplis */
         x = LogProjRatio(projCntNew, TmpEleProjCnt);
         x += LogGPWRatio(eleGPWKernNew, TmpEleGPWKern);
         w = exp(2.0 * (x + (logIpNew - logIpOld)));
+        w *= pow(cabs(rbmValNew/rbmValOld),2);
+
+        // printf("%f \n", cabs(rbmValNew/rbmValOld));
         if (!isfinite(w)) w = -1.0; /* should be rejected */
 
         if (w > genrand_real2()) { /* accept */
@@ -137,6 +144,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
           for (i = 0; i < NProj; i++) TmpEleProjCnt[i] = projCntNew[i];
           for (i = 0; i < NGPWIdx; i++) TmpEleGPWKern[i] = eleGPWKernNew[i];
           logIpOld = logIpNew;
+          rbmValOld = rbmValNew;
           nAccept++;
           Counter[1]++;
         } else { /* reject */
@@ -182,10 +190,13 @@ void VMCMakeSample_real(MPI_Comm comm) {
 
         StopTimer(67);
 
+        rbmValNew = RBMVal(TmpEleNum);
+
         /* Metroplis */
         x = LogProjRatio(projCntNew, TmpEleProjCnt);
         x += LogGPWRatio(eleGPWKernNew, TmpEleGPWKern);
         w = exp(2.0 * (x + (logIpNew - logIpOld))); //TBC
+        w *= pow(cabs(rbmValNew/rbmValOld),2);
         if (!isfinite(w)) w = -1.0; /* should be rejected */
 
         if (w > genrand_real2()) { /* accept */
@@ -196,6 +207,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
           for (i = 0; i < NProj; i++) TmpEleProjCnt[i] = projCntNew[i];
           for (i = 0; i < NGPWIdx; i++) TmpEleGPWKern[i] = eleGPWKernNew[i];
           logIpOld = logIpNew;
+          rbmValOld = rbmValNew;
           nAccept++;
           Counter[3]++;
         } else { /* reject */
@@ -220,7 +232,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
     /* save Electron Configuration */
     if (outStep >= nOutStep - NVMCSample) {
       sample = outStep - (nOutStep - NVMCSample);
-      saveEleConfig(sample, logIpOld, TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, TmpEleGPWKern);
+      saveEleConfig(sample, logIpOld, rbmValOld, TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, TmpEleGPWKern);
     }
     StopTimer(35);
 

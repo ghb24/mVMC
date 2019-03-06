@@ -264,7 +264,6 @@ double CalculateInnerSum(const int i, const int a, const int *delta, const int s
     }
   }
 
-  rangeSum += exp(1/theta0);
 
   return rangeSum;
 }
@@ -285,7 +284,7 @@ double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize,
   for (i = 0; i < sysSize; i++) {
     for (a = 0; a < trnSize; a++) {
       if (delta[i*trnSize+a]) {
-        kernel += pow(CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, theta0, thetaC, workspace), power);
+        kernel += pow((1.0 + theta0/power * CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, theta0, thetaC, workspace)), power);
       }
     }
   }

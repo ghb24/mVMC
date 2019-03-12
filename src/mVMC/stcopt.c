@@ -14,10 +14,10 @@ the Free Software Foundation, either version 3 of the License, or
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details. 
+GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License 
-along with this program. If not, see http://www.gnu.org/licenses/. 
+You should have received a copy of the GNU General Public License
+along with this program. If not, see http://www.gnu.org/licenses/.
 */
 /*-------------------------------------------------------------
  * Variational Monte Carlo
@@ -93,24 +93,16 @@ int StochasticOpt(MPI_Comm comm) {
   }
 
 // search for max and min
-  // TODO: modify if GPW variables are included in sanity check
-  if(NProj > 0) {
-    sDiag = r[0];
-  }
-  else {
-    sDiag = r[2*NGPWIdx];
-  }
+  sDiag = r[0];
   sDiagMax=sDiag; sDiagMin=sDiag;
   for(pi=0;pi<2*nPara;pi++) {
-    if (!(pi >= 2*NProj && pi < 2*(NProj+NGPWIdx))) { // TODO: Include GPW factors in sanity check
-      sDiag = r[pi];
-      if(sDiag>sDiagMax) sDiagMax=sDiag;
-      if(sDiag<sDiagMin) sDiagMin=sDiag;
-    }
+    sDiag = r[pi];
+    if(sDiag>sDiagMax) sDiagMax=sDiag;
+    if(sDiag<sDiagMin) sDiagMin=sDiag;
   }
 
 // threshold
-// optNum = number of parameters 
+// optNum = number of parameters
 // cutNum: number of paramers that are cut
   diagCutThreshold = sDiagMax*DSROptRedCut;
   si = 0;
@@ -187,15 +179,15 @@ int StochasticOpt(MPI_Comm comm) {
       pi = smatToParaIdx[si];
       if(pi%2==0){
         if(RealEvolve==0){
-          para[pi/2] += r[si];  
+          para[pi/2] += r[si];
         }else{
-          para[pi/2] += r[si]*I;  
+          para[pi/2] += r[si]*I;
         }
       }else{
         if(RealEvolve==0){
-          para[(pi-1)/2] += r[si]*I;                                                                           
+          para[(pi-1)/2] += r[si]*I;
         }else{
-          para[(pi-1)/2] += r[si];                                                                         
+          para[(pi-1)/2] += r[si];
         }
       }
     }

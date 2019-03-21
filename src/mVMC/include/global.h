@@ -85,14 +85,6 @@ int NExUpdatePath; /* update by exchange hopping  0: off, 1: on */
 
 int RndSeed; /* seed for pseudorandom number generator */
 int NSplitSize; /* the number of inner MPI processes */
- 
-int KernelFunc; /* which kernel function should be used for the GPW part
-                   0: full kernel
-                   n > 0: simple plaquette kernel with plaquette size n */
-
-int CutRad; /* cutoff radius for full GPW kernel */
-double Theta0; /*theta0 parameter for full GPW kernel */
-double ThetaC; /*thetac parameter for full GPW kernel */
 
 
 /* total length of def array */
@@ -150,6 +142,13 @@ int *GPWTrnNeighboursFlat; /* [GPWTrnLatNeighboursSz] flat array of all the neig
 int **GPWTrnNeighbours; /* [NGPWTrnLat][GPWTrnSize*2*dim] neighbours in the training system required for GPW*/
 int *GPWTrnCfgFlat; /* [GPWTrnCfgSz] flat array of all the training configurations*/
 int **GPWTrnCfg; /* [NGPWIdx][2*trnSize], training configurations representation as in EleNum */
+int *GPWKernelFunc; /* [NGPWTrnLat] which kernel function should be used for the associated lattice
+                   0: full kernel
+                   n > 0: simple plaquette kernel with plaquette size n */
+int *GPWCutRad; /* [NGPWTrnLat] cutoff radius for full GPW kernel */
+double *GPWTheta0; /* [NGPWTrnLat] theta0 parameter for full GPW kernel */
+double *GPWThetaC; /* [NGPWTrnLat] thetac parameter for full GPW kernel */
+int *GPWTRSym; /* [NGPWTrnLat] whether kernel should respect time reversal symmetry (=1) or not (=0) */
 int RBMNVisibleIdx; /* Number of different variational parameters associated with the visible layer in the RBM */
 int RBMNHiddenIdx; /* Number of neurons in the hidden layer */
 int NRBMTotal; /* Total number of of RBM variational parameters (NRBMTotal = RBMNVisibleIdx + RBMNHiddenIdx + Nsite2*RBMNHiddenIdx) */

@@ -207,6 +207,25 @@ void SetMemoryDef() {
   pInt += GPWTrnCfgSz;
   GPWTrnCfg = (int**)malloc(sizeof(int*)*(NGPWIdx+NGPWTrnLat));
   GPWTrnNeighbours = GPWTrnCfg+NGPWIdx;
+  GPWKernelFunc = pInt;
+  pInt += NGPWTrnLat;
+  GPWCutRad = pInt;
+  pInt += NGPWTrnLat;
+  GPWTRSym = pInt;
+  pInt += NGPWTrnLat;
+
+  // intitialise kernel function with default value
+  for (i = 0; i < NGPWTrnLat; i++) {
+    GPWKernelFunc[i] = 0;
+  }
+  // intitialise cutoff radius with default value
+  for (i = 0; i < NGPWTrnLat; i++) {
+    GPWCutRad[i] = 10;
+  }
+  // intitialise time reversal symmetry flag with default value (true)
+  for (i = 0; i < NGPWTrnLat; i++) {
+    GPWTRSym[i] = 1;
+  }
 
   // RBM data
   RBMVisIdx = pInt;
@@ -240,6 +259,23 @@ void SetMemoryDef() {
 
   
   ParaQPOptTrans = pDouble;
+  pDouble += NQPOptTrans;
+
+  GPWTheta0 = pDouble;
+  pDouble += NGPWTrnLat;
+
+  GPWThetaC = pDouble;
+  pDouble += NGPWTrnLat;
+
+  // intitialise theta0 with default value
+  for (i = 0; i < NGPWTrnLat; i++) {
+    GPWTheta0[i] = 1.0;
+  }
+  // intitialise thetaC with default value
+  for (i = 0; i < NGPWTrnLat; i++) {
+    GPWThetaC[i] = 1.0;
+  }
+
   ParaQPTrans = (double complex*)malloc(sizeof(double complex)*(NQPTrans));
 
   // LanczosGreen

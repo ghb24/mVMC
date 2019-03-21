@@ -5,7 +5,7 @@
 #include <math.h>
 #include "gpw_kernel.h"
 
-double GPWKernel1(const int *configA, const int sizeA, const int *configB, const int sizeB) {
+double GPWKernel1(const int *configA, const int sizeA, const int *configB, const int sizeB, const int tRSym) {
   int countA[4] = {0, 0, 0, 0};
   int countB[4] = {0, 0, 0, 0};
   int up, down;
@@ -36,11 +36,17 @@ double GPWKernel1(const int *configA, const int sizeA, const int *configB, const
     kernel += (double)(countA[i]*countB[i]);
   }
 
+  // add kernel with one configuration flipped to ensure time reversal symmetry is respected
+  if (tRSym) {
+    kernel += (double)(countA[1]*countB[0] + countA[0]*countB[1] + countA[2]*countB[2] + countA[3]*countB[3]);
+    kernel /= 2.0;
+  }
+
   return kernel;
 }
 
 // TODO: extension to more sophisticated lattices/unit cells, currently only 1D chain with indices ordered according to chain topology
-double GPWKernel2(const int *configA, const int sizeA, const int *configB, const int sizeB) {
+double GPWKernel2(const int *configA, const int sizeA, const int *configB, const int sizeB, const int tRSym) {
   int countA[16] = {0};
   int countB[16] = {0};
 
@@ -84,14 +90,59 @@ double GPWKernel2(const int *configA, const int sizeA, const int *configB, const
     kernel += (double)(countA[i]*countB[i]);
   }
 
+  // add kernel with one configuration flipped to ensure time reversal symmetry is respected
+  if (tRSym) {
+    // TODO efficient implementation without recomputing the count vectors
+    if (sizeA <= sizeB) {
+      for (i = 0; i < sizeA; i++) {
+        down = configA[i];
+        down_n = configA[(i+1)%sizeA];
+
+        up = configA[i+sizeA];
+        up_n = configA[(i+1)%sizeA+sizeA];
+
+        for (j = 0; j < 16; j++) {
+          int k = (j % 4 < 2) ? 0 : 1;
+          int l = (j % 8 < 4) ? 0 : 1;
+          int m = (j < 8) ? 0 : 1;
+
+          countA[j] += (j%2-up)&(k-down)&(l-up_n)&(m-down_n);
+        }
+      }
+    }
+    else {
+      for (i = 0; i < sizeB; i++) {
+        down = configB[i];
+        down_n = configB[(i+1)%sizeB];
+
+        down = configB[i+sizeB];
+        down_n = configB[(i+1)%sizeB+sizeB];
+
+        for (j = 0; j < 16; j++) {
+          int k = (j % 4 < 2) ? 0 : 1;
+          int l = (j % 8 < 4) ? 0 : 1;
+          int m = (j < 8) ? 0 : 1;
+
+          countB[j] += (j%2-up)&(k-down)&(l-up_n)&(m-down_n);
+        }
+      }
+    }
+
+    for (i = 0; i < 16; i++) {
+      kernel += (double)(countA[i]*countB[i]);
+    }
+
+    kernel /= 2.0;
+  }
+
   return kernel;
 }
 
 /* TODO: extension to more sophisticated lattices/unit cells, currently only 1D chain with
 indices ordered according to chain topology*/
-double GPWKernelN(const int *configA, const int sizeA, const int *configB, const int sizeB, const int n) {
+double GPWKernelN(const int *configA, const int sizeA, const int *configB, const int sizeB, const int n, const int tRSym) {
   if (n == 1) {
-    return GPWKernel1(configA, sizeA, configB, sizeB);
+    return GPWKernel1(configA, sizeA, configB, sizeB, tRSym);
   }
 
   /* TODO: detailed performance comparison for n = 2, this general method is faster
@@ -99,7 +150,8 @@ double GPWKernelN(const int *configA, const int sizeA, const int *configB, const
   else {
     int comp;
     int i, j, a, b, k;
-    double kernel=0.0;
+    int *configFlipped;
+    double kernel = 0.0;
 
     int *delta = (int*)malloc(sizeof(int)*(sizeA*sizeB));
     CalculatePairDelta(delta, configA, sizeA, configB, sizeB);
@@ -118,6 +170,46 @@ double GPWKernelN(const int *configA, const int sizeA, const int *configB, const
           kernel += 1.0;
         }
       }
+    }
+
+    // add kernel with one configuration flipped to ensure time reversal symmetry is respected
+    if (tRSym) {
+      // TODO can this be done more efficiently?
+      if (sizeA <= sizeB) {
+        configFlipped = (int*)malloc(sizeof(int)*(2*sizeA));
+        for (i = 0; i < sizeA; i++) {
+          configFlipped[i] = configA[i+sizeA];
+          configFlipped[i+sizeA] = configA[i];
+        }
+        CalculatePairDelta(delta, configFlipped, sizeA, configB, sizeB);
+        free(configFlipped);
+      }
+      else {
+        configFlipped = (int*)malloc(sizeof(int)*(2*sizeB));
+        for (i = 0; i < sizeB; i++) {
+          configFlipped[i] = configB[i+sizeB];
+          configFlipped[i+sizeB] = configB[i];
+        }
+        CalculatePairDelta(delta, configA, sizeA, configFlipped, sizeB);
+        free(configFlipped);
+      }
+
+      for (i = 0; i < sizeA; i++) {
+        for (a = 0; a < sizeB; a++) {
+          for (k = 0; k < n; k++) {
+            j = (i+k)%sizeA;
+            b = (a+k)%sizeB;
+            comp = delta[j*sizeB+b];
+            if(!comp) {
+              break;
+            }
+          }
+          if (comp) {
+            kernel += 1.0;
+          }
+        }
+      }
+      kernel /= 2.0;
     }
 
     free(delta);
@@ -246,7 +338,7 @@ double CalculateInnerSum(const int i, const int a, const int *delta, const int s
           }
         }
 
-        // only continue in additional dension if site in this dension has coordinate 0
+        // only continue in additional dimension if site in this dimension has coordinate 0
         else {
           break;
         }
@@ -268,12 +360,13 @@ double CalculateInnerSum(const int i, const int a, const int *delta, const int s
   return rangeSum;
 }
 
-double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize,
-                 const int *trnCfg, const int *trnNeighbours, const int trnSize,
-                 const int dim, const int rC, const double theta0, const double thetaC) {
+double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize, const int *trnCfg,
+                 const int *trnNeighbours, const int trnSize, const int dim, const int rC,
+                 const double theta0, const double thetaC, const int tRSym) {
   int i, a, power, k;
 
   double kernel = 0.0;
+  int *configFlipped;
   int *delta = (int*)malloc(sizeof(int)*(trnSize*sysSize));
   int *workspace = (int*)malloc((trnSize+sysSize+8*dim*rC+4*dim*rC*dim)*sizeof(int));
 
@@ -287,6 +380,38 @@ double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize,
         kernel += pow((1.0 + theta0/power * CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, theta0, thetaC, workspace)), power);
       }
     }
+  }
+
+
+  // // add kernel with one configuration flipped to ensure time reversal symmetry is respected
+  if (tRSym) {
+    // TODO can this be done more efficiently?
+    if (trnSize <= sysSize) {
+      configFlipped = (int*)malloc(sizeof(int)*(2*trnSize));
+      for (i = 0; i < trnSize; i++) {
+        configFlipped[i] = trnCfg[i+trnSize];
+        configFlipped[i+trnSize] = trnCfg[i];
+      }
+      CalculatePairDelta(delta, sysCfg, sysSize, configFlipped, trnSize);
+    }
+    else {
+      configFlipped = (int*)malloc(sizeof(int)*(2*sysSize));
+      for (i = 0; i < sysSize; i++) {
+        configFlipped[i] = sysCfg[i+sysSize];
+        configFlipped[i+sysSize] = sysCfg[i];
+      }
+      CalculatePairDelta(delta, configFlipped, sysSize, trnCfg, trnSize);
+    }
+
+    for (i = 0; i < sysSize; i++) {
+      for (a = 0; a < trnSize; a++) {
+        if (delta[i*trnSize+a]) {
+          kernel += pow((1.0 + theta0/power * CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, theta0, thetaC, workspace)), power);
+        }
+      }
+    }
+
+    kernel /= 2.0;
   }
 
   free(workspace);

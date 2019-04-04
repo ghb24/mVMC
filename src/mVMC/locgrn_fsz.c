@@ -73,9 +73,11 @@ double complex GreenFunc1_fsz(const int ri, const int rj, const int s, const dou
   z *= GPWRatio(eleGPWKernNew,eleGPWKern);
   z *= RBMVal(eleNum);
 
-  /* calculate Pfaffian */
-  CalculateNewPfM_fsz(mj, s, pfMNew, eleIdx,eleSpn, 0, NQPFull);//fsz
-  z *= CalculateIP_fcmp(pfMNew, 0, NQPFull, MPI_COMM_SELF);
+  if (UseOrbital) {
+    /* calculate Pfaffian */
+    CalculateNewPfM_fsz(mj, s, pfMNew, eleIdx,eleSpn, 0, NQPFull);//fsz
+    z *= CalculateIP_fcmp(pfMNew, 0, NQPFull, MPI_COMM_SELF);
+  }
 
   /* revert hopping */
   eleIdx[msj] = rj;
@@ -115,9 +117,11 @@ double complex GreenFunc1_fsz2(const int ri, const int rj, const int s,const int
   z *= GPWRatio(eleGPWKernNew, eleGPWKern);
   z *= RBMVal(eleNum);
 
-  /* calculate Pfaffian */
-  CalculateNewPfM_fsz(mj, s, pfMNew, eleIdx,eleSpn, 0, NQPFull);//fsz: note EleSpn[mj]=s
-  z *= CalculateIP_fcmp(pfMNew, 0, NQPFull, MPI_COMM_SELF);
+  if (UseOrbital) {
+    /* calculate Pfaffian */
+    CalculateNewPfM_fsz(mj, s, pfMNew, eleIdx,eleSpn, 0, NQPFull);//fsz: note EleSpn[mj]=s
+    z *= CalculateIP_fcmp(pfMNew, 0, NQPFull, MPI_COMM_SELF);
+  }
 
   /* revert hopping */
   eleIdx[mj] = rj;
@@ -208,9 +212,11 @@ double complex GreenFunc2_fsz(const int ri, const int rj, const int rk, const in
   z *= GPWRatio(eleGPWKernNew,eleGPWKern);
   z *= RBMVal(eleNum);
 
-  /* calculate Pfaffian */
-  CalculateNewPfMTwo_fsz(ml, t, mj, s, pfMNew, eleIdx,eleSpn, 0, NQPFull, bufV);
-  z *= CalculateIP_fcmp(pfMNew, 0, NQPFull, MPI_COMM_SELF);
+  if (UseOrbital) {
+    /* calculate Pfaffian */
+    CalculateNewPfMTwo_fsz(ml, t, mj, s, pfMNew, eleIdx,eleSpn, 0, NQPFull, bufV);
+    z *= CalculateIP_fcmp(pfMNew, 0, NQPFull, MPI_COMM_SELF);
+  }
 
   /* revert hopping */
   eleIdx[mtl] = rl;
@@ -338,9 +344,11 @@ double complex GreenFunc2_fsz2(const int ri, const int rj, const int rk, const i
   z *= GPWRatio(eleGPWKernNew,eleGPWKern);
   z *= RBMVal(eleNum);
 
-  /* calculate Pfaffian */
-  CalculateNewPfMTwo_fsz(ml, u, mj, s, pfMNew, eleIdx,eleSpn, 0, NQPFull, bufV); // ml -> rk,u; mj -> ri,s
-  z *= CalculateIP_fcmp(pfMNew, 0, NQPFull, MPI_COMM_SELF);
+  if (UseOrbital) {
+    /* calculate Pfaffian */
+    CalculateNewPfMTwo_fsz(ml, u, mj, s, pfMNew, eleIdx,eleSpn, 0, NQPFull, bufV); // ml -> rk,u; mj -> ri,s
+    z *= CalculateIP_fcmp(pfMNew, 0, NQPFull, MPI_COMM_SELF);
+  }
 
   /* revert hopping */
   eleIdx[ml]  = rl;  // ml : (rl,v)

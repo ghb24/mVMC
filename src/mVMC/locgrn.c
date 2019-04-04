@@ -63,8 +63,10 @@ double complex GreenFunc1(const int ri, const int rj, const int s, const double 
   z *= RBMVal(eleNum);
 
   /* calculate Pfaffian */
-  CalculateNewPfM(mj, s, pfMNew, eleIdx, 0, NQPFull);
-  z *= CalculateIP_fcmp(pfMNew, 0, NQPFull, MPI_COMM_SELF);
+  if (UseOrbital) {
+    CalculateNewPfM(mj, s, pfMNew, eleIdx, 0, NQPFull);
+    z *= CalculateIP_fcmp(pfMNew, 0, NQPFull, MPI_COMM_SELF);
+  }
 
   /* revert hopping */
   eleIdx[msj] = rj;
@@ -152,8 +154,10 @@ double complex GreenFunc2(const int ri, const int rj, const int rk, const int rl
   z *= RBMVal(eleNum);
 
   /* calculate Pfaffian */
-  CalculateNewPfMTwo_fcmp(ml, t, mj, s, pfMNew, eleIdx, 0, NQPFull, bufV);
-  z *= CalculateIP_fcmp(pfMNew, 0, NQPFull, MPI_COMM_SELF);
+  if (UseOrbital) {
+    CalculateNewPfMTwo_fcmp(ml, t, mj, s, pfMNew, eleIdx, 0, NQPFull, bufV);
+    z *= CalculateIP_fcmp(pfMNew, 0, NQPFull, MPI_COMM_SELF);
+  }
 
   /* revert hopping */
   eleIdx[mtl] = rl;
@@ -282,10 +286,15 @@ double complex GreenFuncN(const int n, int *rsi, int *rsj, const double complex 
   x *= RBMVal(eleNum);
 
   /* calculateNewPfM */
-  for(qpidx=0;qpidx<NQPFull;qpidx++) {
-    pfMNew[qpidx] = calculateNewPfMN_child(qpidx,n,msj,rsj,eleIdx,bufV);
+  if (UseOrbital) {
+    for(qpidx=0;qpidx<NQPFull;qpidx++) {
+      pfMNew[qpidx] = calculateNewPfMN_child(qpidx,n,msj,rsj,eleIdx,bufV);
+    }
+    z = CalculateIP_fcmp(pfMNew, 0, NQPFull, MPI_COMM_SELF);
   }
-  z = CalculateIP_fcmp(pfMNew, 0, NQPFull, MPI_COMM_SELF);
+  else {
+    z = 1.0;
+  }
 
   /* revert hoppint */
   #pragma loop noalias

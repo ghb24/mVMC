@@ -222,20 +222,22 @@ void SlaterElmDiff_fcmp(double complex *srOptO, const double complex ip, int *el
     srOptO[2*orbidx]   = 0.0+0.0*I; // 0
     srOptO[2*orbidx+1] = 0.0+0.0*I; // 0
   }
-  #pragma loop noalias
-  for(qpidx=0;qpidx<nQPFull;qpidx++) {
-    tmp = QPFullWeight[qpidx];
-    buf = buffer + qpidx*nSlater;
-    for(orbidx=0;orbidx<nSlater;orbidx++) {
-      srOptO[2*orbidx]   += tmp * buf[orbidx];   //real      TBC
-      srOptO[2*orbidx+1] += tmp * buf[orbidx]*I; //imaginary TBC
-      //printf("Re DEBUG: tmp=%lf :orbidx=%d srOptO=%lf %lf invIP=%lf %lf \n",tmp,orbidx,creal(srOptO[2*orbidx]),cimag(srOptO[2*orbidx]),creal(invIP),cimag(invIP));
-      //printf("Im DEBUG:orbidx=%d srOptO=%lf %lf invIP=%lf %lf \n",orbidx,creal(srOptO[2*orbidx+1]),cimag(srOptO[2*orbidx+1]),creal(invIP),cimag(invIP));
+  if(UseOrbital) {
+    #pragma loop noalias
+    for(qpidx=0;qpidx<nQPFull;qpidx++) {
+      tmp = QPFullWeight[qpidx];
+      buf = buffer + qpidx*nSlater;
+      for(orbidx=0;orbidx<nSlater;orbidx++) {
+        srOptO[2*orbidx]   += tmp * buf[orbidx];   //real      TBC
+        srOptO[2*orbidx+1] += tmp * buf[orbidx]*I; //imaginary TBC
+        //printf("Re DEBUG: tmp=%lf :orbidx=%d srOptO=%lf %lf invIP=%lf %lf \n",tmp,orbidx,creal(srOptO[2*orbidx]),cimag(srOptO[2*orbidx]),creal(invIP),cimag(invIP));
+        //printf("Im DEBUG:orbidx=%d srOptO=%lf %lf invIP=%lf %lf \n",orbidx,creal(srOptO[2*orbidx+1]),cimag(srOptO[2*orbidx+1]),creal(invIP),cimag(invIP));
+      }
     }
-  }
-  for(orbidx=0;orbidx<nSlater;orbidx++) {
-    srOptO[2*orbidx]   *= invIP;
-    srOptO[2*orbidx+1] *= invIP;
+    for(orbidx=0;orbidx<nSlater;orbidx++) {
+      srOptO[2*orbidx]   *= invIP;
+      srOptO[2*orbidx+1] *= invIP;
+    }
   }
 
   ReleaseWorkSpaceInt();

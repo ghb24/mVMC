@@ -128,6 +128,7 @@ int Dim; /* lattice dimension for GPW */
 int *SysNeighbours; /* [Nsite*2*dim] system neighbour cells required for GPW */
 
 /* for variational parameters */
+int UseOrbital = 0;
 int NGutzwillerIdx, *GutzwillerIdx; /* [Nsite] */
 int NJastrowIdx, **JastrowIdx; /* [Nsite][Nsite] */
 int NDoublonHolon2siteIdx, **DoublonHolon2siteIdx; /* DoublonHolon2siteIdx[idx][2*Nsite] */

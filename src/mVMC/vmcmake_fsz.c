@@ -96,22 +96,24 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
   } else {
     copyFromBurnSample_fsz(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleSpn,TmpEleGPWKern) ;//fsz
   }
-  
-  CalculateMAll_fsz(TmpEleIdx,TmpEleSpn,qpStart,qpEnd);
-#ifdef _DEBUG_DETAIL
-  printf("DEBUG: maker1: PfM=%lf\n",creal(PfM[0]));
-#endif
-  logIpOld = CalculateLogIP_fcmp(PfM,qpStart,qpEnd,comm);
-  if( !isfinite(creal(logIpOld) + cimag(logIpOld)) ) {
-    if(rank==0) fprintf(stderr,"waring: VMCMakeSample remakeSample logIpOld=%e\n",creal(logIpOld)); //TBC
-    makeInitialSample_fsz(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleSpn,
-                      TmpEleGPWKern,qpStart,qpEnd,comm);
+
+  if (UseOrbital) {
     CalculateMAll_fsz(TmpEleIdx,TmpEleSpn,qpStart,qpEnd);
 #ifdef _DEBUG_DETAIL
-    printf("DEBUG: maker2: PfM=%lf\n",creal(PfM[0]));
+    printf("DEBUG: maker1: PfM=%lf\n",creal(PfM[0]));
 #endif
     logIpOld = CalculateLogIP_fcmp(PfM,qpStart,qpEnd,comm);
-    BurnFlag = 0;
+    if( !isfinite(creal(logIpOld) + cimag(logIpOld)) ) {
+      if(rank==0) fprintf(stderr,"waring: VMCMakeSample remakeSample logIpOld=%e\n",creal(logIpOld)); //TBC
+      makeInitialSample_fsz(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleSpn,
+                        TmpEleGPWKern,qpStart,qpEnd,comm);
+      CalculateMAll_fsz(TmpEleIdx,TmpEleSpn,qpStart,qpEnd);
+#ifdef _DEBUG_DETAIL
+      printf("DEBUG: maker2: PfM=%lf\n",creal(PfM[0]));
+#endif
+      logIpOld = CalculateLogIP_fcmp(PfM,qpStart,qpEnd,comm);
+      BurnFlag = 0;
+    }
   }
   rbmValOld = RBMVal(TmpEleNum);
   StopTimer(30);
@@ -173,29 +175,38 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
           UpdateGPWKern(ri,rj,eleGPWKernNew,TmpEleGPWKern,TmpEleNum);
         }
         StopTimer(60);
-        StartTimer(61);
-        CalculateNewPfM2_fsz(mi,t,pfMNew,TmpEleIdx,TmpEleSpn,qpStart,qpEnd); // fsz: s->t
-        StopTimer(61);
+        if (UseOrbital) {
+          StartTimer(61);
+          CalculateNewPfM2_fsz(mi,t,pfMNew,TmpEleIdx,TmpEleSpn,qpStart,qpEnd); // fsz: s->t
+          StopTimer(61);
 
-        StartTimer(62);
-        /* calculate inner product <phi|L|x> */
-        //logIpNew = CalculateLogIP_fcmp(pfMNew,qpStart,qpEnd,comm);
-        logIpNew = CalculateLogIP_fcmp(pfMNew,qpStart,qpEnd,comm);
-        StopTimer(62);
+          StartTimer(62);
+          /* calculate inner product <phi|L|x> */
+          //logIpNew = CalculateLogIP_fcmp(pfMNew,qpStart,qpEnd,comm);
+          logIpNew = CalculateLogIP_fcmp(pfMNew,qpStart,qpEnd,comm);
+          StopTimer(62);
+        }
 
         rbmValNew = RBMVal(TmpEleNum);
 
         /* Metroplis */
         x = LogProjRatio(projCntNew,TmpEleProjCnt);
         x += LogGPWRatio(eleGPWKernNew, TmpEleGPWKern);
-        w = exp(2.0*(x+creal(logIpNew-logIpOld)));
+        if (UseOrbital) {
+          w = exp(2.0 * (x + creal(logIpNew-logIpOld)));
+        }
+        else {
+          w = exp(2.0 * (x));
+        }
         w *= pow(cabs(rbmValNew/rbmValOld),2);
         if( !isfinite(w) ) w = -1.0; /* should be rejected */
 
         if(w > genrand_real2()) { /* accept */
           // UpdateMAll will change SlaterElm, InvM (including PfM)
           StartTimer(63);
-          UpdateMAll_fsz(mi,t,TmpEleIdx,TmpEleSpn,qpStart,qpEnd); // fsz : s->t
+          if (UseOrbital) {
+            UpdateMAll_fsz(mi,t,TmpEleIdx,TmpEleSpn,qpStart,qpEnd); // fsz : s->t
+          }
           StopTimer(63);
 
           for(i=0;i<NProj;i++) TmpEleProjCnt[i] = projCntNew[i];
@@ -238,29 +249,38 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
         UpdateGPWKern(ri,rj,eleGPWKernNew,eleGPWKernNew,TmpEleNum);
 
         StopTimer(65);
-        StartTimer(66);
+        if (UseOrbital) {
+          StartTimer(66);
 
-        CalculateNewPfMTwo2_fsz(mi, s, mj, t, pfMNew, TmpEleIdx,TmpEleSpn, qpStart, qpEnd);
-        StopTimer(66);
-        StartTimer(67);
+          CalculateNewPfMTwo2_fsz(mi, s, mj, t, pfMNew, TmpEleIdx,TmpEleSpn, qpStart, qpEnd);
+          StopTimer(66);
+          StartTimer(67);
 
-        /* calculate inner product <phi|L|x> */
-        logIpNew = CalculateLogIP_fcmp(pfMNew,qpStart,qpEnd,comm);
+          /* calculate inner product <phi|L|x> */
+          logIpNew = CalculateLogIP_fcmp(pfMNew,qpStart,qpEnd,comm);
 
-        StopTimer(67);
+          StopTimer(67);
+        }
 
         rbmValNew = RBMVal(TmpEleNum);
 
         /* Metroplis */
         x = LogProjRatio(projCntNew,TmpEleProjCnt);
         x += LogGPWRatio(eleGPWKernNew, TmpEleGPWKern);
-        w = exp(2.0*(x+creal(logIpNew-logIpOld))); //TBC
+        if (UseOrbital) {
+          w = exp(2.0 * (x + creal(logIpNew-logIpOld)));
+        }
+        else {
+          w = exp(2.0 * (x));
+        }
         w *= pow(cabs(rbmValNew/rbmValOld),2);
         if( !isfinite(w) ) w = -1.0; /* should be rejected */
 
         if(w > genrand_real2()) { /* accept */
           StartTimer(68);
-          UpdateMAllTwo_fsz(mi, s, mj, t, ri, rj, TmpEleIdx,TmpEleSpn,qpStart,qpEnd);
+          if (UseOrbital) {
+            UpdateMAllTwo_fsz(mi, s, mj, t, ri, rj, TmpEleIdx,TmpEleSpn,qpStart,qpEnd);
+          }
           StopTimer(68);
 
           for(i=0;i<NProj;i++) TmpEleProjCnt[i] = projCntNew[i];
@@ -293,25 +313,32 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
         UpdateProjCnt_fsz(ri,rj,s,t,projCntNew,TmpEleProjCnt,TmpEleNum);
         UpdateGPWKern(ri,rj,eleGPWKernNew,TmpEleGPWKern,TmpEleNum);
         StopTimer(600);
-        StartTimer(601);
-        CalculateNewPfM2_fsz(mi,t,pfMNew,TmpEleIdx,TmpEleSpn,qpStart,qpEnd); // fsz: s->t 
-        StopTimer(610);
+        if (UseOrbital) {
+          StartTimer(601);
+          CalculateNewPfM2_fsz(mi,t,pfMNew,TmpEleIdx,TmpEleSpn,qpStart,qpEnd); // fsz: s->t
+          StopTimer(610);
 
-        StartTimer(602);
-        /* calculate inner product <phi|L|x> */
-        //logIpNew = CalculateLogIP_fcmp(pfMNew,qpStart,qpEnd,comm);
-        logIpNew = CalculateLogIP_fcmp(pfMNew,qpStart,qpEnd,comm);
-        StopTimer(602);
+          StartTimer(602);
+          /* calculate inner product <phi|L|x> */
+          //logIpNew = CalculateLogIP_fcmp(pfMNew,qpStart,qpEnd,comm);
+          logIpNew = CalculateLogIP_fcmp(pfMNew,qpStart,qpEnd,comm);
+          StopTimer(602);
+        }
 
         rbmValNew = RBMVal(TmpEleNum);
 
         /* Metroplis */
         x = LogProjRatio(projCntNew,TmpEleProjCnt);
         x += LogGPWRatio(eleGPWKernNew, TmpEleGPWKern);
-        w = exp(2.0*(x+creal(logIpNew-logIpOld)));
+        if (UseOrbital) {
+          w = exp(2.0 * (x + creal(logIpNew-logIpOld)));
+        }
+        else {
+          w = exp(2.0 * (x));
+        }
         w *= pow(cabs(rbmValNew/rbmValOld),2);
         if( !isfinite(w) ) w = -1.0; /* should be rejected */
-        
+
 
         //printf("\n");
         //printf("MDEBUG: mi=%d: ri=%d rj=%d s=%d t=%d\n",mi,ri,rj,s,t);
@@ -320,7 +347,9 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
         if(w > genrand_real2()) { /* accept */
           // UpdateMAll will change SlaterElm, InvM (including PfM)
           StartTimer(603);
-          UpdateMAll_fsz(mi,t,TmpEleIdx,TmpEleSpn,qpStart,qpEnd); // fsz : s->t
+          if (UseOrbital) {
+            UpdateMAll_fsz(mi,t,TmpEleIdx,TmpEleSpn,qpStart,qpEnd); // fsz : s->t
+          }
           StopTimer(603);
 
           for(i=0;i<NProj;i++) TmpEleProjCnt[i] = projCntNew[i];
@@ -336,10 +365,12 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
 
       if(nAccept>Nsite) {
         StartTimer(34);
-        /* recal PfM and InvM */
-        CalculateMAll_fsz(TmpEleIdx,TmpEleSpn,qpStart,qpEnd);
-        //printf("DEBUG: maker3: PfM=%lf\n",creal(PfM[0]));
-        logIpOld = CalculateLogIP_fcmp(PfM,qpStart,qpEnd,comm);
+        if (UseOrbital) {
+          /* recal PfM and InvM */
+          CalculateMAll_fsz(TmpEleIdx,TmpEleSpn,qpStart,qpEnd);
+          //printf("DEBUG: maker3: PfM=%lf\n",creal(PfM[0]));
+          logIpOld = CalculateLogIP_fcmp(PfM,qpStart,qpEnd,comm);
+        }
         StopTimer(34);
         nAccept=0;
       }
@@ -440,11 +471,16 @@ int makeInitialSample_fsz(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt
     MakeProjCnt(eleProjCnt,eleNum); // this function does not change even for fsz
     CalculateGPWKern(eleGPWKern,eleNum);
 
-    flag = CalculateMAll_fsz(eleIdx,eleSpn,qpStart,qpEnd);
-    //printf("DEBUG: make4: PfM=%lf\n",creal(PfM[0]));
-    if(size>1) {
-      MPI_Allreduce(&flag,&flagRdc,1,MPI_INT,MPI_MAX,comm);
-      flag = flagRdc;
+    if (UseOrbital) {
+      flag = CalculateMAll_fsz(eleIdx,eleSpn,qpStart,qpEnd);
+      //printf("DEBUG: make4: PfM=%lf\n",creal(PfM[0]));
+      if(size>1) {
+        MPI_Allreduce(&flag,&flagRdc,1,MPI_INT,MPI_MAX,comm);
+        flag = flagRdc;
+      }
+    }
+    else {
+      flag = -1;
     }
 
     loop++;
@@ -520,8 +556,13 @@ void saveEleConfig_fsz(const int sample, const double complex logIp, const doubl
   x = LogProjVal(eleProjCnt);
   x += LogGPWVal(eleGPWKern);
   x += clog(rbmVal);
-  logSqPfFullSlater[sample] = 2.0*(x+creal(logIp));//TBC
-  
+  if (UseOrbital) {
+    logSqPfFullSlater[sample] = 2.0*(x+creal(logIp));//TBC
+  }
+  else {
+    logSqPfFullSlater[sample] = 2.0*(x);//TBC
+  }
+
   return;
 }
 

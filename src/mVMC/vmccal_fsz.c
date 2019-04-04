@@ -73,22 +73,27 @@ void VMCMainCal_fsz(MPI_Comm comm) {
     eleSpn     = EleSpn + sample*Nsize; //fsz
 
     StartTimer(40);
+    if (UseOrbital) {
 #ifdef _DEBUG_DETAIL
-    printf("  Debug: sample=%d: CalculateMAll \n",sample);
+      printf("  Debug: sample=%d: CalculateMAll \n",sample);
 #endif
-    info = CalculateMAll_fsz(eleIdx,eleSpn,qpStart,qpEnd);//info = CalculateMAll_fcmp(eleIdx,qpStart,qpEnd); // InvM,PfM will change
-    StopTimer(40);
+      info = CalculateMAll_fsz(eleIdx,eleSpn,qpStart,qpEnd);//info = CalculateMAll_fcmp(eleIdx,qpStart,qpEnd); // InvM,PfM will change
+      StopTimer(40);
 
-    if(info!=0) {
-      fprintf(stderr,"warning: VMCMainCal rank:%d sample:%d info:%d (CalculateMAll)\n",rank,sample,info);
-      continue;
-    }
+      if(info!=0) {
+        fprintf(stderr,"warning: VMCMainCal rank:%d sample:%d info:%d (CalculateMAll)\n",rank,sample,info);
+        continue;
+      }
 #ifdef _DEBUG_DETAIL
-    printf("  Debug: sample=%d: CalculateIP \n",sample);
+      printf("  Debug: sample=%d: CalculateIP \n",sample);
 #endif
-    ip = CalculateIP_fcmp(PfM,qpStart,qpEnd,MPI_COMM_SELF);
+      ip = CalculateIP_fcmp(PfM,qpStart,qpEnd,MPI_COMM_SELF);
+    }
+    else {
+      ip = 1.0;
+    }
     ip *= RBMVal(eleNum);
-    
+
 #ifdef _DEBUG_DETAIL
     printf("  Debug: sample=%d: LogProjVal \n",sample);
 #endif

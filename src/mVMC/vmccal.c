@@ -115,28 +115,32 @@ void VMCMainCal(MPI_Comm comm) {
 #ifdef _DEBUG_VMCCAL
     printf("  Debug: sample=%d: CalculateMAll \n",sample);
 #endif
-    if(AllComplexFlag==0){
-      info = CalculateMAll_real(eleIdx,qpStart,qpEnd); // InvM_real,PfM_real will change
+    if(UseOrbital) {
+      if(AllComplexFlag==0){
+        info = CalculateMAll_real(eleIdx,qpStart,qpEnd); // InvM_real,PfM_real will change
 #pragma omp parallel for default(shared) private(tmp_i)
-      for(tmp_i=0;tmp_i<NQPFull*(Nsize*Nsize+1);tmp_i++)  InvM[tmp_i]= InvM_real[tmp_i]; // InvM will be used in  SlaterElmDiff_fcmp
-    }else{
-      info = CalculateMAll_fcmp(eleIdx,qpStart,qpEnd); // InvM,PfM will change
-    }
-    StopTimer(40);
+        for(tmp_i=0;tmp_i<NQPFull*(Nsize*Nsize+1);tmp_i++)  InvM[tmp_i]= InvM_real[tmp_i]; // InvM will be used in  SlaterElmDiff_fcmp
+      }else{
+        info = CalculateMAll_fcmp(eleIdx,qpStart,qpEnd); // InvM,PfM will change
+      }
+      StopTimer(40);
 
-    if(info!=0) {
-      fprintf(stderr,"warning: VMCMainCal rank:%d sample:%d info:%d (CalculateMAll)\n",rank,sample,info);
-      continue;
-    }
+      if(info!=0) {
+        fprintf(stderr,"warning: VMCMainCal rank:%d sample:%d info:%d (CalculateMAll)\n",rank,sample,info);
+        continue;
+      }
 #ifdef _DEBUG_VMCCAL
     printf("  Debug: sample=%d: CalculateIP \n",sample);
 #endif
-    if(AllComplexFlag==0){
-      ip = CalculateIP_real(PfM_real,qpStart,qpEnd,MPI_COMM_SELF);
-    }else{
-      ip = CalculateIP_fcmp(PfM,qpStart,qpEnd,MPI_COMM_SELF);
+      if(AllComplexFlag==0){
+        ip = CalculateIP_real(PfM_real,qpStart,qpEnd,MPI_COMM_SELF);
+      }else{
+        ip = CalculateIP_fcmp(PfM,qpStart,qpEnd,MPI_COMM_SELF);
+      }
     }
-
+    else  {
+      ip = 1.0;
+    }
     ip *= RBMVal(eleNum);
 
 #ifdef _DEBUG_VMCCAL

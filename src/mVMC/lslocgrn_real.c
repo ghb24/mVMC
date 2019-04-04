@@ -155,8 +155,13 @@ double checkGF1_real(const int ri, const int rj, const int s, const double ip,
   eleNum[rsi] = 1;
 
   /* calculate Pfaffian */
-  CalculateNewPfM_real(mj, s, pfMNew, eleIdx, 0, NQPFull);
-  z = CalculateIP_real(pfMNew, 0, NQPFull, MPI_COMM_SELF);
+  if (UseOrbital) {
+    CalculateNewPfM_real(mj, s, pfMNew, eleIdx, 0, NQPFull);
+    z = CalculateIP_real(pfMNew, 0, NQPFull, MPI_COMM_SELF);
+  }
+  else {
+    z = 1.0;
+  }
 
   /* revert hopping */
   eleIdx[msj] = rj;
@@ -215,8 +220,13 @@ double calHCA1_real(const int ri, const int rj, const int s,
   UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWKern, eleNum);
   z *= GPWRatio(eleGPWKernNew,eleGPWKern);
 
-  UpdateMAll_real(mj,s,eleIdx,0,NQPFull);
-  ipNew = CalculateIP_real(PfM_real,0,NQPFull,MPI_COMM_SELF);
+  if (UseOrbital) {
+    UpdateMAll_real(mj,s,eleIdx,0,NQPFull);
+    ipNew = CalculateIP_real(PfM_real,0,NQPFull,MPI_COMM_SELF);
+  }
+  else {
+    ipNew = 1.0;
+  }
   ipNew *= RBMVal(eleNum);
 
   e = CalculateHamiltonian_real(ipNew,eleIdx,eleCfg,eleNum,projCntNew,eleGPWKernNew);
@@ -527,8 +537,13 @@ double checkGF2_real(const int ri, const int rj, const int rk, const int rl,
   eleNum[rsi] = 1;
 
   /* calculate Pfaffian */
-  CalculateNewPfMTwo_real(ml, t, mj, s, pfMNew, eleIdx, 0, NQPFull, buffer);
-  z = CalculateIP_real(pfMNew, 0, NQPFull, MPI_COMM_SELF);
+  if (UseOrbital) {
+    CalculateNewPfMTwo_real(ml, t, mj, s, pfMNew, eleIdx, 0, NQPFull, buffer);
+    z = CalculateIP_real(pfMNew, 0, NQPFull, MPI_COMM_SELF);
+  }
+  else {
+    z = 1.0;
+  }
 
   /* revert hopping */
   eleIdx[mtl] = rl;
@@ -592,8 +607,13 @@ double calHCACA1_real(const int ri, const int rj, const int rk, const int rl,
   z = ProjRatio(projCntNew,eleProjCnt);
   z *= GPWRatio(eleGPWKernNew,eleGPWKern);
 
-  UpdateMAllTwo_real(ml, sk, mj, si, rl, rj, eleIdx, 0, NQPFull);
-  ipNew = CalculateIP_real(PfM_real,0,NQPFull,MPI_COMM_SELF);
+  if (UseOrbital) {
+    UpdateMAllTwo_real(ml, sk, mj, si, rl, rj, eleIdx, 0, NQPFull);
+    ipNew = CalculateIP_real(PfM_real,0,NQPFull,MPI_COMM_SELF);
+  }
+  else {
+    ipNew = 1.0;
+  }
   ipNew *= RBMVal(eleNum);
 
   e = CalculateHamiltonian_real(ipNew,eleIdx,eleCfg,eleNum,projCntNew,eleGPWKernNew);

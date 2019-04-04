@@ -222,8 +222,13 @@ double complex checkGF1(const int ri, const int rj, const int s, const double co
   eleNum[rsi] = 1;
 
   /* calculate Pfaffian */
+  if (UseOrbital) {
     CalculateNewPfM(mj, s, pfMNew, eleIdx, 0, NQPFull);
     z = CalculateIP_fcmp(pfMNew, 0, NQPFull, MPI_COMM_SELF);
+  }
+  else {
+    z = 1.0;
+  }
 
   /* revert hopping */
   eleIdx[msj] = rj;
@@ -273,8 +278,13 @@ double complex calHCA1(const int ri, const int rj, const int s,
   UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWKern, eleNum);
   z *= GPWRatio(eleGPWKernNew,eleGPWKern);
 
-  UpdateMAll(mj,s,eleIdx,0,NQPFull);
-  ipNew = CalculateIP_fcmp(PfM,0,NQPFull,MPI_COMM_SELF);
+  if (UseOrbital) {
+    UpdateMAll(mj,s,eleIdx,0,NQPFull);
+    ipNew = CalculateIP_fcmp(PfM,0,NQPFull,MPI_COMM_SELF);
+  }
+  else {
+    ipNew = 1.0;
+  }
   ipNew *= RBMVal(eleNum);
 
   e = CalculateHamiltonian(ipNew,eleIdx,eleCfg,eleNum,projCntNew,eleGPWKernNew);
@@ -530,8 +540,13 @@ double complex checkGF2(const int ri, const int rj, const int rk, const int rl,
   eleNum[rsi] = 1;
 
   /* calculate Pfaffian */
-  CalculateNewPfMTwo_fcmp(ml, t, mj, s, pfMNew, eleIdx, 0, NQPFull, buffer);
-  z = CalculateIP_fcmp(pfMNew, 0, NQPFull, MPI_COMM_SELF);
+  if (UseOrbital) {
+    CalculateNewPfMTwo_fcmp(ml, t, mj, s, pfMNew, eleIdx, 0, NQPFull, buffer);
+    z = CalculateIP_fcmp(pfMNew, 0, NQPFull, MPI_COMM_SELF);
+  }
+  else {
+    z = 1.0;
+  }
 
   /* revert hopping */
   eleIdx[mtl] = rl;
@@ -596,8 +611,13 @@ double complex calHCACA1(const int ri, const int rj, const int rk, const int rl,
   z = ProjRatio(projCntNew,eleProjCnt);
   z *= GPWRatio(eleGPWKernNew,eleGPWKern);
 
-  UpdateMAllTwo_fcmp(ml, sk, mj, si, rl, rj, eleIdx, 0, NQPFull);
-  ipNew = CalculateIP_fcmp(PfM,0,NQPFull,MPI_COMM_SELF);
+  if (UseOrbital) {
+    UpdateMAllTwo_fcmp(ml, sk, mj, si, rl, rj, eleIdx, 0, NQPFull);
+    ipNew = CalculateIP_fcmp(PfM,0,NQPFull,MPI_COMM_SELF);
+  }
+  else {
+    ipNew = 1.0;
+  }
   ipNew *= RBMVal(eleNum);
 
   e = CalculateHamiltonian(ipNew,eleIdx,eleCfg,eleNum,projCntNew,eleGPWKernNew);

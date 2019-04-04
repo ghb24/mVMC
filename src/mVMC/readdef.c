@@ -272,7 +272,8 @@ int ReadDefFileError(const char *defname) {
 /// \retval -1 multiple definition
 /// \retval -2 too few definition
 
-int JudgeOrbitalMode(int *_iFlgOrbitalGeneral, const int _iFlgOrbitalAP, const int _iFlgOrbitalP) {
+int JudgeOrbitalMode(int *_iFlgOrbitalGeneral, const int _iFlgOrbitalAP,
+                     const int _iFlgOrbitalP, int *useOrbBuf) {
 
   int iret = 0;
   //(General, AP, P)
@@ -297,7 +298,8 @@ int JudgeOrbitalMode(int *_iFlgOrbitalGeneral, const int _iFlgOrbitalAP, const i
   if (iret == -1) {
     fprintf(stderr, "error: Multiple definition of Orbital files.\n");
   } else if (iret == -2) {
-    fprintf(stderr, "error: Not exist any Orbital file or Need OrbitalAP file.\n");
+    *useOrbBuf = 0;
+    fprintf(stdout, "Warning: no type of orbital file specified, not using any orbital part (experimental feature).\n");
   }
   return iret;
 }
@@ -616,8 +618,8 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
       }
     }
 
-    iret = JudgeOrbitalMode(&iFlgOrbitalGeneral, iFlgOrbitalAntiParallel, iFlgOrbitalParallel);
-    if (iret < 0) info = iret;
+    iret = JudgeOrbitalMode(&iFlgOrbitalGeneral, iFlgOrbitalAntiParallel, iFlgOrbitalParallel, &bufInt[IdxUseOrb]);
+    if (iret == -1) info = iret;
 
     //TODO: LanczosMode is not supported for Sz not conserved mode.
 
@@ -654,7 +656,7 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
     //printf("bufInt[Idx2Sz]=%d \n",bufInt[Idx2Sz]);
     if (bufInt[Idx2Sz] != 0) {
       //if(iOrbitalComplex != 1){
-      if (iFlgOrbitalGeneral != 1) {
+      if (iFlgOrbitalGeneral != 1 && bufInt[IdxUseOrb]) {
         fprintf(stderr,
                 "Error: OrbitalParallel or OrbitalGeneral files must be needed when 2Sz !=0 (in modpara.def).\n");
         info = 1;
@@ -665,7 +667,7 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
     }
 
     if (iFlgOrbitalGeneral == 1) {
-      if (bufInt[IdxSPGaussLeg] > 1) {    //Check NSPGaussLeg
+      if (bufInt[IdxSPGaussLeg] > 1 && bufInt[IdxUseOrb]) {    //Check NSPGaussLeg
         fprintf(stdout, "Warning: SPGaussLeg (in modpara.def) must be 0 or 1 when orbital is general.\n");
         fprintf(stdout, "         SPGaussLeg set as 1.\n");
         bufInt[IdxSPGaussLeg] = 1;
@@ -760,6 +762,7 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
   GPWTrnCfgSz = 2 * bufInt[IdxTrnCfgSz];
   RBMNVisibleIdx = bufInt[IdxNRBMVisible];
   RBMNHiddenIdx = bufInt[IdxNRBMHidden];
+  UseOrbital = bufInt[IdxUseOrb];
   NOrbitalIdx = bufInt[IdxNOrbit];
   NQPTrans = bufInt[IdxNQPTrans];
   NCisAjs = bufInt[IdxNOneBodyG];
@@ -1684,6 +1687,7 @@ void SetDefaultValuesModPara(int *bufInt, double *bufDouble) {
   bufInt[IdxTrnCfgSz] = 0;
   bufInt[IdxNRBMVisible] = 0;
   bufInt[IdxNRBMHidden] = 0;
+  bufInt[IdxUseOrb] = 1;
   bufInt[IdxNOrbit] = 0;
   bufInt[IdxNQPTrans] = 0;
   bufInt[IdxNOneBodyG] = 0;

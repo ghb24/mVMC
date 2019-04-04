@@ -66,9 +66,11 @@ double  GreenFunc1_real(const int ri, const int rj, const int s, const double ip
   z *= GPWRatio(eleGPWKernNew,eleGPWKern);
   z *= RBMVal(eleNum);
 
-  /* calculate Pfaffian */
-  CalculateNewPfM_real(mj, s, pfMNew_real, eleIdx, 0, NQPFull);
-  z *= CalculateIP_real(pfMNew_real, 0, NQPFull, MPI_COMM_SELF);
+  if (UseOrbital) {
+    /* calculate Pfaffian */
+    CalculateNewPfM_real(mj, s, pfMNew_real, eleIdx, 0, NQPFull);
+    z *= CalculateIP_real(pfMNew_real, 0, NQPFull, MPI_COMM_SELF);
+  }
 
   /* revert hopping */
   eleIdx[msj] = rj;
@@ -155,9 +157,11 @@ double GreenFunc2_real(const int ri, const int rj, const int rk, const int rl,
   z *= GPWRatio(eleGPWKernNew,eleGPWKern);
   z *= RBMVal(eleNum);
 
-  /* calculate Pfaffian */
-  CalculateNewPfMTwo_real(ml, t, mj, s, pfMNew_real, eleIdx, 0, NQPFull, bufV);
-  z *= CalculateIP_real(pfMNew_real, 0, NQPFull, MPI_COMM_SELF);
+  if (UseOrbital) {
+    /* calculate Pfaffian */
+    CalculateNewPfMTwo_real(ml, t, mj, s, pfMNew_real, eleIdx, 0, NQPFull, bufV);
+    z *= CalculateIP_real(pfMNew_real, 0, NQPFull, MPI_COMM_SELF);
+  }
 
   /* revert hopping */
   eleIdx[mtl] = rl;
@@ -291,11 +295,16 @@ double GreenFuncN_real(const int n, int *rsi, int *rsj, const double  ip,
   x *= GPWRatio(eleGPWKernNew,eleGPWKern);
   x *= RBMVal(eleNum);
 
-  /* calculateNewPfM */
-  for(qpidx=0;qpidx<NQPFull;qpidx++) {
-    pfMNew[qpidx] = calculateNewPfMN_real_child(qpidx,n,msj,rsj,eleIdx,bufV);
+  if (UseOrbital) {
+    /* calculateNewPfM */
+    for(qpidx=0;qpidx<NQPFull;qpidx++) {
+      pfMNew[qpidx] = calculateNewPfMN_real_child(qpidx,n,msj,rsj,eleIdx,bufV);
+    }
+    z = CalculateIP_real(pfMNew, 0, NQPFull, MPI_COMM_SELF);
   }
-  z = CalculateIP_real(pfMNew, 0, NQPFull, MPI_COMM_SELF);
+  else {
+    z = 1.0;
+  }
 
   /* revert hoppint */
   #pragma loop noalias

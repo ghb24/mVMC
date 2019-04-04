@@ -69,17 +69,19 @@ void VMCMakeSample_real(MPI_Comm comm) {
     copyFromBurnSample(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, TmpEleGPWKern);
   }
 
-  CalculateMAll_real(TmpEleIdx, qpStart, qpEnd);
-  // printf("DEBUG: maker1: PfM=%lf\n",creal(PfM[0]));
-  logIpOld = CalculateLogIP_real(PfM_real, qpStart, qpEnd, comm);
-  if (!isfinite(logIpOld)) {
-    if (rank == 0) fprintf(stderr, "warning: VMCMakeSample remakeSample logIpOld=%e\n", creal(logIpOld)); //TBC
-    makeInitialSample(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt,
-                      TmpEleGPWKern, qpStart, qpEnd, comm);
+  if (UseOrbital) {
     CalculateMAll_real(TmpEleIdx, qpStart, qpEnd);
-    //printf("DEBUG: maker2: PfM=%lf\n",creal(PfM[0]));
+    // printf("DEBUG: maker1: PfM=%lf\n",creal(PfM[0]));
     logIpOld = CalculateLogIP_real(PfM_real, qpStart, qpEnd, comm);
-    BurnFlag = 0;
+    if (!isfinite(logIpOld)) {
+      if (rank == 0) fprintf(stderr, "warning: VMCMakeSample remakeSample logIpOld=%e\n", creal(logIpOld)); //TBC
+      makeInitialSample(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt,
+                        TmpEleGPWKern, qpStart, qpEnd, comm);
+      CalculateMAll_real(TmpEleIdx, qpStart, qpEnd);
+      //printf("DEBUG: maker2: PfM=%lf\n",creal(PfM[0]));
+      logIpOld = CalculateLogIP_real(PfM_real, qpStart, qpEnd, comm);
+      BurnFlag = 0;
+    }
   }
   rbmValOld = RBMVal(TmpEleNum);
   StopTimer(30);
@@ -111,24 +113,32 @@ void VMCMakeSample_real(MPI_Comm comm) {
         UpdateProjCnt(ri, rj, s, projCntNew, TmpEleProjCnt, TmpEleNum);
         UpdateGPWKern(ri, rj, eleGPWKernNew, TmpEleGPWKern, TmpEleNum);
         StopTimer(60);
-        StartTimer(61);
-        //CalculateNewPfM2(mi,s,pfMNew,TmpEleIdx,qpStart,qpEnd);
-        CalculateNewPfM2_real(mi, s, pfMNew_real, TmpEleIdx, qpStart, qpEnd);
-        //printf("DEBUG: out %d in %d pfMNew=%lf \n",outStep,inStep,creal(pfMNew[0]));
-        StopTimer(61);
+        if (UseOrbital) {
+          StartTimer(61);
+          //CalculateNewPfM2(mi,s,pfMNew,TmpEleIdx,qpStart,qpEnd);
+          CalculateNewPfM2_real(mi, s, pfMNew_real, TmpEleIdx, qpStart, qpEnd);
+          //printf("DEBUG: out %d in %d pfMNew=%lf \n",outStep,inStep,creal(pfMNew[0]));
+          StopTimer(61);
 
-        StartTimer(62);
-        /* calculate inner product <phi|L|x> */
-        //logIpNew = CalculateLogIP_fcmp(pfMNew,qpStart,qpEnd,comm);
-        logIpNew = CalculateLogIP_real(pfMNew_real, qpStart, qpEnd, comm);
-        StopTimer(62);
+          StartTimer(62);
+
+          /* calculate inner product <phi|L|x> */
+          //logIpNew = CalculateLogIP_fcmp(pfMNew,qpStart,qpEnd,comm);
+          logIpNew = CalculateLogIP_real(pfMNew_real, qpStart, qpEnd, comm);
+          StopTimer(62);
+        }
 
         rbmValNew = RBMVal(TmpEleNum);
 
         /* Metroplis */
         x = LogProjRatio(projCntNew, TmpEleProjCnt);
         x += LogGPWRatio(eleGPWKernNew, TmpEleGPWKern);
-        w = exp(2.0 * (x + (logIpNew - logIpOld)));
+        if (UseOrbital) {
+          w = exp(2.0 * (x + (logIpNew - logIpOld)));
+        }
+        else {
+          w = exp(2.0 * (x));
+        }
         w *= pow(cabs(rbmValNew/rbmValOld),2);
 
         // printf("%f \n", cabs(rbmValNew/rbmValOld));
@@ -137,8 +147,10 @@ void VMCMakeSample_real(MPI_Comm comm) {
         if (w > genrand_real2()) { /* accept */
           // UpdateMAll will change SlaterElm, InvM (including PfM)
           StartTimer(63);
-          UpdateMAll_real(mi, s, TmpEleIdx, qpStart, qpEnd);
-          //            UpdateMAll(mi,s,TmpEleIdx,qpStart,qpEnd);
+          if (UseOrbital) {
+            UpdateMAll_real(mi, s, TmpEleIdx, qpStart, qpEnd);
+            //            UpdateMAll(mi,s,TmpEleIdx,qpStart,qpEnd);
+          }
           StopTimer(63);
 
           for (i = 0; i < NProj; i++) TmpEleProjCnt[i] = projCntNew[i];
@@ -179,29 +191,37 @@ void VMCMakeSample_real(MPI_Comm comm) {
         UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWKernNew, TmpEleNum);
 
         StopTimer(65);
-        StartTimer(66);
+        if (UseOrbital) {
+          StartTimer(66);
 
-        CalculateNewPfMTwo2_real(mi, s, mj, t, pfMNew_real, TmpEleIdx, qpStart, qpEnd);
-        StopTimer(66);
-        StartTimer(67);
+          CalculateNewPfMTwo2_real(mi, s, mj, t, pfMNew_real, TmpEleIdx, qpStart, qpEnd);
+          StopTimer(66);
+          StartTimer(67);
 
-        /* calculate inner product <phi|L|x> */
-        logIpNew = CalculateLogIP_real(pfMNew_real, qpStart, qpEnd, comm);
-
-        StopTimer(67);
+          /* calculate inner product <phi|L|x> */
+          logIpNew = CalculateLogIP_real(pfMNew_real, qpStart, qpEnd, comm);
+          StopTimer(67);
+        }
 
         rbmValNew = RBMVal(TmpEleNum);
 
         /* Metroplis */
         x = LogProjRatio(projCntNew, TmpEleProjCnt);
         x += LogGPWRatio(eleGPWKernNew, TmpEleGPWKern);
-        w = exp(2.0 * (x + (logIpNew - logIpOld))); //TBC
+        if (UseOrbital) {
+          w = exp(2.0 * (x + (logIpNew - logIpOld)));
+        }
+        else {
+          w = exp(2.0 * (x));
+        }
         w *= pow(cabs(rbmValNew/rbmValOld),2);
         if (!isfinite(w)) w = -1.0; /* should be rejected */
 
         if (w > genrand_real2()) { /* accept */
           StartTimer(68);
-          UpdateMAllTwo_real(mi, s, mj, t, ri, rj, TmpEleIdx, qpStart, qpEnd);
+          if (UseOrbital) {
+            UpdateMAllTwo_real(mi, s, mj, t, ri, rj, TmpEleIdx, qpStart, qpEnd);
+          }
           StopTimer(68);
 
           for (i = 0; i < NProj; i++) TmpEleProjCnt[i] = projCntNew[i];
@@ -219,10 +239,12 @@ void VMCMakeSample_real(MPI_Comm comm) {
 
       if (nAccept > Nsite) {
         StartTimer(34);
-        /* recal PfM and InvM */
-        CalculateMAll_real(TmpEleIdx, qpStart, qpEnd);
-        //printf("DEBUG: maker3: PfM=%lf\n",creal(PfM[0]));
-        logIpOld = CalculateLogIP_real(PfM_real, qpStart, qpEnd, comm);
+        if (UseOrbital) {
+          /* recal PfM and InvM */
+          CalculateMAll_real(TmpEleIdx, qpStart, qpEnd);
+          //printf("DEBUG: maker3: PfM=%lf\n",creal(PfM[0]));
+          logIpOld = CalculateLogIP_real(PfM_real, qpStart, qpEnd, comm);
+        }
         StopTimer(34);
         nAccept = 0;
       }
@@ -295,11 +317,16 @@ int makeInitialSample_real(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCn
     MakeProjCnt(eleProjCnt, eleNum);
     CalculateGPWKern(eleGPWKern, eleNum);
 
-    flag = CalculateMAll_real(eleIdx, qpStart, qpEnd);
-    //printf("DEBUG: maker4: PfM=%lf\n",creal(PfM[0]));
-    if (size > 1) {
-      MPI_Allreduce(&flag, &flagRdc, 1, MPI_INT, MPI_MAX, comm);
-      flag = flagRdc;
+    if (UseOrbital) {
+      flag = CalculateMAll_real(eleIdx, qpStart, qpEnd);
+      //printf("DEBUG: maker4: PfM=%lf\n",creal(PfM[0]));
+      if (size > 1) {
+        MPI_Allreduce(&flag, &flagRdc, 1, MPI_INT, MPI_MAX, comm);
+        flag = flagRdc;
+      }
+    }
+    else {
+      flag = -1;
     }
 
     loop++;

@@ -45,97 +45,90 @@ double GPWKernel1(const int *configA, const int sizeA, const int *configB, const
   return kernel;
 }
 
-// TODO: extension to more sophisticated lattices/unit cells, currently only 1D chain with indices ordered according to chain topology
-double GPWKernel2(const int *configA, const int sizeA, const int *configB, const int sizeB, const int tRSym) {
-  int countA[16] = {0};
-  int countB[16] = {0};
+void GPWKernel1Mat(const int *configsAUp, const int *configsADown,
+                   const int sizeA, const int numA, const int *configsBUp,
+                   const int *configsBDown, const int sizeB, const int numB,
+                   const int tRSym, const int symmetric, double *kernelMatr) {
+  int i, j;
+  int **cfgsA, **cfgsB;
+  cfgsA = (int**) malloc(sizeof(int*) * numA);
 
-  int up, down, up_n, down_n;
-  int i,j;
-  double kernel = 0.0;
+  for (i = 0; i < numA; i++) {
+    cfgsA[i] = (int*) malloc(sizeof(int) * 2 * sizeA);
 
-  for (i = 0; i < sizeA; i++) {
-    up = configA[i];
-    up_n = configA[(i+1)%sizeA];
-
-    down = configA[i+sizeA];
-    down_n = configA[(i+1)%sizeA+sizeA];
-
-    for (j = 0; j < 16; j++) {
-      int k = (j % 4 < 2) ? 0 : 1;
-      int l = (j % 8 < 4) ? 0 : 1;
-      int m = (j < 8) ? 0 : 1;
-
-      countA[j] += (j%2-up)&(k-down)&(l-up_n)&(m-down_n);
+    for(j = 0; j < sizeA; j++) {
+      cfgsA[i][j] = (configsAUp[i] >> j) & 1;
+      cfgsA[i][j+sizeA] = (configsADown[i] >> j) & 1;
     }
   }
 
-  for (i = 0; i < sizeB; i++) {
-    up = configB[i];
-    up_n = configB[(i+1)%sizeB];
+  if (!symmetric) {
+    cfgsB = (int**) malloc(sizeof(int*) * numB);
+    for (i = 0; i < numB; i++) {
+     cfgsB[i] = (int*) malloc(sizeof(int) * 2 * sizeB);
 
-    down = configB[i+sizeB];
-    down_n = configB[(i+1)%sizeB+sizeB];
-
-    for (j = 0; j < 16; j++) {
-      int k = (j % 4 < 2) ? 0 : 1;
-      int l = (j % 8 < 4) ? 0 : 1;
-      int m = (j < 8) ? 0 : 1;
-
-      countB[j] += (j%2-up)&(k-down)&(l-up_n)&(m-down_n);
+     for(j = 0; j < sizeB; j++) {
+       cfgsB[i][j] = (configsBUp[i] >> j) & 1;
+       cfgsB[i][j+sizeB] = (configsBDown[i] >> j) & 1;
+     }
     }
-  }
 
-  for (i = 0; i < 16; i++) {
-    kernel += (double)(countA[i]*countB[i]);
-  }
-
-  // add kernel with one configuration flipped to ensure time reversal symmetry is respected
-  if (tRSym) {
-    // TODO efficient implementation without recomputing the count vectors
-    if (sizeA <= sizeB) {
-      for (i = 0; i < sizeA; i++) {
-        down = configA[i];
-        down_n = configA[(i+1)%sizeA];
-
-        up = configA[i+sizeA];
-        up_n = configA[(i+1)%sizeA+sizeA];
-
-        for (j = 0; j < 16; j++) {
-          int k = (j % 4 < 2) ? 0 : 1;
-          int l = (j % 8 < 4) ? 0 : 1;
-          int m = (j < 8) ? 0 : 1;
-
-          countA[j] += (j%2-up)&(k-down)&(l-up_n)&(m-down_n);
-        }
-      }
-    }
-    else {
-      for (i = 0; i < sizeB; i++) {
-        down = configB[i];
-        down_n = configB[(i+1)%sizeB];
-
-        down = configB[i+sizeB];
-        down_n = configB[(i+1)%sizeB+sizeB];
-
-        for (j = 0; j < 16; j++) {
-          int k = (j % 4 < 2) ? 0 : 1;
-          int l = (j % 8 < 4) ? 0 : 1;
-          int m = (j < 8) ? 0 : 1;
-
-          countB[j] += (j%2-up)&(k-down)&(l-up_n)&(m-down_n);
-        }
+    #pragma omp parallel for default(shared) private(i, j)
+    for (i = 0; i < numA; i++) {
+      for (j = 0; j < numB; j++) {
+        kernelMatr[i*numB + j] = GPWKernel1(cfgsA[i], sizeA, cfgsB[j], sizeB,
+                                            tRSym);
       }
     }
 
-    for (i = 0; i < 16; i++) {
-      kernel += (double)(countA[i]*countB[i]);
+    for (i = 0; i < numB; i++) {
+     free(cfgsB[i]);
     }
-
-    kernel /= 2.0;
+    free(cfgsB);
   }
 
-  return kernel;
+  else {
+    #pragma omp parallel for default(shared) private(i, j)
+    for (i = 0; i < numA; i++) {
+      for (j = 0; j <= i; j++) {
+        kernelMatr[i*numA + j] = GPWKernel1(cfgsA[i], sizeA, cfgsA[j], sizeA,
+                                            tRSym);
+      }
+    }
+  }
+
+  for (i = 0; i < numA; i++) {
+   free(cfgsA[i]);
+  }
+  free(cfgsA);
+}
+
+void GPWKernel1Vec(const int *configsAUp, const int *configsADown,
+                   const int sizeA, const int numA, const int *configRef,
+                   const int sizeRef, const int tRSym, double *kernelVec) {
+  int i, j;
+  int **cfgsA;
+  cfgsA = (int**) malloc(sizeof(int*) * numA);
+
+  for (i = 0; i < numA; i++) {
+    cfgsA[i] = (int*) malloc(sizeof(int) * 2 * sizeA);
+
+    for(j = 0; j < sizeA; j++) {
+      cfgsA[i][j] = (configsAUp[i] >> j) & 1;
+      cfgsA[i][j+sizeA] = (configsADown[i] >> j) & 1;
+    }
+  }
+
+  #pragma omp parallel for default(shared) private(i)
+  for (i = 0; i < numA; i++) {
+    kernelVec[i] = GPWKernel1(cfgsA[i], sizeA, configRef, sizeRef, tRSym);
+  }
+
+  for (i = 0; i < numA; i++) {
+    free(cfgsA[i]);
+  }
+
+  free(cfgsA);
 }
 
 /* TODO: extension to more sophisticated lattices/unit cells, currently only 1D chain with
@@ -215,6 +208,96 @@ double GPWKernelN(const int *configA, const int sizeA, const int *configB, const
     free(delta);
     return kernel;
   }
+}
+
+
+void GPWKernelNMat(const int *configsAUp, const int *configsADown,
+                   const int sizeA, const int numA, const int *configsBUp,
+                   const int *configsBDown, const int sizeB, const int numB,
+                   const int n, const int tRSym, const int symmetric,
+                   double *kernelMatr) {
+  int i, j;
+  int **cfgsA, **cfgsB;
+  cfgsA = (int**) malloc(sizeof(int*) * numA);
+
+  for (i = 0; i < numA; i++) {
+    cfgsA[i] = (int*) malloc(sizeof(int) * 2 * sizeA);
+
+    for(j = 0; j < sizeA; j++) {
+      cfgsA[i][j] = (configsAUp[i] >> j) & 1;
+      cfgsA[i][j+sizeA] = (configsADown[i] >> j) & 1;
+    }
+  }
+
+  if (!symmetric) {
+    cfgsB = (int**) malloc(sizeof(int*) * numB);
+    for (i = 0; i < numB; i++) {
+     cfgsB[i] = (int*) malloc(sizeof(int) * 2 * sizeB);
+
+     for(j = 0; j < sizeB; j++) {
+       cfgsB[i][j] = (configsBUp[i] >> j) & 1;
+       cfgsB[i][j+sizeB] = (configsBDown[i] >> j) & 1;
+     }
+    }
+
+    #pragma omp parallel for default(shared) private(i, j)
+    for (i = 0; i < numA; i++) {
+      for (j = 0; j < numB; j++) {
+        kernelMatr[i*numB + j] = GPWKernelN(cfgsA[i], sizeA, cfgsB[j], sizeB,
+                                            n, tRSym);
+      }
+    }
+
+    for (i = 0; i < numB; i++) {
+     free(cfgsB[i]);
+    }
+    free(cfgsB);
+  }
+
+  else {
+    #pragma omp parallel for default(shared) private(i, j)
+    for (i = 0; i < numA; i++) {
+      for (j = 0; j <= i; j++) {
+        kernelMatr[i*numA + j] = GPWKernelN(cfgsA[i], sizeA, cfgsA[j], sizeA,
+                                            n, tRSym);
+      }
+    }
+  }
+
+  for (i = 0; i < numA; i++) {
+    free(cfgsA[i]);
+  }
+
+  free(cfgsA);
+}
+
+void GPWKernelNVec(const int *configsAUp, const int *configsADown,
+                   const int sizeA, const int numA, const int *configRef,
+                   const int sizeRef, const int n, const int tRSym,
+                   double *kernelVec) {
+  int i, j;
+  int **cfgsA;
+  cfgsA = (int**) malloc(sizeof(int*) * numA);
+
+  for (i = 0; i < numA; i++) {
+    cfgsA[i] = (int*) malloc(sizeof(int) * 2 * sizeA);
+
+    for(j = 0; j < sizeA; j++) {
+      cfgsA[i][j] = (configsAUp[i] >> j) & 1;
+      cfgsA[i][j+sizeA] = (configsADown[i] >> j) & 1;
+    }
+  }
+
+  #pragma omp parallel for default(shared) private(i)
+  for (i = 0; i < numA; i++) {
+    kernelVec[i] = GPWKernelN(cfgsA[i], sizeA, configRef, sizeRef, n, tRSym);
+  }
+
+  for (i = 0; i < numA; i++) {
+    free(cfgsA[i]);
+  }
+
+  free(cfgsA);
 }
 
 
@@ -418,4 +501,102 @@ double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize,
   free(delta);
 
   return kernel;
+}
+
+
+void GPWKernelMat(const int *configsAUp, const int *configsADown,
+                  const int *neighboursA, const int sizeA, const int numA,
+                  const int *configsBUp, const int *configsBDown,
+                  const int *neighboursB, const int sizeB, const int numB,
+                  const int dim, const int rC, const double theta0,
+                  const double thetaC, const int tRSym, const int symmetric,
+                  double *kernelMatr) {
+  int i, j;
+  int **cfgsA, **cfgsB;
+  cfgsA = (int**) malloc(sizeof(int*) * numA);
+
+  for (i = 0; i < numA; i++) {
+    cfgsA[i] = (int*) malloc(sizeof(int) * 2 * sizeA);
+
+    for(j = 0; j < sizeA; j++) {
+      cfgsA[i][j] = (configsAUp[i] >> j) & 1;
+      cfgsA[i][j+sizeA] = (configsADown[i] >> j) & 1;
+    }
+  }
+
+  if (!symmetric) {
+    cfgsB = (int**) malloc(sizeof(int*) * numB);
+    for (i = 0; i < numB; i++) {
+     cfgsB[i] = (int*) malloc(sizeof(int) * 2 * sizeB);
+
+     for(j = 0; j < sizeB; j++) {
+       cfgsB[i][j] = (configsBUp[i] >> j) & 1;
+       cfgsB[i][j+sizeB] = (configsBDown[i] >> j) & 1;
+     }
+    }
+
+    #pragma omp parallel for default(shared) private(i, j)
+    for (i = 0; i < numA; i++) {
+      for (j = 0; j < numB; j++) {
+        kernelMatr[i*numB + j] = GPWKernel(cfgsA[i], neighboursA, sizeA,
+                                           cfgsB[j], neighboursB, sizeB, dim,
+                                           rC, theta0, thetaC, tRSym);
+      }
+    }
+
+    for (i = 0; i < numB; i++) {
+     free(cfgsB[i]);
+    }
+    free(cfgsB);
+  }
+
+  else {
+    #pragma omp parallel for default(shared) private(i, j)
+    for (i = 0; i < numA; i++) {
+      for (j = 0; j <= i; j++) {
+        kernelMatr[i*numA + j] = GPWKernel(cfgsA[i], neighboursA, sizeA,
+                                           cfgsA[j], neighboursA, sizeA, dim,
+                                           rC, theta0, thetaC, tRSym);
+      }
+    }
+  }
+
+  for (i = 0; i < numA; i++) {
+    free(cfgsA[i]);
+  }
+
+  free(cfgsA);
+}
+
+void GPWKernelVec(const int *configsAUp, const int *configsADown,
+                  const int *neighboursA, const int sizeA, const int numA,
+                  const int *configRef, const int *neighboursRef,
+                  const int sizeRef, const int dim, const int rC,
+                  const double theta0, const double thetaC, const int tRSym,
+                  double *kernelVec) {
+  int i, j;
+  int **cfgsA;
+  cfgsA = (int**) malloc(sizeof(int*) * numA);
+
+  for (i = 0; i < numA; i++) {
+    cfgsA[i] = (int*) malloc(sizeof(int) * 2 * sizeA);
+
+    for(j = 0; j < sizeA; j++) {
+      cfgsA[i][j] = (configsAUp[i] >> j) & 1;
+      cfgsA[i][j+sizeA] = (configsADown[i] >> j) & 1;
+    }
+  }
+
+  #pragma omp parallel for default(shared) private(i)
+  for (i = 0; i < numA; i++) {
+      kernelVec[i] = GPWKernel(cfgsA[i], neighboursA, sizeA, configRef,
+                               neighboursRef, sizeRef, dim, rC, theta0, thetaC,
+                               tRSym);
+  }
+
+  for (i = 0; i < numA; i++) {
+    free(cfgsA[i]);
+  }
+
+  free(cfgsA);
 }

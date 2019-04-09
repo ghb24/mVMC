@@ -6,11 +6,36 @@
 // Computes the simple k(1) kernel
 double GPWKernel1(const int *configA, const int sizeA, const int *configB, const int sizeB, const int tRSym);
 
-// Computes the simple k(2) kernel
-double GPWKernel2(const int *configA, const int sizeA, const int *configB, const int sizeB, const int tRSym);
+/* computes the kernel matrix (k(1) kernel) for two lists of configurations
+(in bitstring representation) */
+void GPWKernel1Mat(const int *configsAUp, const int *configsADown,
+                   const int sizeA, const int numA, const int *configsBUp,
+                   const int *configsBDown, const int sizeB, const int numB,
+                   const int tRSym, const int symmetric, double *kernelMatr);
+
+/* computes the kernel vector (k(1) kernel) for one reference configuration
+and a list of confgurations in bitstring representation) */
+void GPWKernel1Vec(const int *configsAUp, const int *configsADown,
+                   const int sizeA, const int numA, const int *configRef,
+                   const int sizeRef, const int tRSym, double *kernelVec);
 
 // Computes the simple k(n) kernel
 double GPWKernelN(const int *configA, const int sizeA, const int *configB, const int sizeB, const int n, const int tRSym);
+
+/* computes the kernel matrix (k(n) kernel) for two lists of configurations
+(in bitstring representation) */
+void GPWKernelNMat(const int *configsAUp, const int *configsADown,
+                   const int sizeA, const int numA, const int *configsBUp,
+                   const int *configsBDown, const int sizeB, const int numB,
+                   const int n, const int tRSym, const int symmetric,
+                   double *kernelMatr);
+
+/* computes the kernel vector (k(n) kernel) for one reference configuration
+and a list of confgurations in bitstring representation) */
+void GPWKernelNVec(const int *configsAUp, const int *configsADown,
+                   const int sizeA, const int numA, const int *configRef,
+                   const int sizeRef, const int n, const int tRSym,
+                   double *kernelVec);
 
 // Computes the delta matrix
 void CalculatePairDelta(int *delta, const int *sysCfg, const int sysSize, const int *trnCfg, const int trnSize);
@@ -25,5 +50,24 @@ double CalculateInnerSum(const int i, const int a, const int *delta, const int s
 double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize, const int *trnCfg,
                  const int *trnNeighbours, const int trnSize, const int dim, const int rC,
                  const double theta0, const double thetaC, const int tRSym);
+
+/* computes the kernel matrix (complete kernel) for two lists of configurations
+(in bitstring representation) */
+void GPWKernelMat(const int *configsAUp, const int *configsADown,
+                  const int *neighboursA, const int sizeA, const int numA,
+                  const int *configsBUp, const int *configsBDown,
+                  const int *neighboursB, const int sizeB, const int numB,
+                  const int dim, const int rC, const double theta0,
+                  const double thetaC, const int tRSym, const int symmetric,
+                  double *kernelMatr);
+
+/* computes the kernel vector (complete kernel) for one reference configuration
+and a list of confgurations in bitstring representation) */
+void GPWKernelVec(const int *configsAUp, const int *configsADown,
+                  const int *neighboursA, const int sizeA, const int numA,
+                  const int *configRef, const int *neighboursRef,
+                  const int sizeRef, const int dim, const int rC,
+                  const double theta0, const double thetaC, const int tRSym,
+                  double *kernelVec);
 
 #endif // _GPW_KERN_INCLUDE_FILES

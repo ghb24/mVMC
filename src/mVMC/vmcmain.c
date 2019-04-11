@@ -236,7 +236,7 @@ int main(int argc, char* argv[])
   if(rank0==0) fprintf(stdout,"End  : Set memories.\n");
   StopTimer(12);
   
-  if(NVMCCalMode==0) conversion();
+  conversion();
   //printf("wL=%e, F0=%e, a=%e, t0=%e, U=%e", wL, F0, a, creal(ParaTransfer[0]), creal(ParaCoulombIntra[0]));
   
   /* split MPI coummunicator */
@@ -378,7 +378,7 @@ int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
       UpdateSlaterElm_fsz();
     } 
     //printf("2 DUBUG make:step=%d \n",step);
-    UpdateQPWeight();
+    //UpdateQPWeight();
     StopTimer(20);
     StartTimer(3);
 #ifdef _DEBUG_DETAIL
@@ -585,7 +585,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
     //Calculation of K1 term
     StartTimer(20);
     UpdateSlaterElm_fcmp();
-    UpdateQPWeight();
+    //UpdateQPWeight();
     StopTimer(20);
 
     StartTimer(3);
@@ -664,7 +664,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
     gf=0; /*stops Green's functions being calculated again*/
     StartTimer(20);
     UpdateSlaterElm_fcmp();
-    UpdateQPWeight();
+    //UpdateQPWeight();
     StopTimer(20);
 
     StartTimer(3);
@@ -731,7 +731,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
     //Calculation of K3 term
     StartTimer(20);
     UpdateSlaterElm_fcmp();
-    UpdateQPWeight();
+    //UpdateQPWeight();
     StopTimer(20);
 
     StartTimer(3);
@@ -802,7 +802,7 @@ int VMCParaOpt2(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2
 
     StartTimer(20);
     UpdateSlaterElm_fcmp();
-    UpdateQPWeight();
+    //UpdateQPWeight();
     StopTimer(20);
 
     StartTimer(3);
@@ -1080,6 +1080,7 @@ void outputData() {
   }  
   
   if (NVMCCalMode == 1) {
+    fprintf(FileOut, "% .18e % .18e  % .18e % .18e \n", creal(Etot),cimag(Etot), creal(Etot2), creal((Etot2 - Etot*Etot)/(Etot*Etot)));
     /* zvo_cisajs.dat */
     if (NCisAjs > 0) {
       if(NLanczosMode <2) {

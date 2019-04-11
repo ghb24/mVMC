@@ -650,7 +650,7 @@ void VMC_BF_MakeSample(MPI_Comm comm)
         /* Metroplis */
         x = LogProjRatio(projCntNew, TmpEleProjCnt);
         w = cexp(2.0 * (x + (logIpNew - logIpOld))); //TBC
-        if (!isfinite(w)) w = -1.0; /* should be rejected */
+        if (!isfinite(creal(w)+cimag(w))) w = -1.0; /* should be rejected */
 
         if (cabs(w) > genrand_real2()) { /* accept */
           StartTimer(68);

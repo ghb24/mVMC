@@ -209,6 +209,8 @@ void SetMemoryDef() {
   GPWTrnNeighbours = GPWTrnCfg+NGPWIdx;
   GPWKernelFunc = pInt;
   pInt += NGPWTrnLat;
+  GPWPower = pInt;
+  pInt += NGPWTrnLat;
   GPWCutRad = pInt;
   pInt += NGPWTrnLat;
   GPWTRSym = pInt;
@@ -217,6 +219,10 @@ void SetMemoryDef() {
   // intitialise kernel function with default value
   for (i = 0; i < NGPWTrnLat; i++) {
     GPWKernelFunc[i] = 0;
+  }
+  // intitialise power in full kernel with default value
+  for (i = 0; i < NGPWTrnLat; i++) {
+    GPWPower[i] = 5;
   }
   // intitialise cutoff radius with default value
   for (i = 0; i < NGPWTrnLat; i++) {

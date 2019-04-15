@@ -146,6 +146,7 @@ int **GPWTrnCfg; /* [NGPWIdx][2*trnSize], training configurations representation
 int *GPWKernelFunc; /* [NGPWTrnLat] which kernel function should be used for the associated lattice
                    0: full kernel
                    n > 0: simple plaquette kernel with plaquette size n */
+int *GPWPower; /* [NGPWTrnLat] power for full GPW kernel */
 int *GPWCutRad; /* [NGPWTrnLat] cutoff radius for full GPW kernel */
 double *GPWTheta0; /* [NGPWTrnLat] theta0 parameter for full GPW kernel */
 double *GPWThetaC; /* [NGPWTrnLat] thetac parameter for full GPW kernel */

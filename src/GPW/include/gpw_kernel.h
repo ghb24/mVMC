@@ -42,14 +42,14 @@ void CalculatePairDelta(int *delta, const int *sysCfg, const int sysSize, const 
 
 //computes the inner sum needed for the computation of the full kernel
 double CalculateInnerSum(const int i, const int a, const int *delta, const int sysSize,
-                             const int trnSize, const int dim, const int *sysNeighbours,
-                             const int *trnNeighbours, const int rC, const double theta0,
-                             const double thetaC, int *workspace);
+                         const int trnSize, const int dim, const int *sysNeighbours,
+                         const int *trnNeighbours, const int rC, const double thetaC,
+                         int *workspace);
 
 // Computes the full kernel
 double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize, const int *trnCfg,
-                 const int *trnNeighbours, const int trnSize, const int dim, const int rC,
-                 const double theta0, const double thetaC, const int tRSym);
+                 const int *trnNeighbours, const int trnSize, const int dim, const int power,
+                 const int rC, const double theta0, const double thetaC, const int tRSym);
 
 /* computes the kernel matrix (complete kernel) for two lists of configurations
 (in bitstring representation) */
@@ -57,17 +57,17 @@ void GPWKernelMat(const int *configsAUp, const int *configsADown,
                   const int *neighboursA, const int sizeA, const int numA,
                   const int *configsBUp, const int *configsBDown,
                   const int *neighboursB, const int sizeB, const int numB,
-                  const int dim, const int rC, const double theta0,
-                  const double thetaC, const int tRSym, const int symmetric,
-                  double *kernelMatr);
+                  const int dim, const int power, const int rC,
+                  const double theta0, const double thetaC,
+                  const int tRSym, const int symmetric, double *kernelMatr);
 
 /* computes the kernel vector (complete kernel) for one reference configuration
 and a list of confgurations in bitstring representation) */
 void GPWKernelVec(const int *configsAUp, const int *configsADown,
                   const int *neighboursA, const int sizeA, const int numA,
                   const int *configRef, const int *neighboursRef,
-                  const int sizeRef, const int dim, const int rC,
-                  const double theta0, const double thetaC, const int tRSym,
-                  double *kernelVec);
+                  const int sizeRef, const int dim, const int power,
+                  const int rC, const double theta0, const double thetaC,
+                  const int tRSym, double *kernelVec);
 
 #endif // _GPW_KERN_INCLUDE_FILES

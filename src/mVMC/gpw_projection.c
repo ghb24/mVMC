@@ -40,7 +40,8 @@ void CalculateGPWKern(double *eleGPWKern, const int *eleNum) {
   for(i=0;i<nGPWIdx;i++) {
     if (GPWKernelFunc[GPWTrnLat[i]] == 0) {
       eleGPWKern[i] = GPWKernel(eleNum, SysNeighbours, Nsite, GPWTrnCfg[i], GPWTrnNeighbours[GPWTrnLat[i]], GPWTrnSize[GPWTrnLat[i]],
-                                Dim, GPWCutRad[GPWTrnLat[i]], GPWTheta0[GPWTrnLat[i]], GPWThetaC[GPWTrnLat[i]], GPWTRSym[GPWTrnLat[i]]);
+                                Dim, GPWPower[GPWTrnLat[i]], GPWCutRad[GPWTrnLat[i]], GPWTheta0[GPWTrnLat[i]], GPWThetaC[GPWTrnLat[i]],
+                                GPWTRSym[GPWTrnLat[i]]);
     }
     else {
       eleGPWKern[i] = GPWKernelN(eleNum, Nsite, GPWTrnCfg[i], GPWTrnSize[GPWTrnLat[i]], GPWKernelFunc[GPWTrnLat[i]], GPWTRSym[GPWTrnLat[i]]);

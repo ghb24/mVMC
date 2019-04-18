@@ -455,8 +455,6 @@ double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize,
 
   CalculatePairDelta(delta, sysCfg, sysSize, trnCfg, trnSize);
 
-  printf("%d\n", power);
-
   for (i = 0; i < sysSize; i++) {
     for (a = 0; a < trnSize; a++) {
       if (delta[i*trnSize+a]) {

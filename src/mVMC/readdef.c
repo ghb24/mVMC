@@ -1484,7 +1484,7 @@ void SetDefaultValuesModPara(int *bufInt, double *bufDouble) {
 
   bufDouble[IdxwL]= 32.9;
   bufDouble[IdxF0] = 10.0;
-  bufDouble[IdxaLattice] = 7.56;
+  bufDouble[IdxaLattice] = 4.0;
   bufDouble[Idxcycles] = 10.0;  
   bufDouble[IdxSROptRedCut] = 0.001;
   bufDouble[IdxSROptStaDel] = 0.02;

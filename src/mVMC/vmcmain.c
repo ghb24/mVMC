@@ -237,7 +237,7 @@ int main(int argc, char* argv[])
   StopTimer(12);
   
   conversion();
-  //printf("wL=%e, F0=%e, a=%e, t0=%e, U=%e", wL, F0, a, creal(ParaTransfer[0]), creal(ParaCoulombIntra[0]));
+  //printf("wL=%e, F0=%e, a=%e, t0=%e, U=%e\n", wL, F0, a, creal(ParaTransfer[0]), creal(ParaCoulombIntra[0]));
   
   /* split MPI coummunicator */
 #ifdef _mpi_use
@@ -1000,7 +1000,7 @@ void conversion() {
   convfac = 1./(t0*0.03674903); 
   for(i=0;i<NCoulombIntra;i++) ParaCoulombIntra[i] /= t0;  
   for(i=0;i<NTransfer;i++) ParaTransfer[i] = 1.0+0.0*I;  
-  wL *= convfac*0.0000241888;  
+  wL *= convfac*0.0001519828442;  
   a *= 1.889726125/convfac;
   F0 *= 1.944689151e-4*pow(convfac,2.);
 }
@@ -1009,9 +1009,9 @@ void WriteToTrans() {
   double complex hopping, phi;
   int i;
 
-  phi = a*F0/(2.*M_PI*wL) * pow(sin(M_PI*tc/cycles),2.) * sin(2.*M_PI*tc);
+  phi = a*F0/wL * pow(sin(M_PI*tc/cycles),2.) * sin(2.*M_PI*tc);
   hopping = cexp(I*phi);
-  //printf("%e",phi);
+  //printf("%e\n",phi);
   //printf("real hop %e, imag hop %e \n",creal(hopping),cimag(hopping));
 
   for(i=0;i<NTransfer;i++) {
@@ -1023,9 +1023,6 @@ void WriteToTrans() {
   }
 
   //printf("real %f, imag %e\n",creal(ParaTransfer[0]),cimag(ParaTransfer[0]));
-  //printf("real %f, imag %e\n",creal(ParaTransfer[1]),cimag(ParaTransfer[1]));
-  //printf("real %f, imag %e\n",creal(ParaTransfer[30]),cimag(ParaTransfer[30]));
-  //printf("real %f, imag %e\n",creal(ParaTransfer[35]),cimag(ParaTransfer[35]));
 }
 
 void outputData() {

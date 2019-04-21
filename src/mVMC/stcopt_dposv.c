@@ -72,16 +72,17 @@ void stcOptInit(double *const S, double *const g, const int nSmat, const int *co
     /* modify diagonal elements */
     idx = si + nSmat*si;
     S[idx] *= ratioDiag;
+    //S[idx] += DSROptStaDel;
   }
 
   /* calculate the energy gradient * (-dt) */
-  /* energy gradient = 2.0*( HO[i+1] - HO[0] * OO[i+1]) */
+  /* energy gradient = HO[i+1] - HO[0] * OO[i+1] */
   for(si=0;si<nSmat;++si) {
     pi = smatToParaIdx[si];
     if(RealEvolve==0){
       g[si] = -DSROptStepDt*(creal(SROptHO[pi+2]) - creal(SROptHO[0]) * creal(SROptOO[pi+2]));
     }else{
-      g[si] = (-DSROptStepDt/wL)*(creal(SROptHO[pi+2]) - creal(SROptHO[0]) * creal(SROptOO[pi+2]));
+      g[si] = (-DSROptStepDt*2.*M_PI/wL)*(creal(SROptHO[pi+2]) - creal(SROptHO[0]) * creal(SROptOO[pi+2]));
     }
   }
 

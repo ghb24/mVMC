@@ -2209,6 +2209,7 @@ int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int
       info = ReadDefFileError(defname);
     }
   }
+  free(mapping);
   return info;
 }
 

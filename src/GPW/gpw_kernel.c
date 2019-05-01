@@ -175,7 +175,6 @@ double GPWKernelN(const int *configA, const int sizeA, const int *configB, const
           configFlipped[i+sizeA] = configA[i];
         }
         CalculatePairDelta(delta, configFlipped, sizeA, configB, sizeB);
-        free(configFlipped);
       }
       else {
         configFlipped = (int*)malloc(sizeof(int)*(2*sizeB));
@@ -184,7 +183,6 @@ double GPWKernelN(const int *configA, const int sizeA, const int *configB, const
           configFlipped[i+sizeB] = configB[i];
         }
         CalculatePairDelta(delta, configA, sizeA, configFlipped, sizeB);
-        free(configFlipped);
       }
 
       for (i = 0; i < sizeA; i++) {
@@ -203,6 +201,7 @@ double GPWKernelN(const int *configA, const int sizeA, const int *configB, const
         }
       }
       kernel /= 2.0;
+      free(configFlipped);
     }
 
     free(delta);
@@ -493,6 +492,7 @@ double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize,
     }
 
     kernel /= 2.0;
+    free(configFlipped);
   }
 
   free(workspace);

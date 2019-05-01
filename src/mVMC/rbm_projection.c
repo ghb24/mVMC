@@ -10,7 +10,6 @@ double complex RBMHiddenLayerSum(const int i, const int *eleNum) {
 
   sum = RBMVar[RBMNVisibleIdx+i];
 
-  #pragma omp parallel for default(shared) private(j) reduction(+:sum)
   for(j = 0; j < Nsite2; j++) {
     idx = RBMWeightMatrIdx[j][i];
     sum += RBMVar[RBMNVisibleIdx+RBMNHiddenIdx+idx] * (2*eleNum[j]-1);
@@ -34,9 +33,10 @@ double complex RBMVal(const int *eleNum) {
     result = cexp(sum);
   }
 
+  #pragma omp parallel for default(shared) private(i,sum) reduction(*:result)
   for(i = 0; i < RBMNHiddenIdx; i++) {
     sum = RBMHiddenLayerSum(i, eleNum);
-    result *= (cexp(sum) + cexp(-sum));
+    result *= (cexp(sum) + cexp(-sum))/2.0;
   }
 
   return result;

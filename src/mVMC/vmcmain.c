@@ -369,7 +369,9 @@ int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
         printf("Progress of Optimization: %d%%\n", iprogress);
       }
     }
-    
+
+    //for(i=0;i<NTransfer;i++) printf("paratrans %f\n",ParaTransfer[i]); 
+
     StartTimer(20);
     //printf("1 DUBUG make:step=%d \n",step);
     if(iFlgOrbitalGeneral==0){//sz is conserved
@@ -999,7 +1001,9 @@ void conversion() {
 
   convfac = 1./(t0*0.03674903); 
   for(i=0;i<NCoulombIntra;i++) ParaCoulombIntra[i] /= t0;  
-  for(i=0;i<NTransfer;i++) ParaTransfer[i] = 1.0+0.0*I;  
+  //for(i=0;i<NTransfer;i++) ParaTransfer[i] = 1.0+0.0*I;  
+  for(i=0;i<NTransfer;i++) ParaTransfer[i] /= t0;
+
   wL *= convfac*0.0001519828442;  
   a *= 1.889726125/convfac;
   F0 *= 1.944689151e-4*pow(convfac,2.);

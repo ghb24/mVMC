@@ -131,15 +131,139 @@ void GPWKernel1Vec(const int *configsAUp, const int *configsADown,
   free(cfgsA);
 }
 
-/* TODO: extension to more sophisticated lattices/unit cells, currently only 1D chain with
-indices ordered according to chain topology*/
-double GPWKernelN(const int *configA, const int sizeA, const int *configB, const int sizeB, const int n, const int tRSym) {
+int CalculatePlaquette(const int i, const int a, const int *delta, const int sysSize,
+                       const int trnSize, const int dim, const int *sysNeighbours,
+                       const int *trnNeighbours, const int n, int *workspace) {
+  int k, l, orderId, count, tmpCount, d;
+
+  // TODO: store this in bitstrings
+  int *visitedSys = workspace;
+  int *visitedTrn = visitedSys + sysSize;
+
+  int *prevIndSys = visitedTrn + trnSize;
+  int *tmpPrevIndSys = prevIndSys + n;
+  int *prevIndTrn = tmpPrevIndSys + n;
+  int *tmpPrevIndTrn = prevIndTrn + n;
+
+  int *directions = tmpPrevIndTrn + n;
+  int *tmpDirections = directions + n*dim;
+
+  // set up starting point
+  int j = i;
+  int b = a;
+
+  if (!delta[j*trnSize+b]) {
+    return 0;
+  }
+
+  for(k = 0; k < sysSize + trnSize; k++) {
+    visitedSys[k] = 0;
+  }
+
+  count = 1;
+  orderId = 1;
+
+  prevIndSys[0] = j;
+  prevIndTrn[0] = b;
+  visitedSys[j] = 1;
+  visitedTrn[b] = 1;
+
+  for (d = 0; d < dim; d++) {
+    directions[d] = 0;
+  }
+
+  while (orderId < n && count > 0) {
+    tmpCount = 0;
+
+    for (k = 0; k < count; k++) {
+      // add the corresponding neighbours
+      for (d = 0; d < dim; d++) {
+        int dir = directions[dim*k+d] >= 0 ? 0 : 1; // positive or negative direction
+
+        // add neighbour in respective direction
+        j = sysNeighbours[prevIndSys[k]*2*dim + d*2+dir];
+        b = trnNeighbours[prevIndTrn[k]*2*dim + d*2+dir];
+
+        if (!delta[j*trnSize+b]) {
+          return 0;
+        }
+
+        else if (!visitedSys[j] && !visitedTrn[b]) {
+          tmpPrevIndSys[tmpCount] = j;
+          tmpPrevIndTrn[tmpCount] = b;
+
+          visitedSys[j] = 1;
+          visitedTrn[b] = 1;
+
+          for(l = 0; l < dim; l++) {
+            tmpDirections[dim*tmpCount+l] = directions[dim*k+l];
+          }
+
+          tmpDirections[dim*tmpCount+d] += (dir==0?1:-1);
+          tmpCount++;
+          orderId++;
+
+          if (orderId >= n) {
+            return 1;
+          }
+        }
+
+        // add neighbour in opposing direction if coordinate = 0
+        if (directions[dim*k+d] == 0) {
+          dir = dir ^ 1;
+          j = sysNeighbours[prevIndSys[k]*2*dim+d*2+dir];
+          b = trnNeighbours[prevIndTrn[k]*2*dim+d*2+dir];
+
+          if (!delta[j*trnSize+b]) {
+            return 0;
+          }
+
+          else if (!visitedSys[j] && !visitedTrn[b]) {
+            tmpPrevIndSys[tmpCount] = j;
+            tmpPrevIndTrn[tmpCount] = b;
+            visitedSys[j] = 1;
+            visitedTrn[b] = 1;
+
+            for (l = 0; l < dim; l++) {
+              tmpDirections[dim*tmpCount+l] = directions[k*dim+l];
+            }
+
+            tmpDirections[dim*tmpCount+d] += (dir==0?1:-1);
+            tmpCount++;
+            orderId++;
+
+            if (orderId >= n) {
+              return 1;
+            }
+          }
+        }
+
+        // only continue in additional dimension if site in this dimension has coordinate 0
+        else {
+          break;
+        }
+      }
+    }
+    count = tmpCount;
+
+    for (k = 0; k < tmpCount; k++) {
+      prevIndSys[k] = tmpPrevIndSys[k];
+      prevIndTrn[k] = tmpPrevIndTrn[k];
+
+      for (l = 0; l < dim; l++) {
+        directions[k*dim+l] = tmpDirections[k*dim+l];
+      }
+    }
+  }
+  return 1;
+}
+
+double GPWKernelN(const int *configA, const int *neighboursA, const int sizeA,
+                  const int *configB, const int *neighboursB, const int sizeB,
+                  const int dim, const int n, const int tRSym) {
   if (n == 1) {
     return GPWKernel1(configA, sizeA, configB, sizeB, tRSym);
   }
-
-  /* TODO: detailed performance comparison for n = 2, this general method is faster
-  for small lattices but for larger lattices the GPWKernel2 should be used */
   else {
     int comp;
     int i, j, a, b, k;
@@ -147,19 +271,16 @@ double GPWKernelN(const int *configA, const int sizeA, const int *configB, const
     double kernel = 0.0;
 
     int *delta = (int*)malloc(sizeof(int)*(sizeA*sizeB));
+
+    // TODO: use less workspace
+    int *workspace = (int*)malloc((sizeA+sizeB+4*n+2*dim*n)*sizeof(int));
+
     CalculatePairDelta(delta, configA, sizeA, configB, sizeB);
 
     for (i = 0; i < sizeA; i++) {
       for (a = 0; a < sizeB; a++) {
-        for (k = 0; k < n; k++) {
-          j = (i+k)%sizeA;
-          b = (a+k)%sizeB;
-          comp = delta[j*sizeB+b];
-          if(!comp) {
-            break;
-          }
-        }
-        if (comp) {
+        if (CalculatePlaquette(i, a, delta, sizeA, sizeB, dim, neighboursA,
+                               neighboursB, n, workspace)) {
           kernel += 1.0;
         }
       }
@@ -187,15 +308,8 @@ double GPWKernelN(const int *configA, const int sizeA, const int *configB, const
 
       for (i = 0; i < sizeA; i++) {
         for (a = 0; a < sizeB; a++) {
-          for (k = 0; k < n; k++) {
-            j = (i+k)%sizeA;
-            b = (a+k)%sizeB;
-            comp = delta[j*sizeB+b];
-            if(!comp) {
-              break;
-            }
-          }
-          if (comp) {
+          if (CalculatePlaquette(i, a, delta, sizeA, sizeB, dim, neighboursA,
+                                 neighboursB, n, workspace)) {
             kernel += 1.0;
           }
         }
@@ -209,12 +323,12 @@ double GPWKernelN(const int *configA, const int sizeA, const int *configB, const
   }
 }
 
-
 void GPWKernelNMat(const int *configsAUp, const int *configsADown,
-                   const int sizeA, const int numA, const int *configsBUp,
-                   const int *configsBDown, const int sizeB, const int numB,
-                   const int n, const int tRSym, const int symmetric,
-                   double *kernelMatr) {
+                   const int *neighboursA, const int sizeA, const int numA,
+                   const int *configsBUp, const int *configsBDown,
+                   const int *neighboursB, const int sizeB, const int numB,
+                   const int dim, const int n, const int tRSym,
+                   const int symmetric, double *kernelMatr) {
   int i, j;
   int **cfgsA, **cfgsB;
   cfgsA = (int**) malloc(sizeof(int*) * numA);
@@ -242,8 +356,8 @@ void GPWKernelNMat(const int *configsAUp, const int *configsADown,
     #pragma omp parallel for default(shared) private(i, j)
     for (i = 0; i < numA; i++) {
       for (j = 0; j < numB; j++) {
-        kernelMatr[i*numB + j] = GPWKernelN(cfgsA[i], sizeA, cfgsB[j], sizeB,
-                                            n, tRSym);
+        kernelMatr[i*numB + j] = GPWKernelN(cfgsA[i], neighboursA, sizeA, cfgsB[j], neighboursB, sizeB,
+                                            dim, n, tRSym);
       }
     }
 
@@ -257,8 +371,8 @@ void GPWKernelNMat(const int *configsAUp, const int *configsADown,
     #pragma omp parallel for default(shared) private(i, j)
     for (i = 0; i < numA; i++) {
       for (j = 0; j <= i; j++) {
-        kernelMatr[i*numA + j] = GPWKernelN(cfgsA[i], sizeA, cfgsA[j], sizeA,
-                                            n, tRSym);
+        kernelMatr[i*numA + j] = GPWKernelN(cfgsA[i], neighboursA, sizeA, cfgsA[j], neighboursA, sizeA,
+                                            dim, n, tRSym);
       }
     }
   }
@@ -271,9 +385,10 @@ void GPWKernelNMat(const int *configsAUp, const int *configsADown,
 }
 
 void GPWKernelNVec(const int *configsAUp, const int *configsADown,
-                   const int sizeA, const int numA, const int *configRef,
-                   const int sizeRef, const int n, const int tRSym,
-                   double *kernelVec) {
+                   const int *neighboursA, const int sizeA, const int numA,
+                   const int *configRef, const int *neighboursRef,
+                   const int sizeRef, const int dim, const int n,
+                   const int tRSym, double *kernelVec){
   int i, j;
   int **cfgsA;
   cfgsA = (int**) malloc(sizeof(int*) * numA);
@@ -289,7 +404,8 @@ void GPWKernelNVec(const int *configsAUp, const int *configsADown,
 
   #pragma omp parallel for default(shared) private(i)
   for (i = 0; i < numA; i++) {
-    kernelVec[i] = GPWKernelN(cfgsA[i], sizeA, configRef, sizeRef, n, tRSym);
+    kernelVec[i] = GPWKernelN(cfgsA[i], neighboursA, sizeA, cfgsA[j],
+                              neighboursA, sizeA, dim, n, tRSym);
   }
 
   for (i = 0; i < numA; i++) {
@@ -452,12 +568,20 @@ double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize,
   int *delta = (int*)malloc(sizeof(int)*(trnSize*sysSize));
   int *workspace = (int*)malloc((trnSize+sysSize+8*dim*rC+4*dim*rC*dim)*sizeof(int));
 
+  double norm = 1.0;
+
+  // normalise
+  for (i = 0; i < trnSize*sysSize; i++) {
+    delta[i] = 1;
+  }
+  norm = pow((1.0 + theta0/power * CalculateInnerSum(0, 0, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace)), power);
+
   CalculatePairDelta(delta, sysCfg, sysSize, trnCfg, trnSize);
 
   for (i = 0; i < sysSize; i++) {
     for (a = 0; a < trnSize; a++) {
       if (delta[i*trnSize+a]) {
-        kernel += pow((1.0 + theta0/power * CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace)), power);
+        kernel += pow((1.0 + theta0/power * CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace)/norm), power);
       }
     }
   }
@@ -486,7 +610,7 @@ double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize,
     for (i = 0; i < sysSize; i++) {
       for (a = 0; a < trnSize; a++) {
         if (delta[i*trnSize+a]) {
-          kernel += pow((1.0 + theta0/power * CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace)), power);
+          kernel += pow((1.0 + theta0/power * CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace)/norm), power);
         }
       }
     }

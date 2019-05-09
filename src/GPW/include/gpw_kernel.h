@@ -19,23 +19,34 @@ void GPWKernel1Vec(const int *configsAUp, const int *configsADown,
                    const int sizeA, const int numA, const int *configRef,
                    const int sizeRef, const int tRSym, double *kernelVec);
 
+// computes the plaquette starting from index i and a
+int CalculatePlaquette(const int i, const int a, const int *delta, const int sysSize,
+                       const int trnSize, const int dim, const int *sysNeighbours,
+                       const int *trnNeighbours, const int n, int *workspace);
+
 // Computes the simple k(n) kernel
-double GPWKernelN(const int *configA, const int sizeA, const int *configB, const int sizeB, const int n, const int tRSym);
+double GPWKernelN(const int *configA, const int *neighboursA, const int sizeA,
+                  const int *configB, const int *neighboursB, const int sizeB,
+                  const int dim, const int n, const int tRSym);
+
+double GPWKernelN1D(const int *configA, const int sizeA, const int *configB, const int sizeB, const int n, const int tRSym);
 
 /* computes the kernel matrix (k(n) kernel) for two lists of configurations
 (in bitstring representation) */
 void GPWKernelNMat(const int *configsAUp, const int *configsADown,
-                   const int sizeA, const int numA, const int *configsBUp,
-                   const int *configsBDown, const int sizeB, const int numB,
-                   const int n, const int tRSym, const int symmetric,
-                   double *kernelMatr);
+                   const int *neighboursA, const int sizeA, const int numA,
+                   const int *configsBUp, const int *configsBDown,
+                   const int *neighboursB, const int sizeB, const int numB,
+                   const int dim, const int n, const int tRSym,
+                   const int symmetric, double *kernelMatr);
 
 /* computes the kernel vector (k(n) kernel) for one reference configuration
 and a list of confgurations in bitstring representation) */
 void GPWKernelNVec(const int *configsAUp, const int *configsADown,
-                   const int sizeA, const int numA, const int *configRef,
-                   const int sizeRef, const int n, const int tRSym,
-                   double *kernelVec);
+                   const int *neighboursA, const int sizeA, const int numA,
+                   const int *configRef, const int *neighboursRef,
+                   const int sizeRef, const int dim, const int n,
+                   const int tRSym, double *kernelVec);
 
 // Computes the delta matrix
 void CalculatePairDelta(int *delta, const int *sysCfg, const int sysSize, const int *trnCfg, const int trnSize);

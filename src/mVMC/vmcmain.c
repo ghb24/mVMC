@@ -1001,8 +1001,9 @@ void conversion() {
 
   convfac = 1./(t0*0.03674903); 
   for(i=0;i<NCoulombIntra;i++) ParaCoulombIntra[i] /= t0;  
-  //for(i=0;i<NTransfer;i++) ParaTransfer[i] = 1.0+0.0*I;  
   for(i=0;i<NTransfer;i++) ParaTransfer[i] /= t0;
+  for(i=0;i<NTransfer;i++) InitTransfer[i] = ParaTransfer[i];
+  //for(i=0;i<NTransfer;i++) printf("InitTransfer %f\n",InitTransfer[i]);
 
   wL *= convfac*0.0001519828442;  
   a *= 1.889726125/convfac;
@@ -1020,9 +1021,11 @@ void WriteToTrans() {
 
   for(i=0;i<NTransfer;i++) {
     if(i%2==0) {
-      ParaTransfer[i] = hopping;
+      //ParaTransfer[i] = hopping;
+      ParaTransfer[i] = InitTransfer[i]*hopping;
     }else{
-      ParaTransfer[i] = conj(hopping);
+      //ParaTransfer[i] = conj(hopping);
+      ParaTransfer[i] = InitTransfer[i]*conj(hopping);
     }
   }
 

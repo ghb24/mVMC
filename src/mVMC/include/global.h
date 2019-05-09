@@ -99,6 +99,7 @@ int *LocSpn; /* [Nsite] */
 int NTransfer;
 int **Transfer; /* [NTransfer][4] */
 double complex*ParaTransfer;
+double complex*InitTransfer;
 
 int NCoulombIntra;
 int *CoulombIntra; /* [NCoulombIntra] */

@@ -194,6 +194,7 @@ void SetMemoryDef() {
 
   ParaTransfer = (double complex*)malloc(sizeof(double complex)*(NTransfer+NInterAll));  
   ParaInterAll = ParaTransfer+NTransfer;
+  InitTransfer = (double complex*)malloc(sizeof(double complex)*(NTransfer));  
 
   ParaCoulombIntra = (double*)malloc(sizeof(double)*(NTotalDefDouble));
   pDouble = ParaCoulombIntra +NCoulombIntra; 
@@ -230,7 +231,7 @@ void SetMemoryDef() {
 
 void FreeMemoryDef() {
   free(ParaTransfer);
-
+  free(InitTransfer);
   free(QPOptTransSgn);
   free(QPOptTrans);
   free(InterAll);

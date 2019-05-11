@@ -318,6 +318,7 @@ double GPWKernelN(const int *configA, const int *neighboursA, const int sizeA,
       free(configFlipped);
     }
 
+    free(workspace);
     free(delta);
     return kernel;
   }

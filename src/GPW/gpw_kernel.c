@@ -582,7 +582,7 @@ double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize,
   for (i = 0; i < sysSize; i++) {
     for (a = 0; a < trnSize; a++) {
       if (delta[i*trnSize+a]) {
-        kernel += pow((1.0 + theta0/power * CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace)/norm), power);
+        kernel += pow(((1.0 + theta0/power * CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace))/norm), power);
       }
     }
   }

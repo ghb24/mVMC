@@ -575,7 +575,7 @@ double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize,
   for (i = 0; i < trnSize*sysSize; i++) {
     delta[i] = 1;
   }
-  norm = pow((1.0 + theta0/power * CalculateInnerSum(0, 0, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace)), power);
+  norm = (1.0 + theta0/power * CalculateInnerSum(0, 0, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace));
 
   CalculatePairDelta(delta, sysCfg, sysSize, trnCfg, trnSize);
 

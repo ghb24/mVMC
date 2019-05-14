@@ -570,23 +570,38 @@ double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize,
   int *workspace = (int*)malloc((trnSize+sysSize+8*dim*rC+4*dim*rC*dim)*sizeof(int));
 
   double norm = 1.0;
-
   // normalise
   for (i = 0; i < trnSize*sysSize; i++) {
     delta[i] = 1;
   }
-  norm = (1.0 + theta0/power * CalculateInnerSum(0, 0, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace));
+  if (power == -1) {
+  	norm = (CalculateInnerSum(0, 0, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace));
+  }
+  else {
+  	norm = (1.0 + 1.0/(theta0 * power) * CalculateInnerSum(0, 0, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace));
+  }	  
 
   CalculatePairDelta(delta, sysCfg, sysSize, trnCfg, trnSize);
-
-  for (i = 0; i < sysSize; i++) {
-    for (a = 0; a < trnSize; a++) {
-      if (delta[i*trnSize+a]) {
-        kernel += pow(((1.0 + theta0/power * CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace))/norm), power);
-      }
-    }
+  
+  if (power == -1) {
+	for (i = 0; i < sysSize; i++) {
+	  for (a = 0; a < trnSize; a++) {
+	    if (delta[i*trnSize+a]) {
+			
+	      kernel += exp( - 1.0/theta0 * (norm - CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace)) ) ;
+	    }
+	  }
+	}
   }
-
+  else {
+  	for (i = 0; i < sysSize; i++) {
+  	  for (a = 0; a < trnSize; a++) {
+  	    if (delta[i*trnSize+a]) {
+  	      kernel += pow(((1.0 + 1.0/(theta0 * power) * CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace))/norm), power);
+  	    }
+  	  }
+  	}
+  }
 
   // add kernel with one configuration flipped to ensure time reversal symmetry is respected
   if (tRSym) {
@@ -608,12 +623,23 @@ double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize,
       CalculatePairDelta(delta, configFlipped, sysSize, trnCfg, trnSize);
     }
 
-    for (i = 0; i < sysSize; i++) {
-      for (a = 0; a < trnSize; a++) {
-        if (delta[i*trnSize+a]) {
-          kernel += pow((1.0 + theta0/power * CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace)/norm), power);
-        }
-      }
+    if (power == -1) {
+  	for (i = 0; i < sysSize; i++) {
+  	  for (a = 0; a < trnSize; a++) {
+  	    if (delta[i*trnSize+a]) {
+  	      kernel += exp( - 1.0/theta0 * (norm - CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace)) ) ;
+  	    }
+  	  }
+  	}
+    }
+    else {
+    	for (i = 0; i < sysSize; i++) {
+    	  for (a = 0; a < trnSize; a++) {
+    	    if (delta[i*trnSize+a]) {
+    	      kernel += pow(((1.0 + 1.0/(theta0 * power) * CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace))/norm), power);
+    	    }
+    	  }
+    	}
     }
 
     kernel /= 2.0;
@@ -637,7 +663,7 @@ void GPWKernelMat(const int *configsAUp, const int *configsADown,
   int i, j;
   int **cfgsA, **cfgsB;
   cfgsA = (int**) malloc(sizeof(int*) * numA);
-
+  
   for (i = 0; i < numA; i++) {
     cfgsA[i] = (int*) malloc(sizeof(int) * 2 * sizeA);
 
@@ -661,9 +687,9 @@ void GPWKernelMat(const int *configsAUp, const int *configsADown,
     #pragma omp parallel for default(shared) private(i, j)
     for (i = 0; i < numA; i++) {
       for (j = 0; j < numB; j++) {
-        kernelMatr[i*numB + j] = GPWKernel(cfgsA[i], neighboursA, sizeA,
-                                           cfgsB[j], neighboursB, sizeB, dim,
-                                           power, rC, theta0, thetaC, tRSym);
+		  kernelMatr[i*numB + j] = GPWKernel(cfgsA[i], neighboursA, sizeA,
+		                           cfgsB[j], neighboursB, sizeB, dim,
+                                   power, rC, theta0, thetaC, tRSym);
       }
     }
 

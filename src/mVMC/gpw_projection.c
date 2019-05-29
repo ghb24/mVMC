@@ -39,13 +39,20 @@ void CalculateGPWKern(double *eleGPWKern, const int *eleNum) {
   #pragma omp parallel for default(shared) private(i)
   for(i=0;i<nGPWIdx;i++) {
     if (GPWKernelFunc[GPWTrnLat[i]] == 0) {
-      eleGPWKern[i] = GPWKernel(eleNum, SysNeighbours, Nsite, GPWTrnCfg[i], GPWTrnNeighbours[GPWTrnLat[i]], GPWTrnSize[GPWTrnLat[i]],
-                                Dim, GPWPower[GPWTrnLat[i]], GPWCutRad[GPWTrnLat[i]], GPWTheta0[GPWTrnLat[i]], GPWThetaC[GPWTrnLat[i]],
-                                GPWTRSym[GPWTrnLat[i]]);
+      eleGPWKern[i] = GPWKernel(eleNum, SysNeighbours, Nsite, GPWTrnCfg[i],
+                                GPWTrnNeighbours[GPWTrnLat[i]],
+                                GPWTrnSize[GPWTrnLat[i]], Dim,
+                                GPWPower[GPWTrnLat[i]], GPWCutRad[GPWTrnLat[i]],
+                                GPWTheta0[GPWTrnLat[i]], GPWThetaC[GPWTrnLat[i]],
+                                GPWTRSym[GPWTrnLat[i]], GPWShift[GPWTrnLat[i]]);
     }
     else {
-      eleGPWKern[i] = GPWKernelN(eleNum, SysNeighbours, Nsite, GPWTrnCfg[i], GPWTrnNeighbours[GPWTrnLat[i]], GPWTrnSize[GPWTrnLat[i]],
-                                 Dim, GPWKernelFunc[GPWTrnLat[i]], GPWTRSym[GPWTrnLat[i]]);
+      eleGPWKern[i] = GPWKernelN(eleNum, SysNeighbours, Nsite, GPWTrnCfg[i],
+                                 GPWTrnNeighbours[GPWTrnLat[i]],
+                                 GPWTrnSize[GPWTrnLat[i]], Dim,
+                                 GPWKernelFunc[GPWTrnLat[i]],
+                                 GPWTRSym[GPWTrnLat[i]],
+                                 GPWShift[GPWTrnLat[i]]);
     }
   }
   return;

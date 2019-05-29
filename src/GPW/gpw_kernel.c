@@ -5,14 +5,24 @@
 #include <math.h>
 #include "gpw_kernel.h"
 
-double GPWKernel1(const int *configA, const int sizeA, const int *configB, const int sizeB, const int tRSym) {
+double GPWKernel1(const int *configA, const int sizeA, const int *configB,
+                  const int sizeB, const int tRSym, const int shift) {
   int countA[4] = {0, 0, 0, 0};
   int countB[4] = {0, 0, 0, 0};
   int up, down;
   int i;
   double kernel = 0.0;
+  int shiftA = 1;
+  int shiftB = 1;
 
-  for (i = 0; i < sizeA; i++) {
+  if (shift & 1) {
+    shiftA = sizeA;
+  }
+  if ((shift & 2) >> 1) {
+    shiftB = sizeB;
+  }
+
+  for (i = 0; i < shiftA; i++) {
     up = configA[i];
     down = configA[i+sizeA];
 
@@ -22,7 +32,7 @@ double GPWKernel1(const int *configA, const int sizeA, const int *configB, const
     countA[3] += (1-up)&(1-down);
   }
 
-  for (i = 0; i < sizeB; i++) {
+  for (i = 0; i < shiftB; i++) {
     up = configB[i];
     down = configB[i+sizeB];
 
@@ -48,7 +58,8 @@ double GPWKernel1(const int *configA, const int sizeA, const int *configB, const
 void GPWKernel1Mat(const int *configsAUp, const int *configsADown,
                    const int sizeA, const int numA, const int *configsBUp,
                    const int *configsBDown, const int sizeB, const int numB,
-                   const int tRSym, const int symmetric, double *kernelMatr) {
+                   const int tRSym, const int shift, const int symmetric,
+                   double *kernelMatr) {
   int i, j;
   int **cfgsA, **cfgsB;
   cfgsA = (int**) malloc(sizeof(int*) * numA);
@@ -77,7 +88,7 @@ void GPWKernel1Mat(const int *configsAUp, const int *configsADown,
     for (i = 0; i < numA; i++) {
       for (j = 0; j < numB; j++) {
         kernelMatr[i*numB + j] = GPWKernel1(cfgsA[i], sizeA, cfgsB[j], sizeB,
-                                            tRSym);
+                                            tRSym, shift);
       }
     }
 
@@ -92,7 +103,7 @@ void GPWKernel1Mat(const int *configsAUp, const int *configsADown,
     for (i = 0; i < numA; i++) {
       for (j = 0; j <= i; j++) {
         kernelMatr[i*numA + j] = GPWKernel1(cfgsA[i], sizeA, cfgsA[j], sizeA,
-                                            tRSym);
+                                            tRSym, shift);
       }
     }
   }
@@ -105,7 +116,8 @@ void GPWKernel1Mat(const int *configsAUp, const int *configsADown,
 
 void GPWKernel1Vec(const int *configsAUp, const int *configsADown,
                    const int sizeA, const int numA, const int *configRef,
-                   const int sizeRef, const int tRSym, double *kernelVec) {
+                   const int sizeRef, const int tRSym, const int shift,
+                   double *kernelVec) {
   int i, j;
   int **cfgsA;
   cfgsA = (int**) malloc(sizeof(int*) * numA);
@@ -121,7 +133,8 @@ void GPWKernel1Vec(const int *configsAUp, const int *configsADown,
 
   #pragma omp parallel for default(shared) private(i)
   for (i = 0; i < numA; i++) {
-    kernelVec[i] = GPWKernel1(cfgsA[i], sizeA, configRef, sizeRef, tRSym);
+    kernelVec[i] = GPWKernel1(cfgsA[i], sizeA, configRef, sizeRef, tRSym,
+                              shift);
   }
 
   for (i = 0; i < numA; i++) {
@@ -260,25 +273,35 @@ int CalculatePlaquette(const int i, const int a, const int *delta, const int sys
 
 double GPWKernelN(const int *configA, const int *neighboursA, const int sizeA,
                   const int *configB, const int *neighboursB, const int sizeB,
-                  const int dim, const int n, const int tRSym) {
+                  const int dim, const int n, const int tRSym,
+                  const int shift) {
   if (n == 1) {
-    return GPWKernel1(configA, sizeA, configB, sizeB, tRSym);
+    return GPWKernel1(configA, sizeA, configB, sizeB, tRSym, shift);
   }
   else {
     int comp;
     int i, j, a, b, k;
     int *configFlipped;
     double kernel = 0.0;
+    int shiftA = 1;
+    int shiftB = 1;
 
     int *delta = (int*)malloc(sizeof(int)*(sizeA*sizeB));
 
     // TODO: use less workspace
     int *workspace = (int*)malloc((sizeA+sizeB+4*n+2*dim*n)*sizeof(int));
 
+    if (shift & 1) {
+      shiftA = sizeA;
+    }
+    if ((shift & 2) >> 1) {
+      shiftB = sizeB;
+    }
+
     CalculatePairDelta(delta, configA, sizeA, configB, sizeB);
 
-    for (i = 0; i < sizeA; i++) {
-      for (a = 0; a < sizeB; a++) {
+    for (i = 0; i < shiftA; i++) {
+      for (a = 0; a < shiftB; a++) {
         if (CalculatePlaquette(i, a, delta, sizeA, sizeB, dim, neighboursA,
                                neighboursB, n, workspace)) {
           kernel += 1.0;
@@ -306,8 +329,8 @@ double GPWKernelN(const int *configA, const int *neighboursA, const int sizeA,
         CalculatePairDelta(delta, configA, sizeA, configFlipped, sizeB);
       }
 
-      for (i = 0; i < sizeA; i++) {
-        for (a = 0; a < sizeB; a++) {
+      for (i = 0; i < shiftA; i++) {
+        for (a = 0; a < shiftB; a++) {
           if (CalculatePlaquette(i, a, delta, sizeA, sizeB, dim, neighboursA,
                                  neighboursB, n, workspace)) {
             kernel += 1.0;
@@ -328,7 +351,7 @@ void GPWKernelNMat(const int *configsAUp, const int *configsADown,
                    const int *neighboursA, const int sizeA, const int numA,
                    const int *configsBUp, const int *configsBDown,
                    const int *neighboursB, const int sizeB, const int numB,
-                   const int dim, const int n, const int tRSym,
+                   const int dim, const int n, const int tRSym, const int shift,
                    const int symmetric, double *kernelMatr) {
   int i, j;
   int **cfgsA, **cfgsB;
@@ -357,8 +380,9 @@ void GPWKernelNMat(const int *configsAUp, const int *configsADown,
     #pragma omp parallel for default(shared) private(i, j)
     for (i = 0; i < numA; i++) {
       for (j = 0; j < numB; j++) {
-        kernelMatr[i*numB + j] = GPWKernelN(cfgsA[i], neighboursA, sizeA, cfgsB[j], neighboursB, sizeB,
-                                            dim, n, tRSym);
+        kernelMatr[i*numB + j] = GPWKernelN(cfgsA[i], neighboursA, sizeA,
+                                            cfgsB[j], neighboursB, sizeB,dim,
+                                            n, tRSym, shift);
       }
     }
 
@@ -372,8 +396,9 @@ void GPWKernelNMat(const int *configsAUp, const int *configsADown,
     #pragma omp parallel for default(shared) private(i, j)
     for (i = 0; i < numA; i++) {
       for (j = 0; j <= i; j++) {
-        kernelMatr[i*numA + j] = GPWKernelN(cfgsA[i], neighboursA, sizeA, cfgsA[j], neighboursA, sizeA,
-                                            dim, n, tRSym);
+        kernelMatr[i*numA + j] = GPWKernelN(cfgsA[i], neighboursA, sizeA,
+                                            cfgsA[j], neighboursA, sizeA, dim,
+                                            n, tRSym, shift);
       }
     }
   }
@@ -389,7 +414,7 @@ void GPWKernelNVec(const int *configsAUp, const int *configsADown,
                    const int *neighboursA, const int sizeA, const int numA,
                    const int *configRef, const int *neighboursRef,
                    const int sizeRef, const int dim, const int n,
-                   const int tRSym, double *kernelVec){
+                   const int tRSym, const int shift, double *kernelVec){
   int i, j;
   int **cfgsA;
   cfgsA = (int**) malloc(sizeof(int*) * numA);
@@ -406,7 +431,7 @@ void GPWKernelNVec(const int *configsAUp, const int *configsADown,
   #pragma omp parallel for default(shared) private(i)
   for (i = 0; i < numA; i++) {
     kernelVec[i] = GPWKernelN(cfgsA[i], neighboursA, sizeA, cfgsA[j],
-                              neighboursA, sizeA, dim, n, tRSym);
+                              neighboursA, sizeA, dim, n, tRSym, shift);
   }
 
   for (i = 0; i < numA; i++) {
@@ -416,7 +441,7 @@ void GPWKernelNVec(const int *configsAUp, const int *configsADown,
   free(cfgsA);
 }
 
-
+// TODO: only compute necessary elements if no translational symmetry is required
 void CalculatePairDelta(int *delta, const int *sysCfg, const int sysSize, const int *trnCfg, const int trnSize) {
   int i, a;
 
@@ -559,9 +584,11 @@ double CalculateInnerSum(const int i, const int a, const int *delta, const int s
   return rangeSum;
 }
 
-double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize, const int *trnCfg,
-                 const int *trnNeighbours, const int trnSize, const int dim, const int power,
-                 const int rC, const double theta0, const double thetaC, const int tRSym) {
+double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize,
+                 const int *trnCfg, const int *trnNeighbours, const int trnSize,
+                 const int dim, const int power, const int rC,
+                 const double theta0, const double thetaC, const int tRSym,
+                 const int shift) {
   int i, a, k;
 
   double kernel = 0.0;
@@ -569,7 +596,18 @@ double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize,
   int *delta = (int*)malloc(sizeof(int)*(trnSize*sysSize));
   int *workspace = (int*)malloc((trnSize+sysSize+8*dim*rC+4*dim*rC*dim)*sizeof(int));
 
+  int shiftSys = 1;
+  int shiftTrn = 1;
+
   double norm = 1.0;
+
+  if (shift & 1) {
+    shiftSys = sysSize;
+  }
+  if ((shift & 2) >> 1) {
+    shiftTrn = trnSize;
+  }
+
   // normalise
   for (i = 0; i < trnSize*sysSize; i++) {
     delta[i] = 1;
@@ -579,23 +617,23 @@ double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize,
   }
   else {
   	norm = (1.0 + 1.0/(theta0 * power) * CalculateInnerSum(0, 0, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace));
-  }	  
+  }
 
   CalculatePairDelta(delta, sysCfg, sysSize, trnCfg, trnSize);
-  
+
   if (power == -1) {
-	for (i = 0; i < sysSize; i++) {
-	  for (a = 0; a < trnSize; a++) {
+	for (i = 0; i < shiftSys; i++) {
+	  for (a = 0; a < shiftTrn; a++) {
 	    if (delta[i*trnSize+a]) {
-			
+
 	      kernel += exp( - 1.0/theta0 * (norm - CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace)) ) ;
 	    }
 	  }
 	}
   }
   else {
-  	for (i = 0; i < sysSize; i++) {
-  	  for (a = 0; a < trnSize; a++) {
+  	for (i = 0; i < shiftSys; i++) {
+  	  for (a = 0; a < shiftTrn; a++) {
   	    if (delta[i*trnSize+a]) {
   	      kernel += pow(((1.0 + 1.0/(theta0 * power) * CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace))/norm), power);
   	    }
@@ -624,8 +662,8 @@ double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize,
     }
 
     if (power == -1) {
-  	for (i = 0; i < sysSize; i++) {
-  	  for (a = 0; a < trnSize; a++) {
+  	for (i = 0; i < shiftSys; i++) {
+  	  for (a = 0; a < shiftTrn; a++) {
   	    if (delta[i*trnSize+a]) {
   	      kernel += exp( - 1.0/theta0 * (norm - CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace)) ) ;
   	    }
@@ -633,8 +671,8 @@ double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize,
   	}
     }
     else {
-    	for (i = 0; i < sysSize; i++) {
-    	  for (a = 0; a < trnSize; a++) {
+    	for (i = 0; i < shiftSys; i++) {
+    	  for (a = 0; a < shiftTrn; a++) {
     	    if (delta[i*trnSize+a]) {
     	      kernel += pow(((1.0 + 1.0/(theta0 * power) * CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace))/norm), power);
     	    }
@@ -659,11 +697,12 @@ void GPWKernelMat(const int *configsAUp, const int *configsADown,
                   const int *neighboursB, const int sizeB, const int numB,
                   const int dim, const int power, const int rC,
                   const double theta0, const double thetaC,
-                  const int tRSym, const int symmetric, double *kernelMatr) {
+                  const int tRSym, const int shift, const int symmetric,
+                  double *kernelMatr) {
   int i, j;
   int **cfgsA, **cfgsB;
   cfgsA = (int**) malloc(sizeof(int*) * numA);
-  
+
   for (i = 0; i < numA; i++) {
     cfgsA[i] = (int*) malloc(sizeof(int) * 2 * sizeA);
 
@@ -688,8 +727,9 @@ void GPWKernelMat(const int *configsAUp, const int *configsADown,
     for (i = 0; i < numA; i++) {
       for (j = 0; j < numB; j++) {
 		  kernelMatr[i*numB + j] = GPWKernel(cfgsA[i], neighboursA, sizeA,
-		                           cfgsB[j], neighboursB, sizeB, dim,
-                                   power, rC, theta0, thetaC, tRSym);
+		                                     cfgsB[j], neighboursB, sizeB, dim,
+                                         power, rC, theta0, thetaC, tRSym,
+                                         shift);
       }
     }
 
@@ -705,7 +745,8 @@ void GPWKernelMat(const int *configsAUp, const int *configsADown,
       for (j = 0; j <= i; j++) {
         kernelMatr[i*numA + j] = GPWKernel(cfgsA[i], neighboursA, sizeA,
                                            cfgsA[j], neighboursA, sizeA, dim,
-                                           power, rC, theta0, thetaC, tRSym);
+                                           power, rC, theta0, thetaC, tRSym,
+                                           shift);
       }
     }
   }
@@ -722,7 +763,7 @@ void GPWKernelVec(const int *configsAUp, const int *configsADown,
                   const int *configRef, const int *neighboursRef,
                   const int sizeRef, const int dim, const int power,
                   const int rC, const double theta0, const double thetaC,
-                  const int tRSym, double *kernelVec) {
+                  const int tRSym, const int shift, double *kernelVec) {
   int i, j;
   int **cfgsA;
   cfgsA = (int**) malloc(sizeof(int*) * numA);
@@ -740,7 +781,7 @@ void GPWKernelVec(const int *configsAUp, const int *configsADown,
   for (i = 0; i < numA; i++) {
       kernelVec[i] = GPWKernel(cfgsA[i], neighboursA, sizeA, configRef,
                                neighboursRef, sizeRef, dim, power, rC,
-                               theta0, thetaC, tRSym);
+                               theta0, thetaC, tRSym, shift);
   }
 
   for (i = 0; i < numA; i++) {

@@ -74,8 +74,8 @@ GetInfoDH4(FILE *fp, int **ArrayIdx, int *ArrayOpt, int iComplxFlag, int *iOptCo
 
 int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int *trnCfg,
                int *kernFunc, int *power, int *cutRad, double *theta0, double *thetaC,
-               int *tRSym, int *ArrayOpt, int iComplxFlag, int *iOptCount, int _fidx,
-               char *defname);
+               int *tRSym, int *shift, int *ArrayOpt, int iComplxFlag, int *iOptCount,
+               int _fidx, char *defname);
 
 int GetInfoRBM(FILE *fp, int *visibleIdx, int **weightsIdx, int *ArrayOpt, int iComplxFlag,
                int *iOptCount, int fidx, int Nsite, int NArrayVis, int NArrayHidden, char *defname);
@@ -192,7 +192,8 @@ char *ReadBuffGPWInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, in
       sscanf(ctmp, "%s %lf\n", ctmp2, &dtmp);
       if (CheckWords(ctmp2, "KernelFunc") != 0  && CheckWords(ctmp2, "Power") != 0 &&
           CheckWords(ctmp2, "CutRad") != 0 && CheckWords(ctmp2, "Theta0") != 0 &&
-          CheckWords(ctmp2, "ThetaC") != 0 && CheckWords(ctmp2, "TRSym") != 0) {
+          CheckWords(ctmp2, "ThetaC") != 0 && CheckWords(ctmp2, "TRSym") != 0 &&
+          CheckWords(ctmp2, "Shift") != 0) {
         read = 0;
       }
     }
@@ -854,6 +855,7 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
                  + NGPWTrnLat /* GPWPower */
                  + NGPWTrnLat /* GPWCutRad */
                  + NGPWTrnLat /* GPWTRSym */
+                 + NGPWTrnLat /* GPWShift */
                  + Nsite2 /* RBMVisIdx */
                  + Nsite2 * RBMNHiddenIdx; /* RBMWeightMatrIdx */
 
@@ -979,7 +981,7 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
           fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
           fidx = NGutzwillerIdx + NJastrowIdx + 2 * 3 * NDoublonHolon2siteIdx + 2 * 5 * NDoublonHolon4siteIdx;
           if (GetInfoGPW(fp, GPWTrnSize, GPWTrnNeighboursFlat, GPWTrnLat, GPWTrnCfgFlat, GPWKernelFunc, GPWPower,
-                         GPWCutRad, GPWTheta0, GPWThetaC, GPWTRSym, OptFlag, iComplexFlgGPW, &count_idx, fidx,
+                         GPWCutRad, GPWTheta0, GPWThetaC, GPWTRSym, GPWShift, OptFlag, iComplexFlgGPW, &count_idx, fidx,
                          defname) != 0)
             info = 1;
           break;
@@ -2113,8 +2115,8 @@ GetInfoDH4(FILE *fp, int **ArrayIdx, int *ArrayOpt, int iComplxFlag, int *iOptCo
 
 int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int *trnCfg,
                int *kernFunc, int *power, int *cutRad, double *theta0, double *thetaC,
-               int *tRSym, int *ArrayOpt, int iComplxFlag, int *iOptCount, int _fidx,
-               char *defname) {
+               int *tRSym, int *shift, int *ArrayOpt, int iComplxFlag, int *iOptCount,
+               int _fidx, char *defname) {
   char ctmp[D_CharTmpReadDef], ctmp2[D_CharTmpReadDef];
   int trnSz, i, j, k, tmp, ind, ind2, mappingFound, latIdFile, latIdIntern, read;
   int trnCfgUp = 0, trnCfgDown = 0, idx0 = 0, idx1 = 0, info = 0, storeId = 0;
@@ -2150,6 +2152,8 @@ int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int
           thetaC[i] = dtmp;
         } else if (CheckWords(ctmp2, "TRSym") == 0) {
           tRSym[i] = (int) dtmp;
+        } else if (CheckWords(ctmp2, "Shift") == 0) {
+          shift[i] = (int) dtmp;
         } else {
           read = 0;
         }

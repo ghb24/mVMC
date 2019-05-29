@@ -151,6 +151,9 @@ int *GPWCutRad; /* [NGPWTrnLat] cutoff radius for full GPW kernel */
 double *GPWTheta0; /* [NGPWTrnLat] theta0 parameter for full GPW kernel */
 double *GPWThetaC; /* [NGPWTrnLat] thetac parameter for full GPW kernel */
 int *GPWTRSym; /* [NGPWTrnLat] whether kernel should respect time reversal symmetry (=1) or not (=0) */
+int *GPWShift; /* [NGPWTrnLat] whether kernel should respect translational
+                  symmetry (=0: no symmetry, =1: symmetry only on first lattice,
+                  =2: only on second lattice, =3: symmetric on both lattices) */
 int RBMNVisibleIdx; /* Number of different variational parameters associated with the visible layer in the RBM */
 int RBMNHiddenIdx; /* Number of neurons in the hidden layer */
 int NRBMTotal; /* Total number of of RBM variational parameters (NRBMTotal = RBMNVisibleIdx + RBMNHiddenIdx + Nsite2*RBMNHiddenIdx) */

@@ -215,6 +215,8 @@ void SetMemoryDef() {
   pInt += NGPWTrnLat;
   GPWTRSym = pInt;
   pInt += NGPWTrnLat;
+  GPWShift = pInt;
+  pInt += NGPWTrnLat;
 
   // intitialise kernel function with default value
   for (i = 0; i < NGPWTrnLat; i++) {
@@ -231,6 +233,11 @@ void SetMemoryDef() {
   // intitialise time reversal symmetry flag with default value (true)
   for (i = 0; i < NGPWTrnLat; i++) {
     GPWTRSym[i] = 1;
+  }
+  /* intitialise shift flag with default value (translational symmetry in
+     kernel for both lattices = 3) */
+  for (i = 0; i < NGPWTrnLat; i++) {
+    GPWShift[i] = 3;
   }
 
   // RBM data

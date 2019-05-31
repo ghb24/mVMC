@@ -14,15 +14,24 @@ double GPWKernel1(const int *configA, const int sizeA, const int *configB,
   double kernel = 0.0;
   int shiftA = 1;
   int shiftB = 1;
+  int translationA = 1;
+  int translationB = 1;
 
-  if (shift & 1) {
+  if (abs(shift) & 1) {
     shiftA = sizeA;
+    if (shift < 0) {
+      translationA = sizeB;
+    }
   }
-  if ((shift & 2) >> 1) {
+  if ((abs(shift) & 2) >> 1) {
     shiftB = sizeB;
+
+    if (shift < 0) {
+      translationB = sizeA;
+    }
   }
 
-  for (i = 0; i < shiftA; i++) {
+  for (i = 0; i < shiftA; i+=translationA) {
     up = configA[i];
     down = configA[i+sizeA];
 
@@ -32,7 +41,7 @@ double GPWKernel1(const int *configA, const int sizeA, const int *configB,
     countA[3] += (1-up)&(1-down);
   }
 
-  for (i = 0; i < shiftB; i++) {
+  for (i = 0; i < shiftB; i+=translationB) {
     up = configB[i];
     down = configB[i+sizeB];
 
@@ -285,23 +294,32 @@ double GPWKernelN(const int *configA, const int *neighboursA, const int sizeA,
     double kernel = 0.0;
     int shiftA = 1;
     int shiftB = 1;
+    int translationA = 1;
+    int translationB = 1;
 
     int *delta = (int*)malloc(sizeof(int)*(sizeA*sizeB));
 
     // TODO: use less workspace
     int *workspace = (int*)malloc((sizeA+sizeB+4*n+2*dim*n)*sizeof(int));
 
-    if (shift & 1) {
+    if (abs(shift) & 1) {
       shiftA = sizeA;
+      if (shift < 0) {
+        translationA = sizeB;
+      }
     }
-    if ((shift & 2) >> 1) {
+    if ((abs(shift) & 2) >> 1) {
       shiftB = sizeB;
+
+      if (shift < 0) {
+        translationB = sizeA;
+      }
     }
 
     CalculatePairDelta(delta, configA, sizeA, configB, sizeB);
 
-    for (i = 0; i < shiftA; i++) {
-      for (a = 0; a < shiftB; a++) {
+    for (i = 0; i < shiftA; i+=translationA) {
+      for (a = 0; a < shiftB; a+=translationB) {
         if (CalculatePlaquette(i, a, delta, sizeA, sizeB, dim, neighboursA,
                                neighboursB, n, workspace)) {
           kernel += 1.0;
@@ -329,8 +347,8 @@ double GPWKernelN(const int *configA, const int *neighboursA, const int sizeA,
         CalculatePairDelta(delta, configA, sizeA, configFlipped, sizeB);
       }
 
-      for (i = 0; i < shiftA; i++) {
-        for (a = 0; a < shiftB; a++) {
+      for (i = 0; i < shiftA; i+=translationA) {
+        for (a = 0; a < shiftB; a+=translationB) {
           if (CalculatePlaquette(i, a, delta, sizeA, sizeB, dim, neighboursA,
                                  neighboursB, n, workspace)) {
             kernel += 1.0;
@@ -598,14 +616,23 @@ double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize,
 
   int shiftSys = 1;
   int shiftTrn = 1;
+  int translationSys = 1;
+  int translationTrn = 1;
 
   double norm = 1.0;
 
-  if (shift & 1) {
+  if (abs(shift) & 1) {
     shiftSys = sysSize;
+    if (shift < 0) {
+      translationSys = trnSize;
+    }
   }
-  if ((shift & 2) >> 1) {
+  if ((abs(shift) & 2) >> 1) {
     shiftTrn = trnSize;
+
+    if (shift < 0) {
+      translationTrn = sysSize;
+    }
   }
 
   // normalise
@@ -622,8 +649,8 @@ double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize,
   CalculatePairDelta(delta, sysCfg, sysSize, trnCfg, trnSize);
 
   if (power == -1) {
-	for (i = 0; i < shiftSys; i++) {
-	  for (a = 0; a < shiftTrn; a++) {
+	for (i = 0; i < shiftSys; i+=translationSys) {
+	  for (a = 0; a < shiftTrn; a+=translationTrn) {
 	    if (delta[i*trnSize+a]) {
 
 	      kernel += exp( - 1.0/theta0 * (norm - CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace)) ) ;
@@ -632,8 +659,8 @@ double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize,
 	}
   }
   else {
-  	for (i = 0; i < shiftSys; i++) {
-  	  for (a = 0; a < shiftTrn; a++) {
+    for (i = 0; i < shiftSys; i+=translationSys) {
+  	  for (a = 0; a < shiftTrn; a+=translationTrn) {
   	    if (delta[i*trnSize+a]) {
   	      kernel += pow(((1.0 + 1.0/(theta0 * power) * CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace))/norm), power);
   	    }
@@ -662,17 +689,17 @@ double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize,
     }
 
     if (power == -1) {
-  	for (i = 0; i < shiftSys; i++) {
-  	  for (a = 0; a < shiftTrn; a++) {
-  	    if (delta[i*trnSize+a]) {
-  	      kernel += exp( - 1.0/theta0 * (norm - CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace)) ) ;
+      for (i = 0; i < shiftSys; i+=translationSys) {
+    	  for (a = 0; a < shiftTrn; a+=translationTrn) {
+  	      if (delta[i*trnSize+a]) {
+  	        kernel += exp( - 1.0/theta0 * (norm - CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace)) ) ;
+  	      }
   	    }
   	  }
-  	}
     }
     else {
-    	for (i = 0; i < shiftSys; i++) {
-    	  for (a = 0; a < shiftTrn; a++) {
+      for (i = 0; i < shiftSys; i+=translationSys) {
+    	  for (a = 0; a < shiftTrn; a+=translationTrn) {
     	    if (delta[i*trnSize+a]) {
     	      kernel += pow(((1.0 + 1.0/(theta0 * power) * CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace))/norm), power);
     	    }

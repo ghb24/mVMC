@@ -215,8 +215,8 @@ void VMCMainCal(MPI_Comm comm) {
         srOptO[(offset+f)*2]     = 0.0;    // even real
         srOptO[(offset+f)*2+1]   = 0.0;  // odd
         for(i = 0; i < Nsite2; i++) {
-          srOptO[(offset+f)*2]     += (eleNum[i]*2-1)*Nsite2;    // even real
-          srOptO[(offset+f)*2+1]   += (eleNum[i]*2-1)*Nsite2*I;  // odd
+          srOptO[(offset+f)*2]     += (eleNum[i]*2-1)*Nsite;    // even real
+          srOptO[(offset+f)*2+1]   += (eleNum[i]*2-1)*Nsite*I;  // odd
         }
       }
       offset += nRBMVis;
@@ -224,7 +224,7 @@ void VMCMainCal(MPI_Comm comm) {
       for(f = 0; f < nRBMHidden; f++) {
         differential = 0;
         #pragma omp parallel for default(shared) private(i, innerSum) reduction(+:differential)
-        for(i = 0; i < nsite2; i++) {
+        for(i = 0; i < Nsite; i++) {
           innerSum = RBMHiddenLayerSum(f, i, eleNum);
           differential += (cexp(innerSum) - cexp(-innerSum))/(cexp(innerSum) + cexp(-innerSum));
         }
@@ -234,16 +234,28 @@ void VMCMainCal(MPI_Comm comm) {
 
 
 
-        for(j = 0; j < nsite2; j++) {
+        for(j = 0; j < Nsite; j++) {
           differential = 0;
 
           #pragma omp parallel for default(shared) private(i, targetBasis, innerSum) reduction(+:differential)
-          for(i = 0; i < nsite2; i++) {
-            targetBasis = (j + i) % nsite2;
+          for(i = 0; i < Nsite; i++) {
+            targetBasis = (j + i) % Nsite;
             innerSum = RBMHiddenLayerSum(f, i, eleNum);
             differential += (eleNum[targetBasis]*2-1)*(cexp(innerSum) - cexp(-innerSum))/(cexp(innerSum) + cexp(-innerSum));
           }
-          idx = RBMWeightMatrIdx[f][j];
+          idx = RBMWeightMatrIdx[j][f];
+          srOptO[(offset+nRBMHidden+idx)*2]     = differential;    // even real
+          srOptO[(offset+nRBMHidden+idx)*2+1]   = differential*I;  // odd  comp
+
+
+
+          #pragma omp parallel for default(shared) private(i, targetBasis, innerSum) reduction(+:differential)
+          for(i = 0; i < Nsite; i++) {
+            targetBasis = (j + i) % Nsite + Nsite;
+            innerSum = RBMHiddenLayerSum(f, i, eleNum);
+            differential += (eleNum[targetBasis]*2-1)*(cexp(innerSum) - cexp(-innerSum))/(cexp(innerSum) + cexp(-innerSum));
+          }
+          idx = RBMWeightMatrIdx[j+Nsite][f];
           srOptO[(offset+nRBMHidden+idx)*2]     = differential;    // even real
           srOptO[(offset+nRBMHidden+idx)*2+1]   = differential*I;  // odd  comp
         }

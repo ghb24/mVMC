@@ -77,8 +77,9 @@ int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int
                int *tRSym, int *shift, int *ArrayOpt, int iComplxFlag, int *iOptCount,
                int _fidx, char *defname);
 
-int GetInfoRBM(FILE *fp, int *visibleIdx, int **weightsIdx, int *ArrayOpt, int iComplxFlag,
-               int *iOptCount, int fidx, int Nsite, int NArrayVis, int NArrayHidden, char *defname);
+int GetInfoRBM(FILE *fp, int **weightsIdx, int *ArrayOpt, int iComplxFlag,
+               int *iOptCount, int fidx, int Nsite, int NArrayVis,
+               int NArrayHidden, char *defname);
 
 int GetInfoTopology(FILE *fp, int *sysNeighbours, char *defname);
 
@@ -856,7 +857,6 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
                  + NGPWTrnLat /* GPWCutRad */
                  + NGPWTrnLat /* GPWTRSym */
                  + NGPWTrnLat /* GPWShift */
-                 + Nsite2 /* RBMVisIdx */
                  + Nsite2 * RBMNHiddenIdx; /* RBMWeightMatrIdx */
 
   //Orbitalidx
@@ -994,7 +994,7 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
         case KWRBM:
           fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
           fidx = NProj + NGPWIdx;
-          if (GetInfoRBM(fp, RBMVisIdx, RBMWeightMatrIdx, OptFlag, iComplexFlgRBM, &count_idx,
+          if (GetInfoRBM(fp, RBMWeightMatrIdx, OptFlag, iComplexFlgRBM, &count_idx,
                          fidx, Nsite, RBMNVisibleIdx, RBMNHiddenIdx, defname) != 0)
             info = 1;
           break;
@@ -2240,32 +2240,14 @@ int GetInfoTopology(FILE *fp, int *sysNeighbours, char *defname) {
   return info;
 }
 
-int GetInfoRBM(FILE *fp, int *visibleIdx, int **weightsIdx, int *ArrayOpt, int iComplxFlag,
-               int *iOptCount, int _fidx, int Nsite, int NArrayVis, int NArrayHidden, char *defname) {
-  int idx0 = 0, idx1 = 0, idx2 = 0, info = 0;
+int GetInfoRBM(FILE *fp, int **weightsIdx, int *ArrayOpt, int iComplxFlag,
+               int *iOptCount, int _fidx, int Nsite, int NArrayVis,
+               int NArrayHidden, char *defname) {
+  int idx0 = 0, idx1 = 0, info = 0;
   int i = 0, j = 0, k = 0;
   int fidx = _fidx;
   int nSite2 = 2 * Nsite;
 
-  if (NArrayVis > 0) {
-    while (fscanf(fp, "%d %d ", &i, &j) != EOF) {
-      if (CheckSite(i, Nsite) != 0) {
-        fprintf(stderr, "Error: Site index is incorrect. \n");
-        info = 1;
-        break;
-      }
-
-      if (CheckSite(j, 2) != 0) {
-        fprintf(stderr, "Error: Spin index is incorrect. \n");
-        info = 1;
-        break;
-      }
-
-      fscanf(fp, "%d\n", &(visibleIdx[i + Nsite*j]));
-      idx0++;
-      if (idx0 == nSite2) break;
-    }
-  }
   if (NArrayHidden > 0) {
     while (fscanf(fp, "%d %d %d ", &i, &j, &k) != EOF) {
       if (CheckSite(i, Nsite) != 0) {
@@ -2287,12 +2269,12 @@ int GetInfoRBM(FILE *fp, int *visibleIdx, int **weightsIdx, int *ArrayOpt, int i
       }
 
       fscanf(fp, "%d\n", &(weightsIdx[i + Nsite*j][k]));
-      idx1++;
-      if (idx1 == nSite2*NArrayHidden) break;
+      idx0++;
+      if (idx0 == nSite2*NArrayHidden) break;
     }
   }
-  idx2 = GetInfoOpt(fp, ArrayOpt, iComplxFlag, iOptCount, fidx);
-  if ((idx0 != nSite2 && NArrayVis > 0) || idx1 != nSite2*NArrayHidden || idx2 != NRBMTotal) {
+  idx1 = GetInfoOpt(fp, ArrayOpt, iComplxFlag, iOptCount, fidx);
+  if (idx0 != nSite2*NArrayHidden || idx1 != NRBMTotal) {
     info = ReadDefFileError(defname);
   }
   return info;

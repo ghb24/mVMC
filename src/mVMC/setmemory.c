@@ -241,8 +241,6 @@ void SetMemoryDef() {
   }
 
   // RBM data
-  RBMVisIdx = pInt;
-  pInt += Nsite2;
   RBMWeightMatrIdx = (int**)malloc(sizeof(int*)*Nsite2);
   for(i=0;i<Nsite2;i++) {
     RBMWeightMatrIdx[i] = pInt;

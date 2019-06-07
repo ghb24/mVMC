@@ -157,7 +157,6 @@ int *GPWShift; /* [NGPWTrnLat] whether kernel should respect translational
 int RBMNVisibleIdx; /* Number of different variational parameters associated with the visible layer in the RBM */
 int RBMNHiddenIdx; /* Number of neurons in the hidden layer */
 int NRBMTotal; /* Total number of of RBM variational parameters (NRBMTotal = RBMNVisibleIdx + RBMNHiddenIdx + Nsite2*RBMNHiddenIdx) */
-int *RBMVisIdx; /* [2*Nsite] */
 int **RBMWeightMatrIdx; /* [2*Nsite][RBMNHiddenIdx] */
 int NOrbitalIdx, **OrbitalIdx; /* [Nsite][Nsite] */
 int **OrbitalSgn; /* OrbitalSgn[Nsite][Nsite] = +1 or -1 */

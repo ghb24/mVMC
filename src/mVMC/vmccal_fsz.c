@@ -32,7 +32,7 @@ void VMCMainCal_fsz(MPI_Comm comm) {
   int *eleIdx,*eleCfg,*eleNum,*eleProjCnt,*eleSpn; //fsz
   double *eleGPWKern;
   double complex innerSum, differential;
-  double complex e,ip;
+  double complex e,ip, amp;
   double w;
   double sqrtw;
   double complex we;
@@ -53,6 +53,9 @@ void VMCMainCal_fsz(MPI_Comm comm) {
 //  double         *srOptO_real = SROptO_real;
 
   int rank,size,int_i;
+  char fileNameSamples[D_FileNameMax];
+  FILE *fp;
+  unsigned long cfgUp, cfgDown;
   MPI_Comm_size(comm,&size);
   MPI_Comm_rank(comm,&rank);
 #ifdef __DEBUG_DETAILDETAIL
@@ -64,6 +67,11 @@ void VMCMainCal_fsz(MPI_Comm comm) {
   StartTimer(24);
   clearPhysQuantity();
   StopTimer(24);
+
+  // set up samples file
+  sprintf(fileNameSamples, "%s_Samples_%d.dat", CDataFileHead, rank);
+  fp = fopen(fileNameSamples, "w");
+
   for(sample=sampleStart;sample<sampleEnd;sample++) {
     eleIdx = EleIdx + sample*Nsize;
     eleCfg = EleCfg + sample*Nsite2;
@@ -125,6 +133,25 @@ void VMCMainCal_fsz(MPI_Comm comm) {
       fprintf(stderr,"warning: VMCMainCal rank:%d sample:%d e=%e\n",rank,sample,creal(e)); //TBC
       continue;
     }
+
+    // print out samples into file
+    cfgUp = 0;
+    cfgDown = 0;
+
+    for (i = 0; i < Nsite; i++) {
+      if (eleNum[i]) {
+        cfgUp |= (1 << i);
+      }
+
+      if (eleNum[i+Nsite]) {
+        cfgDown |= (1 << i);
+      }
+    }
+    amp = cexp(LogProjVal(eleProjCnt)+LogGPWVal(eleGPWKern))*ip;
+
+    fprintf(fp,"%lu  %lu  %f  %f  %f  %f  %f  %f\n", cfgUp, cfgDown,
+            creal(amp), cimag(amp), creal(ip/RBMVal(eleNum)),
+            cimag(ip/RBMVal(eleNum)), creal(e), cimag(e));
 
     Wc    += w;
     Etot  += w * e;
@@ -240,6 +267,7 @@ void VMCMainCal_fsz(MPI_Comm comm) {
       }
     }
   } /* end of for(sample) */
+  fclose(fp);
 
 // calculate OO and HO at NVMCCalMode==0
   if(NVMCCalMode==0){

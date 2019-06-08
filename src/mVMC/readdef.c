@@ -2119,7 +2119,8 @@ int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int
                int _fidx, char *defname) {
   char ctmp[D_CharTmpReadDef], ctmp2[D_CharTmpReadDef];
   int trnSz, i, j, k, tmp, ind, ind2, mappingFound, latIdFile, latIdIntern, read;
-  int trnCfgUp = 0, trnCfgDown = 0, idx0 = 0, idx1 = 0, info = 0, storeId = 0;
+  int idx0 = 0, idx1 = 0, info = 0, storeId = 0;
+  unsigned long trnCfgUp = 0, trnCfgDown = 0;
   int fidx = _fidx;
   double dtmp;
 
@@ -2174,7 +2175,7 @@ int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int
     }
 
     storeId  = 0;
-    while (fscanf(fp, "%d %d %d %d\n", &trnCfgUp, &trnCfgDown, &latIdFile, &j) != EOF) {
+    while (fscanf(fp, "%lu %lu %d %d\n", &trnCfgUp, &trnCfgDown, &latIdFile, &j) != EOF) {
       mappingFound = 0;
       for (k = 0; k < NGPWTrnLat; k++) {
         if (latIdFile == mapping[k]) {

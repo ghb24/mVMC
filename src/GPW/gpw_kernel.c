@@ -551,7 +551,7 @@ double CalculateInnerSum(const int i, const int a, const int *delta, const int s
           tmpCount ++;
 
           if (delta[j*trnSize+b]) {
-            rangeSum += exp(-dist*dist/thetaC);
+            rangeSum += 1.0/dist; //exp(-dist*dist/thetaC);
           }
         }
 
@@ -575,7 +575,7 @@ double CalculateInnerSum(const int i, const int a, const int *delta, const int s
             tmpCount ++;
 
             if (delta[j*trnSize+b]) {
-              rangeSum += exp(-dist*dist/thetaC);
+              rangeSum += 1.0/dist; //exp(-dist*dist/thetaC);
             }
           }
         }
@@ -643,7 +643,7 @@ double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize,
   	norm = (CalculateInnerSum(0, 0, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace));
   }
   else {
-  	norm = (1.0 + 1.0/(theta0 * power) * CalculateInnerSum(0, 0, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace));
+  	norm = (theta0 + 1.0/(power) * CalculateInnerSum(0, 0, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace));
   }
 
   CalculatePairDelta(delta, sysCfg, sysSize, trnCfg, trnSize);
@@ -662,7 +662,7 @@ double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize,
     for (i = 0; i < shiftSys; i+=translationSys) {
   	  for (a = 0; a < shiftTrn; a+=translationTrn) {
   	    if (delta[i*trnSize+a]) {
-  	      kernel += pow(((1.0 + 1.0/(theta0 * power) * CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace))/norm), power);
+  	      kernel += pow(((theta0 + 1.0/(power) * CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace))/norm), power);
   	    }
   	  }
   	}
@@ -701,7 +701,7 @@ double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize,
       for (i = 0; i < shiftSys; i+=translationSys) {
     	  for (a = 0; a < shiftTrn; a+=translationTrn) {
     	    if (delta[i*trnSize+a]) {
-    	      kernel += pow(((1.0 + 1.0/(theta0 * power) * CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace))/norm), power);
+    	      kernel += pow(((theta0 + 1.0/(power) * CalculateInnerSum(i, a, delta, sysSize, trnSize, dim, sysNeighbours, trnNeighbours, rC, thetaC, workspace))/norm), power);
     	    }
     	  }
     	}
@@ -716,7 +716,6 @@ double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize,
 
   return kernel;
 }
-
 
 void GPWKernelMat(const int *configsAUp, const int *configsADown,
                   const int *neighboursA, const int sizeA, const int numA,

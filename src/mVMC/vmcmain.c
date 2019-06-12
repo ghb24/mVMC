@@ -405,9 +405,9 @@ int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
 #endif
     if(NProjBF ==0) {
       if(iFlgOrbitalGeneral==0){//sz is conserved
-        VMCMainCal(comm_child1);
+        VMCMainCal(comm_child1, comm_child2);
       }else{//fsz
-        VMCMainCal_fsz(comm_child1); 
+        VMCMainCal_fsz(comm_child1, comm_child2);
       }
     }else{
       VMC_BF_MainCal(comm_child1);
@@ -603,9 +603,9 @@ int VMCPhysCal(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
     if(rank==0) fprintf(stdout, "Start: Main calculation.\n");
     if(NProjBF ==0) {
       if(iFlgOrbitalGeneral==0){
-        VMCMainCal(comm_child1);
+        VMCMainCal(comm_child1, comm_child2);
       }else{
-        VMCMainCal_fsz(comm_child1);
+        VMCMainCal_fsz(comm_child1, comm_child2);
       }
     }else{
       VMC_BF_MainCal(comm_child1);

@@ -68,7 +68,7 @@ void calculateQCACAQ_real(double *qcacaq, const double *lslca, const double w,
                           const int nLSHam, const int nCA, const int nCACA,
                           int **cacaIdx);
 
-void VMCMainCal(MPI_Comm comm) {
+void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
   int *eleIdx,*eleCfg,*eleNum,*eleProjCnt;
   double *eleGPWKern;
   double complex innerSum, differential;
@@ -91,12 +91,13 @@ void VMCMainCal(MPI_Comm comm) {
   double complex *srOptO = SROptO;
   double         *srOptO_real = SROptO_real;
 
-  int rank,size,int_i;
+  int rank,size,int_i,rankSampler;
   char fileNameSamples[D_FileNameMax];
   FILE *fp;
   unsigned long cfgUp, cfgDown;
   MPI_Comm_size(comm,&size);
   MPI_Comm_rank(comm,&rank);
+  MPI_Comm_rank(commSampler, &rankSampler);
 #ifdef _DEBUG_VMCCAL
   printf("  Debug: SplitLoop\n");
 #endif
@@ -108,7 +109,7 @@ void VMCMainCal(MPI_Comm comm) {
   StopTimer(24);
 
   // set up samples file
-  sprintf(fileNameSamples, "%s_Samples_%d.dat", CDataFileHead, rank);
+  sprintf(fileNameSamples, "%s_Samples_%d.dat", CDataFileHead, rankSampler);
   fp = fopen(fileNameSamples, "w");
 
   for(sample=sampleStart;sample<sampleEnd;sample++) {

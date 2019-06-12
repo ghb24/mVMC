@@ -141,11 +141,11 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
 
     for (i = 0; i < Nsite; i++) {
       if (eleNum[i]) {
-        cfgUp |= (1 << i);
+        cfgUp |= (((unsigned long) 1) << i);
       }
 
       if (eleNum[i+Nsite]) {
-        cfgDown |= (1 << i);
+        cfgDown |= (((unsigned long) 1) << i);
       }
     }
     amp = cexp(LogProjVal(eleProjCnt)+LogGPWVal(eleGPWKern))*ip;

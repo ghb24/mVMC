@@ -448,7 +448,7 @@ void GPWKernelNVec(const int *configsAUp, const int *configsADown,
 
   #pragma omp parallel for default(shared) private(i)
   for (i = 0; i < numA; i++) {
-    kernelVec[i] = GPWKernelN(cfgsA[i], neighboursA, sizeA, cfgsA[j],
+    kernelVec[i] = GPWKernelN(cfgsA[i], neighboursA, sizeA, configRef,
                               neighboursA, sizeA, dim, n, tRSym, shift);
   }
 

@@ -150,7 +150,7 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
     }
     amp = cexp(LogProjVal(eleProjCnt)+LogGPWVal(eleGPWKern))*ip;
 
-    fprintf(fp,"%lu  %lu  %f  %f  %f  %f  %f  %f\n", cfgUp, cfgDown,
+    fprintf(fp,"%lu  %lu  %e  %e  %e  %e  %e  %f\n", cfgUp, cfgDown,
             creal(amp), cimag(amp), creal(ip/RBMVal(eleNum)),
             cimag(ip/RBMVal(eleNum)), creal(e), cimag(e));
 

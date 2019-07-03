@@ -537,7 +537,7 @@ double CalculateInnerSum(const int i, const int a, const int *delta, const int s
         j = sysNeighbours[prevIndSys[k]*2*dim + d*2+dir];
         b = trnNeighbours[prevIndTrn[k]*2*dim + d*2+dir];
 
-        if (!visitedSys[j] && !visitedTrn[b]) {
+        //if (!visitedSys[j] && !visitedTrn[b]) {
           tmpPrevIndSys[tmpCount] = j;
           tmpPrevIndTrn[tmpCount] = b;
           visitedSys[j] = 1;
@@ -553,7 +553,7 @@ double CalculateInnerSum(const int i, const int a, const int *delta, const int s
           if (delta[j*trnSize+b]) {
             rangeSum += 1.0/dist; //exp(-dist*dist/thetaC);
           }
-        }
+        //}
 
         // add neighbour in opposing direction if coordinate = 0
         if (directions[dim*k+d] == 0) {
@@ -561,7 +561,7 @@ double CalculateInnerSum(const int i, const int a, const int *delta, const int s
           j = sysNeighbours[prevIndSys[k]*2*dim+d*2+dir];
           b = trnNeighbours[prevIndTrn[k]*2*dim+d*2+dir];
 
-          if (!visitedSys[j] && !visitedTrn[b]) {
+          //if (!visitedSys[j] && !visitedTrn[b]) {
             tmpPrevIndSys[tmpCount] = j;
             tmpPrevIndTrn[tmpCount] = b;
             visitedSys[j] = 1;
@@ -577,7 +577,7 @@ double CalculateInnerSum(const int i, const int a, const int *delta, const int s
             if (delta[j*trnSize+b]) {
               rangeSum += 1.0/dist; //exp(-dist*dist/thetaC);
             }
-          }
+          //}
         }
 
         // only continue in additional dimension if site in this dimension has coordinate 0

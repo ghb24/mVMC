@@ -228,7 +228,7 @@ void SetMemoryDef() {
   }
   // intitialise cutoff radius with default value
   for (i = 0; i < NGPWTrnLat; i++) {
-    GPWCutRad[i] = 10;
+    GPWCutRad[i] = 3;
   }
   // intitialise time reversal symmetry flag with default value (true)
   for (i = 0; i < NGPWTrnLat; i++) {

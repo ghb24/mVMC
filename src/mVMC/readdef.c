@@ -1165,11 +1165,12 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
   /* set FlagShift */
   if (NVMCCalMode == 0) {
     SetFlagShift();
-    if (rank == 0 && FlagShiftGJ + FlagShiftDH2 + FlagShiftDH4 > 0) {
+    if (rank == 0 && FlagShiftGJ + FlagShiftDH2 + FlagShiftDH4 + FlagShiftGPW > 0) {
       fprintf(stderr, "remark: FlagShift ( ");
       if (FlagShiftGJ == 1) fprintf(stderr, "GJ ");
       if (FlagShiftDH2 == 1) fprintf(stderr, "DH2 ");
       if (FlagShiftDH4 == 1) fprintf(stderr, "DH4 ");
+      if (FlagShiftGPW == 1) fprintf(stderr, "GPW ");
       fprintf(stderr, ") is turned on.\n");
     }
   }

@@ -123,6 +123,9 @@ void SyncModifiedParameter(MPI_Comm comm) {
   /* shift the Gutzwiller-Jastrow factors */
   if(FlagShiftGJ==1) shiftGJ();
 
+  /* shift the GPW factors */
+  if(FlagShiftGPW) shiftGPW();
+
   /***** rescale Slater *****/
   xmax = cabs(Slater[0]);
   for(i=1;i<NSlater;i++){
@@ -236,54 +239,108 @@ double shiftDH4() {
   return gShift;
 }
 
+
+/* shift GPW parameters */
+void shiftGPW() {
+  double complex shift=0.0+0.0*I;
+  const int n = NGPWIdx;
+  int i;
+
+  if(NGPWIdx==0) return;
+
+
+  for(i=0;i<n;i++) {
+    shift += GPWVar[i];
+  }
+  shift /= (double)n;
+
+  for(i=0;i<n;i++) {
+    Proj[i] -= shift;
+  }
+
+
+  return;
+}
+
 void SetFlagShift() {
-  int i,start,end;
+  int i,start,end,shiftProj;
 
   /* Gutzwiller */
   FlagShiftGJ=0;
   FlagShiftDH2=0;
   FlagShiftDH4=0;
-  if(NGutzwillerIdx==0) return; // no Gutz -> do nothing
-  start = 0;
-  end = start + NGutzwillerIdx;
-  for(i=start;i<end;i++) {
-    if(OptFlag[2*i]!=1) return;   // fixed Gutx -> do nothing
+  FlagShiftGPW=0;
+
+  shiftProj = 1;
+
+  if(NGutzwillerIdx>0)
+  {
+    start = 0;
+    end = start + NGutzwillerIdx;
+    for(i=start;i<end;i++) {
+      if(OptFlag[2*i]!=1) {
+        shiftProj = 0;   // fixed Gutx -> do nothing
+        break;
+      }
+    }
+  }
+  else {
+     shiftProj = 0; // no Gutz -> do nothing
   }
 
   /* Jastrow */
   if(NJastrowIdx>0) {
     start = end;
     end   = start + NJastrowIdx;
-    FlagShiftGJ=1; // unfixed J -> FlagShift on
-    for(i=start;i<end;i++) {
-      if(OptFlag[2*i]!=1) {       // fixed jast -> do nothing
-        FlagShiftGJ=0;
-        break;
+    if(shiftProj) {
+      FlagShiftGJ=1; // unfixed J -> FlagShift on
+      for(i=start;i<end;i++) {
+        if(OptFlag[2*i]!=1) {       // fixed jast -> do nothing
+          FlagShiftGJ=0;
+          break;
+        }
       }
     }
   }
 
   /* 2-site Doublon-Holon */
-  if(NDoublonHolon2siteIdx>0) {
+  if(NDoublonHolon2siteIdx>0 && shiftProj) {
     start = end;
     end   = start + 6*NDoublonHolon2siteIdx;
-    FlagShiftDH2=1;         // unfixed D-H -> FlagShift on
-    for(i=start;i<end;i++) {
-      if(OptFlag[2*i]!=1) { // fixed D-H -> do nothing
-        FlagShiftDH2=0;
-        break;
+    if(shiftProj) {
+      FlagShiftDH2=1;         // unfixed D-H -> FlagShift on
+      for(i=start;i<end;i++) {
+        if(OptFlag[2*i]!=1) { // fixed D-H -> do nothing
+          FlagShiftDH2=0;
+          break;
+        }
       }
     }
   }
 
   /* 4-site Doublon-Holon */
-  if(NDoublonHolon4siteIdx>0) {
+  if(NDoublonHolon4siteIdx>0 && shiftProj) {
     start = end;
     end   = start + 10*NDoublonHolon4siteIdx;
-    FlagShiftDH4=1;         // unfixed D-H -> FlagShift on
+    if(shiftProj) {
+      FlagShiftDH4=1;         // unfixed D-H -> FlagShift on
+      for(i=start;i<end;i++) {
+        if(OptFlag[2*i]!=1) { // fixed D-H -> do nothing
+          FlagShiftDH4=0;
+          break;
+        }
+      }
+    }
+  }
+
+  /* GPW */
+  if(NGPWIdx>1) {
+    start = end;
+    end   = start + NGPWIdx;
+    FlagShiftGPW=1;
     for(i=start;i<end;i++) {
-      if(OptFlag[2*i]!=1) { // fixed D-H -> do nothing
-        FlagShiftDH4=0;
+      if(OptFlag[2*i]!=1) { // GPW parameter fixed -> FlagShift off
+        FlagShiftGPW=0;
         break;
       }
     }

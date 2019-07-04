@@ -193,6 +193,7 @@ int APFlag; /* 0: periodic, 1: anti-periodic */
 int FlagShiftGJ=0;
 int FlagShiftDH2=0;
 int FlagShiftDH4=0;
+int FlagShiftGPW=0;
 
 /* flag for OptTrans mode */
 int FlagOptTrans=0;

@@ -51,5 +51,6 @@ void SetFlagShift();
 void shiftGJ();
 double shiftDH2();
 double shiftDH4();
+void shiftGPW();
 
 #endif

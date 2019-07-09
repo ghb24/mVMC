@@ -71,7 +71,7 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
   clearPhysQuantity();
   StopTimer(24);
 
-  GPWNorm = 0.0;
+  GPWNorm = creal(LogGPWVal(EleGPWKern));
   for(sample = 0; sample < NVMCSample; sample++) {
     eleGPWKern = EleGPWKern + sample*NGPWIdx;
     if (creal(LogGPWVal(eleGPWKern)) > GPWNorm) {

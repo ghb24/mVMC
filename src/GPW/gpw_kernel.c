@@ -64,9 +64,9 @@ double GPWKernel1(const int *configA, const int sizeA, const int *configB,
   return kernel;
 }
 
-void GPWKernel1Mat(const int *configsAUp, const int *configsADown,
-                   const int sizeA, const int numA, const int *configsBUp,
-                   const int *configsBDown, const int sizeB, const int numB,
+void GPWKernel1Mat(const unsigned long *configsAUp, const unsigned long *configsADown,
+                   const int sizeA, const int numA, const unsigned long *configsBUp,
+                   const unsigned long *configsBDown, const int sizeB, const int numB,
                    const int tRSym, const int shift, const int symmetric,
                    double *kernelMatr) {
   int i, j;
@@ -123,7 +123,7 @@ void GPWKernel1Mat(const int *configsAUp, const int *configsADown,
   free(cfgsA);
 }
 
-void GPWKernel1Vec(const int *configsAUp, const int *configsADown,
+void GPWKernel1Vec(const unsigned long *configsAUp, const unsigned long *configsADown,
                    const int sizeA, const int numA, const int *configRef,
                    const int sizeRef, const int tRSym, const int shift,
                    double *kernelVec) {
@@ -365,9 +365,9 @@ double GPWKernelN(const int *configA, const int *neighboursA, const int sizeA,
   }
 }
 
-void GPWKernelNMat(const int *configsAUp, const int *configsADown,
+void GPWKernelNMat(const unsigned long *configsAUp, const unsigned long *configsADown,
                    const int *neighboursA, const int sizeA, const int numA,
-                   const int *configsBUp, const int *configsBDown,
+                   const unsigned long *configsBUp, const unsigned long *configsBDown,
                    const int *neighboursB, const int sizeB, const int numB,
                    const int dim, const int n, const int tRSym, const int shift,
                    const int symmetric, double *kernelMatr) {
@@ -428,7 +428,7 @@ void GPWKernelNMat(const int *configsAUp, const int *configsADown,
   free(cfgsA);
 }
 
-void GPWKernelNVec(const int *configsAUp, const int *configsADown,
+void GPWKernelNVec(const unsigned long *configsAUp, const unsigned long *configsADown,
                    const int *neighboursA, const int sizeA, const int numA,
                    const int *configRef, const int *neighboursRef,
                    const int sizeRef, const int dim, const int n,
@@ -717,9 +717,9 @@ double GPWKernel(const int *sysCfg, const int *sysNeighbours, const int sysSize,
   return kernel;
 }
 
-void GPWKernelMat(const int *configsAUp, const int *configsADown,
+void GPWKernelMat(const unsigned long *configsAUp, const unsigned long *configsADown,
                   const int *neighboursA, const int sizeA, const int numA,
-                  const int *configsBUp, const int *configsBDown,
+                  const unsigned long *configsBUp, const unsigned long *configsBDown,
                   const int *neighboursB, const int sizeB, const int numB,
                   const int dim, const int power, const int rC,
                   const double theta0, const double thetaC,
@@ -784,7 +784,7 @@ void GPWKernelMat(const int *configsAUp, const int *configsADown,
   free(cfgsA);
 }
 
-void GPWKernelVec(const int *configsAUp, const int *configsADown,
+void GPWKernelVec(const unsigned long *configsAUp, const unsigned long *configsADown,
                   const int *neighboursA, const int sizeA, const int numA,
                   const int *configRef, const int *neighboursRef,
                   const int sizeRef, const int dim, const int power,

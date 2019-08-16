@@ -629,7 +629,7 @@ double GPWKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
   int translationTrn = 1;
 
   double innerSum;
-  double norm = 1.0;
+  double norm = 0.0;
 
   if (abs(shift) & 1) {
     shiftSys = sizeA;
@@ -676,7 +676,7 @@ double GPWKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
       for (i = 0; i < shiftSys; i+=translationSys) {
         for (a = 0; a < shiftTrn; a+=translationTrn) {
           if (delta[i*sizeB+a]) {
-            innerSum = 1.0;
+            innerSum = 0.0;
             for (k = 0; k < plaquetteSize; k++) {
               if (delta[plaquetteAIdx[i*plaquetteSize+k]*sizeB +
                         plaquetteBIdx[a*plaquetteSize+k]]) {
@@ -686,7 +686,7 @@ double GPWKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
             kernel += exp(-1.0/theta0 * (norm - innerSum));
           }
           if (deltaFlipped[i*sizeB+a]) {
-            innerSum = 1.0;
+            innerSum = 0.0;
             for (k = 0; k < plaquetteSize; k++) {
               if (deltaFlipped[plaquetteAIdx[i*plaquetteSize+k]*sizeB +
                                plaquetteBIdx[a*plaquetteSize+k]]) {
@@ -702,7 +702,7 @@ double GPWKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
       for (i = 0; i < shiftSys; i+=translationSys) {
         for (a = 0; a < shiftTrn; a+=translationTrn) {
           if (delta[i*sizeB+a]) {
-            innerSum = 1.0;
+            innerSum = 0.0;
             for (k = 0; k < plaquetteSize; k++) {
               if (delta[plaquetteAIdx[i*plaquetteSize+k]*sizeB +
                         plaquetteBIdx[a*plaquetteSize+k]]) {
@@ -712,7 +712,7 @@ double GPWKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
             kernel += pow(((theta0 + 1.0/(power) * innerSum)/norm), power);
           }
           if (deltaFlipped[i*sizeB+a]) {
-            innerSum = 1.0;
+            innerSum = 0.0;
             for (k = 0; k < plaquetteSize; k++) {
               if (deltaFlipped[plaquetteAIdx[i*plaquetteSize+k]*sizeB +
                                plaquetteBIdx[a*plaquetteSize+k]]) {
@@ -731,7 +731,7 @@ double GPWKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
       for (i = 0; i < shiftSys; i+=translationSys) {
         for (a = 0; a < shiftTrn; a+=translationTrn) {
           if (delta[i*sizeB+a]) {
-            innerSum = 1.0;
+            innerSum = 0.0;
             for (k = 0; k < plaquetteSize; k++) {
               if (delta[plaquetteAIdx[i*plaquetteSize+k]*sizeB +
                         plaquetteBIdx[a*plaquetteSize+k]]) {
@@ -747,7 +747,7 @@ double GPWKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
       for (i = 0; i < shiftSys; i+=translationSys) {
         for (a = 0; a < shiftTrn; a+=translationTrn) {
           if (delta[i*sizeB+a]) {
-            innerSum = 1.0;
+            innerSum = 0.0;
             for (k = 0; k < plaquetteSize; k++) {
               if (delta[plaquetteAIdx[i*plaquetteSize+k]*sizeB +
                         plaquetteBIdx[a*plaquetteSize+k]]) {

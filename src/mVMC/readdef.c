@@ -857,6 +857,7 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
                  + NGPWTrnLat /* GPWCutRad */
                  + NGPWTrnLat /* GPWTRSym */
                  + NGPWTrnLat /* GPWShift */
+                 + NGPWTrnLat /* GPWPlaquetteSizes */
                  + Nsite2 * RBMNHiddenIdx; /* RBMWeightMatrIdx */
 
   //Orbitalidx
@@ -1186,6 +1187,17 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
   for (i = 0; i < NGPWTrnLat; i++) {
     GPWTrnNeighbours[i] = GPWTrnNeighboursFlat+j;
     j += 2*Dim*GPWTrnSize[i];
+  }
+
+  for (i = 0; i < NGPWTrnLat; i++) {
+    if (GPWKernelFunc[i] != 0) {
+      GPWPlaquetteSizes[i] = SetupPlaquetteIdx(-(GPWKernelFunc[i]), SysNeighbours, Nsite, GPWTrnNeighbours[i], GPWTrnSize[i], Dim,
+                                               &(GPWSysPlaquetteIdx[i]), &(GPWTrnPlaquetteIdx[i]), &(GPWDistList[i]));
+    }
+    else {
+      GPWPlaquetteSizes[i] = SetupPlaquetteIdx(GPWCutRad[i], SysNeighbours, Nsite, GPWTrnNeighbours[i], GPWTrnSize[i], Dim,
+                                               &(GPWSysPlaquetteIdx[i]), &(GPWTrnPlaquetteIdx[i]), &(GPWDistList[i]));
+    }
   }
 
   return 0;

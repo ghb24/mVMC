@@ -217,6 +217,17 @@ void SetMemoryDef() {
   pInt += NGPWTrnLat;
   GPWShift = pInt;
   pInt += NGPWTrnLat;
+  GPWPlaquetteSizes = pInt;
+  pInt += NGPWTrnLat;
+
+  GPWSysPlaquetteIdx = (int**)malloc(sizeof(int*)*3*NGPWTrnLat);
+  GPWTrnPlaquetteIdx = GPWSysPlaquetteIdx + NGPWTrnLat;
+  GPWDistList = GPWTrnPlaquetteIdx + NGPWTrnLat;
+
+  GPWKernWorkspace = (int**)malloc(sizeof(int*)*omp_get_max_threads());
+  for (i = 0; i < omp_get_max_threads(); i++) {
+    GPWKernWorkspace[i] = (int*)malloc(sizeof(int)*(8*(Nsite*Nsite)+2*Nsite));
+  }
 
   // intitialise kernel function with default value
   for (i = 0; i < NGPWTrnLat; i++) {
@@ -302,8 +313,20 @@ void SetMemoryDef() {
 
 void FreeMemoryDef() {
   int i;
+
+  for (i = 0; i < omp_get_max_threads(); i++) {
+    free(GPWKernWorkspace[i]);
+  }
+  free(GPWKernWorkspace);
+
+  for (i = 0; i < NGPWTrnLat; i++) {
+    FreeMemPlaquetteIdx(GPWSysPlaquetteIdx[i], GPWTrnPlaquetteIdx[i],
+                        GPWDistList[i]);
+  }
+
   free(ParaTransfer);
   free(RBMWeightMatrIdx);
+  free(GPWSysPlaquetteIdx);
   free(GPWTrnCfg);
 
   free(QPOptTransSgn);

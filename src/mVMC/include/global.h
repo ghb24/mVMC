@@ -154,6 +154,11 @@ int *GPWTRSym; /* [NGPWTrnLat] whether kernel should respect time reversal symme
 int *GPWShift; /* [NGPWTrnLat] whether kernel should respect translational
                   symmetry (=0: no symmetry, =1: symmetry only on first lattice,
                   =2: only on second lattice, =3: symmetric on both lattices) */
+int *GPWPlaquetteSizes; /* number of sites in the cutoff range (without central site) for each training lattice */
+int **GPWSysPlaquetteIdx; /* site ids to visit in evaluation of kernel function in system lattice*/
+int **GPWTrnPlaquetteIdx; /* site ids to visit in evaluation of kernel function in training lattice*/
+int **GPWDistList; /* associated distances with the site ids */
+int **GPWKernWorkspace;
 int RBMNVisibleIdx; /* Number of different variational parameters associated with the visible layer in the RBM */
 int RBMNHiddenIdx; /* Number of neurons in the hidden layer */
 int NRBMTotal; /* Total number of of RBM variational parameters (NRBMTotal = RBMNVisibleIdx + RBMNHiddenIdx + Nsite2*RBMNHiddenIdx) */

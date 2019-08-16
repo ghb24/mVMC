@@ -3,6 +3,7 @@ TODO: Add License + Description*/
 #include "global.h"
 #include "gpw_projection.h"
 #include "gpw_kernel.h"
+#include <omp.h>
 
 
 inline double complex LogGPWVal(const double *eleGPWKern) {
@@ -35,24 +36,36 @@ inline double complex GPWRatio(const double *eleGPWKernNew, const double *eleGPW
 void CalculateGPWKern(double *eleGPWKern, const int *eleNum) {
   const int nGPWIdx=NGPWIdx;
   int i;
+  int outerThreadNum = omp_get_thread_num();
 
-  #pragma omp parallel for default(shared) private(i)
-  for(i=0;i<nGPWIdx;i++) {
-    if (GPWKernelFunc[GPWTrnLat[i]] == 0) {
-      eleGPWKern[i] = GPWKernel(eleNum, SysNeighbours, Nsite, GPWTrnCfg[i],
-                                GPWTrnNeighbours[GPWTrnLat[i]],
-                                GPWTrnSize[GPWTrnLat[i]], Dim,
-                                GPWPower[GPWTrnLat[i]], GPWCutRad[GPWTrnLat[i]],
-                                GPWTheta0[GPWTrnLat[i]], GPWThetaC[GPWTrnLat[i]],
-                                GPWTRSym[GPWTrnLat[i]], GPWShift[GPWTrnLat[i]]);
-    }
-    else {
-      eleGPWKern[i] = GPWKernelN(eleNum, SysNeighbours, Nsite, GPWTrnCfg[i],
-                                 GPWTrnNeighbours[GPWTrnLat[i]],
-                                 GPWTrnSize[GPWTrnLat[i]], Dim,
-                                 GPWKernelFunc[GPWTrnLat[i]],
-                                 GPWTRSym[GPWTrnLat[i]],
-                                 GPWShift[GPWTrnLat[i]]);
+  #pragma omp parallel default(shared) private(i)
+  {
+    int totalThreadNum = outerThreadNum*omp_get_num_threads() + omp_get_thread_num();
+    int *workspace = GPWKernWorkspace[totalThreadNum];
+    #pragma omp for
+    for(i=0;i<nGPWIdx;i++) {
+      if (GPWKernelFunc[GPWTrnLat[i]] == 0) {
+        eleGPWKern[i] = GPWKernel(eleNum, GPWSysPlaquetteIdx[GPWTrnLat[i]],
+                                  Nsite, GPWTrnCfg[i],
+                                  GPWTrnPlaquetteIdx[GPWTrnLat[i]],
+                                  GPWTrnSize[GPWTrnLat[i]], Dim,
+                                  GPWPower[GPWTrnLat[i]],
+                                  GPWTheta0[GPWTrnLat[i]],
+                                  GPWThetaC[GPWTrnLat[i]],
+                                  GPWTRSym[GPWTrnLat[i]],
+                                  GPWShift[GPWTrnLat[i]],
+                                  GPWPlaquetteSizes[GPWTrnLat[i]],
+                                  GPWDistList[GPWTrnLat[i]], workspace);
+      }
+      else {
+        eleGPWKern[i] = GPWKernelN(eleNum, GPWSysPlaquetteIdx[GPWTrnLat[i]],
+                                   Nsite, GPWTrnCfg[i],
+                                   GPWTrnPlaquetteIdx[GPWTrnLat[i]],
+                                   GPWTrnSize[GPWTrnLat[i]], Dim,
+                                   GPWKernelFunc[GPWTrnLat[i]],
+                                   GPWTRSym[GPWTrnLat[i]],
+                                   GPWShift[GPWTrnLat[i]], workspace);
+      }
     }
   }
   return;

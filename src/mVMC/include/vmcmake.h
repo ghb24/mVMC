@@ -5,11 +5,16 @@
 
 void VMCMakeSample(MPI_Comm comm);
 int makeInitialSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                      const int qpStart, const int qpEnd, MPI_Comm comm);
-void copyFromBurnSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double *eleGPWKern);
-void copyToBurnSample(const int *eleIdx, const int *eleCfg, const int *eleNum, const int *eleProjCnt, const double *eleGPWKern);
+                      int *eleGPWDelta, double *eleGPWInSum, const int qpStart, const int qpEnd,
+                      MPI_Comm comm);
+void copyFromBurnSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
+                        double *eleGPWKern, int *eleGPWDelta, double *eleGPWInSum);
+void copyToBurnSample(const int *eleIdx, const int *eleCfg, const int *eleNum,
+                      const int *eleProjCnt, const double *eleGPWKern,
+                      int *eleGPWDelta, double *eleGPWInSum);
 void saveEleConfig(const int sample, const double complex logIp, const double complex rbmVal, const int *eleIdx,
-                   const int *eleCfg, const int *eleNum, const int *eleProjCnt, const double *eleGPWKern);
+                   const int *eleCfg, const int *eleNum, const int *eleProjCnt,
+                   const double *eleGPWKern, const int *eleGPWDelta, const double *eleGPWInSum);
 void sortEleConfig(int *eleIdx, int *eleCfg, const int *eleNum);
 void ReduceCounter(MPI_Comm comm);
 void makeCandidate_hopping(int *mi_, int *ri_, int *rj_, int *s_, int *rejectFlag_,

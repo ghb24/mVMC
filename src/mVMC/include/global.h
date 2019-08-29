@@ -14,10 +14,10 @@ the Free Software Foundation, either version 3 of the License, or
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details. 
+GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License 
-along with this program. If not, see http://www.gnu.org/licenses/. 
+You should have received a copy of the GNU General Public License
+along with this program. If not, see http://www.gnu.org/licenses/.
 */
 /*-------------------------------------------------------------
  * Variational Monte Carlo
@@ -79,7 +79,7 @@ int NSROptCGMaxIter; /* the number of maximum iterations in SR-CG method */
 double DSROptCGTol; /* the tolerance for SR-CG method */
 
 int NVMCWarmUp; /* Monte Carlo steps for warming up */
-int NVMCInterval; /* sampling interval [MCS] */ 
+int NVMCInterval; /* sampling interval [MCS] */
 int NVMCSample; /* the number of samples */
 int NExUpdatePath; /* update by exchange hopping  0: off, 1: on */
 
@@ -150,6 +150,7 @@ int *GPWPower; /* [NGPWTrnLat] power for full GPW kernel */
 int *GPWCutRad; /* [NGPWTrnLat] cutoff radius for full GPW kernel */
 double *GPWTheta0; /* [NGPWTrnLat] theta0 parameter for full GPW kernel */
 double *GPWThetaC; /* [NGPWTrnLat] thetac parameter for full GPW kernel */
+double *GPWNorm; /* [NGPWTrnLat] norm for full GPW kernel */
 int *GPWTRSym; /* [NGPWTrnLat] whether kernel should respect time reversal symmetry (=1) or not (=0) */
 int *GPWShift; /* [NGPWTrnLat] whether kernel should respect translational
                   symmetry (=0: no symmetry, =1: symmetry only on first lattice,
@@ -157,6 +158,8 @@ int *GPWShift; /* [NGPWTrnLat] whether kernel should respect translational
 int *GPWPlaquetteSizes; /* number of sites in the cutoff range (without central site) for each training lattice */
 int **GPWSysPlaquetteIdx; /* site ids to visit in evaluation of kernel function in system lattice*/
 int **GPWTrnPlaquetteIdx; /* site ids to visit in evaluation of kernel function in training lattice*/
+int ***GPWSysPlaqHash; /* hash table to store the indices inside the plaquette where the site is the hash and the ids in GPWSysPlaquetteIdx the value*/
+int **GPWSysPlaqHashSz; /* number of elements in each hash table */
 int **GPWDistList; /* associated distances with the site ids */
 int **GPWKernWorkspace;
 int RBMNVisibleIdx; /* Number of different variational parameters associated with the visible layer in the RBM */
@@ -242,6 +245,8 @@ int *EleSpn;     /* EleIdx[sample][mi+si*Ne] */ //fsz
 int *EleProjBFCnt; /* EleProjCnt[sample][proj] */
 //[e] MERGE BY TM
 double *EleGPWKern; /* EleGPWKernel[sample][NGPWIdx], stores the kernel for the electron configuration */
+int *EleGPWDelta; /* EleGPWDelta[sample*Trncfgs*Nsite*Nsite*2+trncfg*Nsite*Nsite*2 + symId*Nsite*Nsite + nsiteA*Nsite + nsiteA], stores the calculated delta matrix for the kernel evaluation */
+double *EleGPWInSum; /* EleGPWInSum[sample*Trncfgs*Nsite*Nsite+trncfg*Nsite*Nsite + nsite*Nsite + nsite2], stores the calculated inner sum for the kernel evaluation */
 double *logSqPfFullSlater; /* logSqPfFullSlater[sample] */
 //double complex *SmpSltElmBF; /* logSqPfFullSlater[sample] */
 double *SmpSltElmBF_real; /* logSqPfFullSlater[sample] */
@@ -256,8 +261,10 @@ int *TmpEleProjCnt;
 //[s] MERGE BY TM
 int *TmpEleSpn;
 int *TmpEleProjBFCnt;
-double *TmpEleGPWKern;
 //[e] MERGE BY TM
+double *TmpEleGPWKern;
+int *TmpEleGPWDelta;
+double *TmpEleGPWInSum;
 
 int *BurnEleIdx;
 int *BurnEleCfg;
@@ -265,6 +272,8 @@ int *BurnEleNum;
 int *BurnEleProjCnt;
 int *BurnEleSpn;
 double *BurnEleGPWKern;
+int *BurnEleGPWDelta;
+double *BurnEleGPWInSum;
 int BurnFlag=0; /* 0: off, 1: on */
 
 /***** Slater Elements ******/

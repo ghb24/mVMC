@@ -14,10 +14,10 @@ the Free Software Foundation, either version 3 of the License, or
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details. 
+GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License 
-along with this program. If not, see http://www.gnu.org/licenses/. 
+You should have received a copy of the GNU General Public License
+along with this program. If not, see http://www.gnu.org/licenses/.
 */
 /*-------------------------------------------------------------
  * Variational Monte Carlo
@@ -34,7 +34,7 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 #ifndef _SRC_SETMEMORY
 #define _SRC_SETMEMORY
 
-void SetMemoryDef() {  
+void SetMemoryDef() {
   int i, j;
   int *pInt;
   double *pDouble;
@@ -220,9 +220,12 @@ void SetMemoryDef() {
   GPWPlaquetteSizes = pInt;
   pInt += NGPWTrnLat;
 
-  GPWSysPlaquetteIdx = (int**)malloc(sizeof(int*)*3*NGPWTrnLat);
+  GPWSysPlaquetteIdx = (int**)malloc(sizeof(int*)*4*NGPWTrnLat);
   GPWTrnPlaquetteIdx = GPWSysPlaquetteIdx + NGPWTrnLat;
   GPWDistList = GPWTrnPlaquetteIdx + NGPWTrnLat;
+  GPWSysPlaqHashSz = GPWDistList + NGPWTrnLat;
+
+  GPWSysPlaqHash = (int***)malloc(sizeof(int**)*NGPWTrnLat);
 
   GPWKernWorkspace = (int**)malloc(sizeof(int*)*omp_get_max_threads());
   for (i = 0; i < omp_get_max_threads(); i++) {
@@ -275,11 +278,11 @@ void SetMemoryDef() {
 
   ParaExchangeCoupling = pDouble;
   pDouble +=  NExchangeCoupling;
-  
+
 //  ParaQPTrans = pDouble;
 //  pDouble +=  NQPTrans;
 
-  
+
   ParaQPOptTrans = pDouble;
   pDouble += NQPOptTrans;
 
@@ -287,6 +290,9 @@ void SetMemoryDef() {
   pDouble += NGPWTrnLat;
 
   GPWThetaC = pDouble;
+  pDouble += NGPWTrnLat;
+
+  GPWNorm = pDouble;
   pDouble += NGPWTrnLat;
 
   // intitialise theta0 with default value
@@ -320,12 +326,14 @@ void FreeMemoryDef() {
   free(GPWKernWorkspace);
 
   for (i = 0; i < NGPWTrnLat; i++) {
+    FreeMemPlaquetteHash(Nsite, GPWSysPlaqHash[i], GPWSysPlaqHashSz[i]);
     FreeMemPlaquetteIdx(GPWSysPlaquetteIdx[i], GPWTrnPlaquetteIdx[i],
                         GPWDistList[i]);
   }
 
   free(ParaTransfer);
   free(RBMWeightMatrIdx);
+  free(GPWSysPlaqHash);
   free(GPWSysPlaquetteIdx);
   free(GPWTrnCfg);
 
@@ -377,6 +385,8 @@ void SetMemory() {
   EleProjBFCnt = (int*)malloc(sizeof(int)*( NVMCSample*4*4*Nsite*Nrange));
 //[e] MERGE BY TM
   EleGPWKern        = (double*)malloc(sizeof(double)*(NVMCSample*NGPWIdx));
+  EleGPWDelta        = (int*)malloc(sizeof(int)*(NVMCSample*Nsite*GPWTrnCfgSz));
+  EleGPWInSum        = (double*)malloc(sizeof(double)*(NVMCSample*GPWTrnCfgSz*Nsite));
   logSqPfFullSlater = (double*)malloc(sizeof(double)*(NVMCSample));
   SmpSltElmBF_real = (double *)malloc(sizeof(double)*(NVMCSample*NQPFull*(2*Nsite)*(2*Nsite)));
   SmpEta = (double*)malloc(sizeof(double*)*NVMCSample*NQPFull*Nsite*Nsite);
@@ -391,6 +401,8 @@ void SetMemory() {
   TmpEleProjBFCnt = TmpEleProjCnt + NProj;
 //[e] MERGE BY TM
   TmpEleGPWKern     = (double*)malloc(sizeof(double)*NGPWIdx);
+  TmpEleGPWDelta     = (int*)malloc(sizeof(double)*Nsite*GPWTrnCfgSz);
+  TmpEleGPWInSum     = (double*)malloc(sizeof(double)*GPWTrnCfgSz*Nsite);
 
   BurnEleIdx        = (int*)malloc(sizeof(int)*(2*Ne+2*Nsite+2*Nsite+NProj+2*Ne)); //fsz
   BurnEleCfg        = BurnEleIdx + 2*Ne;
@@ -398,6 +410,8 @@ void SetMemory() {
   BurnEleProjCnt    = BurnEleNum + 2*Nsite;
   BurnEleSpn        = BurnEleProjCnt + NProj; //fsz
   BurnEleGPWKern     = (double*)malloc(sizeof(double)*NGPWIdx);
+  BurnEleGPWDelta     = (int*)malloc(sizeof(double)*Nsite*GPWTrnCfgSz);
+  BurnEleGPWInSum     = (double*)malloc(sizeof(double)*GPWTrnCfgSz*Nsite);
 
   /***** Slater Elements ******/
   SlaterElm = (double complex*)malloc( sizeof(double complex)*(NQPFull*(2*Nsite)*(2*Nsite)) );
@@ -464,7 +478,7 @@ void SetMemory() {
     }
 
     SROptData = (double complex*)malloc( sizeof(double complex)*(NSROptItrSmp*(2+NPara)) );
-    
+
     if(RealEvolve==1){
       PhysCisAjs  = (double complex*)malloc(sizeof(double complex)
                     *(NCisAjs+NCisAjsCktAlt+NCisAjsCktAltDC+NCisAjs));
@@ -569,11 +583,17 @@ void FreeMemory() {
   free(InvM);
   free(SlaterElm);
 
+  free(BurnEleGPWInSum);
+  free(BurnEleGPWDelta);
   free(BurnEleGPWKern);
   free(BurnEleIdx);
+  free(TmpEleGPWInSum);
+  free(TmpEleGPWDelta);
   free(TmpEleGPWKern);
   free(TmpEleIdx);
   free(logSqPfFullSlater);
+  free(EleGPWInSum);
+  free(EleGPWDelta);
   free(EleGPWKern);
   free(EleProjCnt);
   free(EleIdx);

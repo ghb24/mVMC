@@ -40,24 +40,30 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 #include "projection.h"
 
 double complex calculateHK(const double complex h1, const double complex ip, int *eleIdx, int *eleCfg,
-                   int *eleNum, int *eleProjCnt, double *eleGPWKern);
+                   int *eleNum, int *eleProjCnt, double *eleGPWKern, int *eleGPWDelta,
+                   double *eleGPWInSum);
 double complex calculateHW(const double complex h1, const double complex ip, int *eleIdx, int *eleCfg,
-                   int *eleNum, int *eleProjCnt, double *eleGPWKern);
+                   int *eleNum, int *eleProjCnt, double *eleGPWKern, int *eleGPWDelta,
+                   double *eleGPWInSum);
 
 double complex calHCA(const int ri, const int rj, const int s,
               const double complex h1, const double complex ip, int *eleIdx, int *eleCfg,
-              int *eleNum, int *eleProjCnt, double *eleGPWKern);
+              int *eleNum, int *eleProjCnt, double *eleGPWKern, int *eleGPWDelta,
+              double *eleGPWInSum);
 double complex calHCACA(const int ri, const int rj, const int rk, const int rl,
                 const int si,const int sk,
                 const double complex h1, const double complex ip, int *eleIdx, int *eleCfg,
-                int *eleNum, int *eleProjCnt, double *eleGPWKern);
+                int *eleNum, int *eleProjCnt, double *eleGPWKern, int *eleGPWDelta,
+                double *eleGPWInSum);
 
 double complex checkGF1(const int ri, const int rj, const int s, const double complex ip,
                 int *eleIdx, const int *eleCfg, int *eleNum);
 double complex calHCA1(const int ri, const int rj, const int s,
-               const double complex ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double *eleGPWKern);
+               const double complex ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
+               double *eleGPWKern, int *eleGPWDelta, double *eleGPWInSum);
 double complex calHCA2(const int ri, const int rj, const int s,
-               const double complex ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double *eleGPWKern);
+               const double complex ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
+               double *eleGPWKern, int *eleGPWDelta, double *eleGPWInSum);
 
 
 double complex checkGF2(const int ri, const int rj, const int rk, const int rl,
@@ -66,23 +72,28 @@ double complex checkGF2(const int ri, const int rj, const int rk, const int rl,
 double complex calHCACA1(const int ri, const int rj, const int rk, const int rl,
                  const int si,const int sk,
                  const double complex ip, int *eleIdx, int *eleCfg,
-                 int *eleNum, int *eleProjCnt, double *eleGPWKern);
+                 int *eleNum, int *eleProjCnt, double *eleGPWKern, int *eleGPWDelta,
+                 double *eleGPWInSum);
 double complex calHCACA2(const int ri, const int rj, const int rk, const int rl,
                  const int si,const int sk,
-                 const double complex ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double *eleGPWKern);
+                 const double complex ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
+                 double *eleGPWKern, int *eleGPWDelta, double *eleGPWInSum);
 
 void copyMAll(double complex *invM_from, double complex *pfM_from, double complex *invM_to, double complex *pfM_to);
 
 /* Calculate <psi|QQ|x>/<psi|x> */
-void LSLocalQ(const double complex h1, const double complex ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double *eleGPWKern, double complex *_LSLQ)
+void LSLocalQ(const double complex h1, const double complex ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
+              double *eleGPWKern, int *eleGPWDelta, double *eleGPWInSum, double complex *_LSLQ)
 {
   double complex e0,h2;
 
   e0 = CalculateHamiltonian0(eleNum); /* V */
 
   h2 = h1*e0; /* HV = (V+K+W)V */
-  h2 += calculateHK(h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
-  h2 += calculateHW(h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
+  h2 += calculateHK(h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt, eleGPWKern,
+                    eleGPWDelta, eleGPWInSum);
+  h2 += calculateHW(h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt, eleGPWKern,
+                    eleGPWDelta, eleGPWInSum);
 
   /* calculate local Q (IQ) */
   _LSLQ[0] = 1.0; /* I */
@@ -96,7 +107,8 @@ void LSLocalQ(const double complex h1, const double complex ip, int *eleIdx, int
 }
 
 /* Calculate <psi|QCisAjs|x>/<psi|x> */
-void LSLocalCisAjs(const double complex h1, const double complex ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double *eleGPWKern) {
+void LSLocalCisAjs(const double complex h1, const double complex ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
+                   double *eleGPWKern, int *eleGPWDelta, double *eleGPWInSum) {
   const int nCisAjs=NCisAjs;
   double complex*lsLCisAjs = LSLCisAjs;
   double complex*localCisAjs = LocalCisAjs;
@@ -115,13 +127,15 @@ void LSLocalCisAjs(const double complex h1, const double complex ip, int *eleIdx
     s  = CisAjsIdx[idx][3];
 
     /* calculate local HCisAjs */
-    LSLCisAjs[idx+nCisAjs] = calHCA(ri,rj,s,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
+    LSLCisAjs[idx+nCisAjs] = calHCA(ri,rj,s,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt, eleGPWKern,
+                                    eleGPWDelta, eleGPWInSum);
   }
   return;
 }
 
 double complex calculateHK(const double complex h1, const double complex ip, int *eleIdx, int *eleCfg,
-                   int *eleNum, int *eleProjCnt, double *eleGPWKern) {
+                   int *eleNum, int *eleProjCnt, double *eleGPWKern,
+                   int *eleGPWDelta, double *eleGPWInSum) {
   int idx,ri,rj,s;
   double complex val=0.0;
 
@@ -130,7 +144,8 @@ double complex calculateHK(const double complex h1, const double complex ip, int
     rj = Transfer[idx][2];
     s  = Transfer[idx][3];
 
-    val -= ParaTransfer[idx] * calHCA(ri,rj,s,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
+    val -= ParaTransfer[idx] * calHCA(ri,rj,s,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt, eleGPWKern,
+                                      eleGPWDelta, eleGPWInSum);
     /* Caution: negative sign */
   }
 
@@ -138,7 +153,8 @@ double complex calculateHK(const double complex h1, const double complex ip, int
 }
 
 double complex calculateHW(const double complex h1, const double complex ip, int *eleIdx, int *eleCfg,
-                   int *eleNum, int *eleProjCnt, double *eleGPWKern) {
+                   int *eleNum, int *eleProjCnt, double *eleGPWKern,
+                   int *eleGPWDelta, double *eleGPWInSum) {
   int idx,ri,rj,s,rk,rl,t;
   double complex val=0.0,tmp;
 
@@ -148,7 +164,8 @@ double complex calculateHW(const double complex h1, const double complex ip, int
     rj = PairHopping[idx][1];
 
     val += ParaPairHopping[idx]
-      * calHCACA(ri,rj,ri,rj,0,1,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
+      * calHCACA(ri,rj,ri,rj,0,1,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt, eleGPWKern,
+                 eleGPWDelta, eleGPWInSum);
   }
 
   /* Exchange Coupling */
@@ -156,8 +173,10 @@ double complex calculateHW(const double complex h1, const double complex ip, int
     ri = ExchangeCoupling[idx][0];
     rj = ExchangeCoupling[idx][1];
 
-    tmp =  calHCACA(ri,rj,rj,ri,0,1,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
-    tmp += calHCACA(ri,rj,rj,ri,1,0,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
+    tmp =  calHCACA(ri,rj,rj,ri,0,1,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt, eleGPWKern,
+                    eleGPWDelta, eleGPWInSum);
+    tmp += calHCACA(ri,rj,rj,ri,1,0,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt, eleGPWKern,
+                    eleGPWDelta, eleGPWInSum);
     val += ParaExchangeCoupling[idx] * tmp;
   }
 
@@ -171,7 +190,8 @@ double complex calculateHW(const double complex h1, const double complex ip, int
     t  = InterAll[idx][7];
 
     val += ParaInterAll[idx]
-      * calHCACA(ri,rj,rk,rl,s,t,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
+      * calHCACA(ri,rj,rk,rl,s,t,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt, eleGPWKern,
+                 eleGPWDelta, eleGPWInSum);
   }
 
   return val;
@@ -180,7 +200,8 @@ double complex calculateHW(const double complex h1, const double complex ip, int
 /* calculate <psi| H C_is A_js |x>/<psi|x> */
 double complex calHCA(const int ri, const int rj, const int s,
               const double complex h1, const double complex ip, int *eleIdx, int *eleCfg,
-              int *eleNum, int *eleProjCnt, double *eleGPWKern) {
+              int *eleNum, int *eleProjCnt, double *eleGPWKern,
+              int *eleGPWDelta, double *eleGPWInSum) {
   int rsi=ri+s*Nsite;
   int rsj=rj+s*Nsite;
   double complex val;
@@ -197,9 +218,11 @@ double complex calHCA(const int ri, const int rj, const int s,
 
   g = checkGF1(ri,rj,s,ip/RBMVal(eleNum),eleIdx,eleCfg,eleNum);
   if(cabs(g)>1.0e-12) {
-    val = calHCA1(ri,rj,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
+    val = calHCA1(ri,rj,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt, eleGPWKern,
+                  eleGPWDelta, eleGPWInSum);
   } else {
-    val = calHCA2(ri,rj,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
+    val = calHCA2(ri,rj,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt, eleGPWKern,
+                  eleGPWDelta, eleGPWInSum);
   }
 
   return val;
@@ -241,23 +264,26 @@ double complex checkGF1(const int ri, const int rj, const int s, const double co
 /* calculate <psi| H C_is A_js |x>/<psi|x> = <psi|x'>/<psi|x> * <psi|H|x'>/<psi|x'> */
 double complex calHCA1(const int ri, const int rj, const int s,
                const double complex ip, int *eleIdx, int *eleCfg,
-               int *eleNum, int *eleProjCnt, double *eleGPWKern) {
+               int *eleNum, int *eleProjCnt, double *eleGPWKern,
+               int *eleGPWDelta, double *eleGPWInSum) {
   complex double *oldInvM; /* [NQPFull*Nsize*Nsize;] */
   complex double *oldPfM;  /* [NQPFull] */
-  int *projCntNew;
-  double *eleGPWKernNew;
+  int *projCntNew, *eleGPWDeltaNew;
+  double *eleGPWKernNew, *eleGPWInSumNew;
 
   int rsi=ri+s*Nsite;
   int rsj=rj+s*Nsite;
   int mj;
   double complex ipNew,z,e;
 
-  RequestWorkSpaceInt(NProj);
-  RequestWorkSpaceDouble(NGPWIdx);
+  RequestWorkSpaceInt(NProj+Nsite*GPWTrnCfgSz);
+  RequestWorkSpaceDouble(NGPWIdx+GPWTrnCfgSz*Nsite);
   RequestWorkSpaceComplex(NQPFull*(Nsize*Nsize+1));
 
   projCntNew = GetWorkSpaceInt(NProj);
   eleGPWKernNew = GetWorkSpaceDouble(NGPWIdx);
+  eleGPWDeltaNew = GetWorkSpaceInt(Nsite*GPWTrnCfgSz);
+  eleGPWInSumNew = GetWorkSpaceDouble(GPWTrnCfgSz*Nsite);
   oldInvM = GetWorkSpaceComplex(NQPFull*Nsize*Nsize);
   oldPfM  = GetWorkSpaceComplex(NQPFull);
 
@@ -275,7 +301,8 @@ double complex calHCA1(const int ri, const int rj, const int s,
   UpdateProjCnt(rj, ri, s, projCntNew, eleProjCnt, eleNum);
   z = ProjRatio(projCntNew,eleProjCnt);
 
-  UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWKern, eleNum);
+  UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
+                eleGPWKern, eleGPWDelta, eleGPWInSum, eleNum);
   z *= GPWRatio(eleGPWKernNew,eleGPWKern);
 
   if (UseOrbital) {
@@ -287,7 +314,9 @@ double complex calHCA1(const int ri, const int rj, const int s,
   }
   ipNew *= RBMVal(eleNum);
 
-  e = CalculateHamiltonian(ipNew,eleIdx,eleCfg,eleNum,projCntNew,eleGPWKernNew);
+  e = CalculateHamiltonian(ipNew,eleIdx,eleCfg,eleNum,projCntNew,
+                           eleGPWKernNew, eleGPWDeltaNew,
+                           eleGPWInSumNew);
 
   /* revert hopping */
   eleIdx[mj+s*Ne] = rj;
@@ -309,7 +338,8 @@ double complex calHCA1(const int ri, const int rj, const int s,
 /* Assuming ri!=rj, eleNum[rsi]=1, eleNum[rsj]=0 */
 double complex calHCA2(const int ri, const int rj, const int s,
                const double complex ip, int *eleIdx, int *eleCfg,
-               int *eleNum, int *eleProjCnt, double *eleGPWKern) {
+               int *eleNum, int *eleProjCnt, double *eleGPWKern,
+               int *eleGPWDelta, double *eleGPWInSum) {
   const int nsize=Nsize;
   const int nsite2=Nsite2;
 
@@ -322,29 +352,33 @@ double complex calHCA2(const int ri, const int rj, const int s,
   double complex g;
 
   double complex *buffer;
-  double *eleGPWKernNew;
-  int *bufferInt;
+  double *eleGPWKernNew, *eleGPWInSumNew;
+  int *bufferInt, *eleGPWDeltaNew;
 
-  int *myEleIdx, *myEleNum, *myBufferInt, *myRsi, *myRsj;
-  double *myGPWKernNew;
+  int *myEleIdx, *myEleNum, *myBufferInt, *myRsi, *myRsj, *myGPWDeltaNew;
+  double *myGPWKernNew, *myGPWInSumNew;
   double complex *myBuffer;
   double complex myValue=0;
   double complex v=0.0;
 
-  RequestWorkSpaceInt(NProj);      /* for GreenFunc1 */
-  RequestWorkSpaceDouble(NGPWIdx);      /* for GreenFunc1 */
+  RequestWorkSpaceInt(NProj+Nsite*GPWTrnCfgSz);      /* for GreenFunc1 */
+  RequestWorkSpaceDouble(NGPWIdx+GPWTrnCfgSz*Nsite);      /* for GreenFunc1 */
   RequestWorkSpaceComplex(NQPFull); /* for GreenFunc1 */
-  RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj+6);
-  RequestWorkSpaceThreadDouble(NGPWIdx);
+  RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj+6+Nsite*GPWTrnCfgSz);
+  RequestWorkSpaceThreadDouble(NGPWIdx+GPWTrnCfgSz*Nsite);
   RequestWorkSpaceThreadComplex(NQPFull+3*Nsize);
 
   bufferInt = GetWorkSpaceInt(NProj);
   eleGPWKernNew = GetWorkSpaceDouble(NGPWIdx);
+  eleGPWDeltaNew = GetWorkSpaceInt(Nsite*GPWTrnCfgSz);
+  eleGPWInSumNew = GetWorkSpaceDouble(GPWTrnCfgSz*Nsite);
   buffer = GetWorkSpaceComplex(NQPFull);
 
   /* H0 term */
   /* <psi|H0 CA|x>/<psi|x> = H0(x') <psi|CA|x>/<psi|x> */
-  g = GreenFunc1(ri,rj,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt,bufferInt,eleGPWKern,eleGPWKernNew,buffer);
+  g = GreenFunc1(ri,rj,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt,bufferInt,
+                 eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
+                 eleGPWKern, eleGPWDelta, eleGPWInSum, buffer);
 
   /* hopping */
   eleNum[rsi] = 1;
@@ -359,13 +393,15 @@ double complex calHCA2(const int ri, const int rj, const int s,
   /* end of H0 term */
 
 #pragma omp parallel default(shared)\
-  private(myEleIdx,myEleNum,myBufferInt,myGPWKernNew,myBuffer,myValue,myRsi,myRsj)  \
+  private(myEleIdx,myEleNum,myBufferInt,myGPWKernNew,myGPWDeltaNew,myGPWInSumNew,myBuffer,myValue,myRsi,myRsj)  \
   reduction(+:v)
   {
     myEleIdx = GetWorkSpaceThreadInt(Nsize);
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myBufferInt = GetWorkSpaceThreadInt(NProj);
     myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
+    myGPWDeltaNew = GetWorkSpaceThreadInt(Nsite*GPWTrnCfgSz);
+    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWTrnCfgSz*Nsite);
     myRsi = GetWorkSpaceThreadInt(3);
     myRsj = GetWorkSpaceThreadInt(3);
     myBuffer = GetWorkSpaceThreadComplex(NQPFull+3*Nsize);
@@ -385,7 +421,10 @@ double complex calHCA2(const int ri, const int rj, const int s,
       sk = Transfer[idx][3];
 
       myValue -= ParaTransfer[idx]
-        * GreenFunc2(rk,rl,ri,rj,sk,s,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myBufferInt,eleGPWKern,myGPWKernNew,myBuffer);
+        * GreenFunc2(rk,rl,ri,rj,sk,s,ip,myEleIdx,eleCfg,myEleNum,
+                     eleProjCnt, myBufferInt, eleGPWKern, eleGPWDelta,
+                     eleGPWInSum, myGPWKernNew, myGPWDeltaNew,
+                     myGPWInSumNew, myBuffer);
       /* Caution: negative sign */
     }
 
@@ -402,7 +441,10 @@ double complex calHCA2(const int ri, const int rj, const int s,
       myRsj[2] = rsj;
 
       myValue += ParaPairHopping[idx]
-        * GreenFuncN(3,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,eleGPWKern,myGPWKernNew,myBuffer,myBufferInt);
+        * GreenFuncN(3,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,
+                     eleProjCnt, eleGPWKern, eleGPWDelta,
+                     eleGPWInSum, myGPWKernNew, myGPWDeltaNew,
+                     myGPWInSumNew, myBuffer, myBufferInt);
     }
 
     /* Exchange Coupling */
@@ -417,7 +459,10 @@ double complex calHCA2(const int ri, const int rj, const int s,
       myRsi[2] = rsi;
       myRsj[2] = rsj;
       myValue += ParaExchangeCoupling[idx]
-        * GreenFuncN(3,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,eleGPWKern,myGPWKernNew,myBuffer,myBufferInt);
+        * GreenFuncN(3,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,
+                     eleProjCnt, eleGPWKern, eleGPWDelta,
+                     eleGPWInSum, myGPWKernNew, myGPWDeltaNew,
+                     myGPWInSumNew, myBuffer, myBufferInt);
 
       myRsi[0] = rk+Nsite; /* s=1 */
       myRsj[0] = rl+Nsite; /* s=1 */
@@ -426,7 +471,10 @@ double complex calHCA2(const int ri, const int rj, const int s,
       myRsi[2] = rsi;
       myRsj[2] = rsj;
       myValue += ParaExchangeCoupling[idx]
-        * GreenFuncN(3,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,eleGPWKern,myGPWKernNew,myBuffer,myBufferInt);
+        * GreenFuncN(3,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,
+                     eleProjCnt, eleGPWKern, eleGPWDelta,
+                     eleGPWInSum, myGPWKernNew, myGPWDeltaNew,
+                     myGPWInSumNew, myBuffer, myBufferInt);
     }
 
     /* Inter All */
@@ -439,7 +487,10 @@ double complex calHCA2(const int ri, const int rj, const int s,
       myRsi[2] = rsi;
       myRsj[2] = rsj;
       myValue += ParaInterAll[idx]
-        * GreenFuncN(3,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,eleGPWKern,myGPWKernNew,myBuffer,myBufferInt);
+        * GreenFuncN(3,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,
+                     eleProjCnt, eleGPWKern, eleGPWDelta,
+                     eleGPWInSum, myGPWKernNew, myGPWDeltaNew,
+                     myGPWInSumNew, myBuffer, myBufferInt);
     }
 
     v += myValue;
@@ -459,7 +510,8 @@ double complex calHCA2(const int ri, const int rj, const int s,
 double complex calHCACA(const int ri, const int rj, const int rk, const int rl,
                 const int si,const int sk,
                 const double complex h1, const double complex ip, int *eleIdx, int *eleCfg,
-                int *eleNum, int *eleProjCnt, double *eleGPWKern) {
+                int *eleNum, int *eleProjCnt, double *eleGPWKern,
+                int *eleGPWDelta, double *eleGPWInSum) {
   int rsi=ri+si*Nsite;
   int rsj=rj+si*Nsite;
   int rsk=rk+sk*Nsite;
@@ -471,24 +523,28 @@ double complex calHCACA(const int ri, const int rj, const int rk, const int rl,
   /* check */
   if(rsk==rsl) {
     if(eleNum[rsk]==1) {
-      return calHCA(ri,rj,si,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
+      return calHCA(ri,rj,si,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,
+                    eleGPWKern, eleGPWDelta, eleGPWInSum);
     } else return 0;
   } else if(rsj==rsk) {
     if(eleNum[rsj]==1) return 0;
     else {
-      return calHCA(ri,rl,si,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
+      return calHCA(ri,rl,si,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,
+                    eleGPWKern, eleGPWDelta, eleGPWInSum);
     }
   } else if(rsj==rsl) {
     return 0;
   } else if(rsi==rsj) {
     if(eleNum[rsi]==1) {
-      return calHCA(rk,rl,sk,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
+      return calHCA(rk,rl,sk,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,
+                    eleGPWKern, eleGPWDelta, eleGPWInSum);
     } else return 0;
   } else if(rsi==rsk) {
     return 0;
   } else if(rsi==rsl) {
     if(eleNum[rsi]==1) {
-      return -calHCA(rk,rj,sk,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
+      return -calHCA(rk,rj,sk,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,
+                     eleGPWKern, eleGPWDelta, eleGPWInSum);
     } else return 0;
   } else {
     if(eleNum[rsl]==0) return 0.0;
@@ -499,9 +555,11 @@ double complex calHCACA(const int ri, const int rj, const int rk, const int rl,
 
   g = checkGF2(ri,rj,rk,rl,si,sk,ip/RBMVal(eleNum),eleIdx,eleCfg,eleNum);
   if(cabs(g)>1.0e-12) {
-    val = calHCACA1(ri,rj,rk,rl,si,sk,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
+    val = calHCACA1(ri,rj,rk,rl,si,sk,ip,eleIdx,eleCfg,eleNum,eleProjCnt,
+                    eleGPWKern, eleGPWDelta, eleGPWInSum);
   } else {
-    val = calHCACA2(ri,rj,rk,rl,si,sk,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
+    val = calHCACA2(ri,rj,rk,rl,si,sk,ip,eleIdx,eleCfg,eleNum,eleProjCnt,
+                    eleGPWKern, eleGPWDelta, eleGPWInSum);
   }
 
   return val;
@@ -563,11 +621,12 @@ double complex checkGF2(const int ri, const int rj, const int rk, const int rl,
 double complex calHCACA1(const int ri, const int rj, const int rk, const int rl,
                  const int si,const int sk,
                  const double complex ip, int *eleIdx, int *eleCfg,
-                 int *eleNum, int *eleProjCnt, double *eleGPWKern) {
+                 int *eleNum, int *eleProjCnt, double *eleGPWKern,
+                 int *eleGPWDelta, double *eleGPWInSum) {
   double complex *oldInvM; /* [NQPFull*Nsize*Nsize;] */
   double complex *oldPfM;  /* [NQPFull] */
-  int *projCntNew;
-  double *eleGPWKernNew;
+  int *projCntNew, *eleGPWDeltaNew;;
+  double *eleGPWKernNew, *eleGPWInSumNew;
 
   int rsi=ri+si*Nsite;
   int rsj=rj+si*Nsite;
@@ -576,12 +635,14 @@ double complex calHCACA1(const int ri, const int rj, const int rk, const int rl,
   int mj,ml;
   double complex ipNew,z,e;
 
-  RequestWorkSpaceInt(NProj);
-  RequestWorkSpaceDouble(NGPWIdx);
+  RequestWorkSpaceInt(NProj+Nsite*GPWTrnCfgSz);
+  RequestWorkSpaceDouble(NGPWIdx+GPWTrnCfgSz*Nsite);
   RequestWorkSpaceComplex(NQPFull*(Nsize*Nsize+1));
 
   projCntNew = GetWorkSpaceInt(NProj);
   eleGPWKernNew = GetWorkSpaceDouble(NGPWIdx);
+  eleGPWDeltaNew = GetWorkSpaceInt(Nsite*GPWTrnCfgSz);
+  eleGPWInSumNew = GetWorkSpaceDouble(GPWTrnCfgSz*Nsite);
   oldInvM = GetWorkSpaceComplex(NQPFull*Nsize*Nsize);
   oldPfM  = GetWorkSpaceComplex(NQPFull);
 
@@ -596,7 +657,8 @@ double complex calHCACA1(const int ri, const int rj, const int rk, const int rl,
   eleNum[rsl] = 0;
   eleNum[rsk] = 1;
   UpdateProjCnt(rl, rk, sk, projCntNew, eleProjCnt, eleNum);
-  UpdateGPWKern(rl, rk, eleGPWKernNew, eleGPWKern, eleNum);
+  UpdateGPWKern(rl, rk, eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
+                eleGPWKern, eleGPWDelta, eleGPWInSum, eleNum);
 
   /* The mj-th electron with spin si hops from rj to ri */
   mj = eleCfg[rsj];
@@ -606,7 +668,8 @@ double complex calHCACA1(const int ri, const int rj, const int rk, const int rl,
   eleNum[rsj] = 0;
   eleNum[rsi] = 1;
   UpdateProjCnt(rj, ri, si, projCntNew, projCntNew, eleNum);
-  UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWKernNew, eleNum);
+  UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
+                eleGPWKern, eleGPWDelta, eleGPWInSum, eleNum);
 
   z = ProjRatio(projCntNew,eleProjCnt);
   z *= GPWRatio(eleGPWKernNew,eleGPWKern);
@@ -620,7 +683,8 @@ double complex calHCACA1(const int ri, const int rj, const int rk, const int rl,
   }
   ipNew *= RBMVal(eleNum);
 
-  e = CalculateHamiltonian(ipNew,eleIdx,eleCfg,eleNum,projCntNew,eleGPWKernNew);
+  e = CalculateHamiltonian(ipNew,eleIdx,eleCfg,eleNum,projCntNew,
+                           eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew);
 
   /* revert hopping */
   eleIdx[mj+si*Ne] = rj;
@@ -648,7 +712,8 @@ double complex calHCACA1(const int ri, const int rj, const int rk, const int rl,
 /* Assuming ri,rj,rk,rl are different, eleNum[rsi]=1, eleNum[rsj]=0, eleNum[rsk]=1, eleNum[rsl]=0  */
 double complex calHCACA2(const int ri, const int rj, const int rk, const int rl,
                  const int si,const int sk,
-                 const double complex ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double *eleGPWKern) {
+                 const double complex ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
+                 double *eleGPWKern, int *eleGPWDelta, double *eleGPWInSum) {
   const int nsize=Nsize;
   const int nsite2=Nsite2;
 
@@ -663,30 +728,34 @@ double complex calHCACA2(const int ri, const int rj, const int rk, const int rl,
   double complex g;
 
   double complex *buffer;
-  int *bufferInt;
-  double *eleGPWKernNew;
+  int *bufferInt, *eleGPWDeltaNew;
+  double *eleGPWKernNew, *eleGPWInSumNew;
 
-  int *myEleIdx, *myEleNum, *myBufferInt, *myRsi, *myRsj;
-  double *myGPWKernNew;
+  int *myEleIdx, *myEleNum, *myBufferInt, *myRsi, *myRsj, *myGPWDeltaNew;
+  double *myGPWKernNew, *myGPWInSumNew;
   double complex *myBuffer;
   double complex myValue=0.0;
   double complex v=0.0;
 
-  RequestWorkSpaceInt(NProj);      /* for GreenFunc2 */
-  RequestWorkSpaceDouble(NGPWIdx);      /* for GreenFunc2 */
+  RequestWorkSpaceInt(NProj+Nsite*GPWTrnCfgSz);      /* for GreenFunc2 */
+  RequestWorkSpaceDouble(NGPWIdx+GPWTrnCfgSz*Nsite);      /* for GreenFunc2 */
   RequestWorkSpaceComplex(NQPFull+2*Nsize); /* for GreenFunc2 */
-  RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj+8);
-  RequestWorkSpaceThreadDouble(NGPWIdx);
+  RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj+8+Nsite*GPWTrnCfgSz);
+  RequestWorkSpaceThreadDouble(NGPWIdx+GPWTrnCfgSz*Nsite);
   RequestWorkSpaceThreadComplex(NQPFull+3*Nsize);
 
   bufferInt = GetWorkSpaceInt(NProj);
   eleGPWKernNew = GetWorkSpaceDouble(NGPWIdx);
+  eleGPWDeltaNew = GetWorkSpaceInt(Nsite*GPWTrnCfgSz);
+  eleGPWInSumNew = GetWorkSpaceDouble(GPWTrnCfgSz*Nsite);
   buffer = GetWorkSpaceComplex(NQPFull+2*Nsize);
 
   /* H0 term */
   /* <psi|H0 CACA|x>/<psi|x> = H0(x') <psi|CACA|x>/<psi|x> */
   g = GreenFunc2(ri,rj,rk,rl,si,sk,ip,
-                 eleIdx,eleCfg,eleNum,eleProjCnt,bufferInt,eleGPWKern,eleGPWKernNew,buffer);
+                 eleIdx,eleCfg,eleNum,eleProjCnt,bufferInt, eleGPWKern,
+                 eleGPWDelta, eleGPWInSum, eleGPWKernNew, eleGPWDeltaNew,
+                 eleGPWInSumNew, buffer);
 
   /* hopping */
   eleNum[rsi] = 1;
@@ -705,13 +774,15 @@ double complex calHCACA2(const int ri, const int rj, const int rk, const int rl,
   /* end of H0 term */
 
 #pragma omp parallel default(shared)\
-  private(myEleIdx,myEleNum,myBufferInt,myGPWKernNew,myBuffer,myValue,myRsi,myRsj)  \
+  private(myEleIdx,myEleNum,myBufferInt,myGPWKernNew,myGPWDeltaNew,myGPWInSumNew,myBuffer,myValue,myRsi,myRsj)  \
   reduction(+:v)
   {
     myEleIdx = GetWorkSpaceThreadInt(Nsize);
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myBufferInt = GetWorkSpaceThreadInt(NProj);
-    myGPWKernNew = GetWorkSpaceDouble(NGPWIdx);
+    myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
+    myGPWDeltaNew = GetWorkSpaceThreadInt(Nsite*GPWTrnCfgSz);
+    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWTrnCfgSz*Nsite);
     myRsi = GetWorkSpaceThreadInt(4);
     myRsj = GetWorkSpaceThreadInt(4);
     myBuffer = GetWorkSpaceThreadComplex(NQPFull+4*Nsize);
@@ -734,7 +805,10 @@ double complex calHCACA2(const int ri, const int rj, const int rk, const int rl,
       myRsj[2] = rsl;
 
       myValue -= ParaTransfer[idx]
-        * GreenFuncN(3,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,eleGPWKern,myGPWKernNew,myBuffer,myBufferInt);
+        * GreenFuncN(3,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,
+                     eleGPWKern, eleGPWDelta, eleGPWInSum, eleGPWKernNew,
+                     eleGPWDeltaNew, eleGPWInSumNew, myBuffer,
+                     myBufferInt);
       /* Caution: negative sign */
     }
 
@@ -753,7 +827,10 @@ double complex calHCACA2(const int ri, const int rj, const int rk, const int rl,
       myRsj[3] = rsl;
 
       myValue += ParaPairHopping[idx]
-        * GreenFuncN(4,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,eleGPWKern,myGPWKernNew,myBuffer,myBufferInt);
+        * GreenFuncN(4,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,
+                     eleGPWKern, eleGPWDelta, eleGPWInSum, myGPWKernNew,
+                     myGPWDeltaNew, myGPWInSumNew, myBuffer,
+                     myBufferInt);
     }
 
     /* Exchange Coupling */
@@ -770,7 +847,10 @@ double complex calHCACA2(const int ri, const int rj, const int rk, const int rl,
       myRsi[3] = rsk;
       myRsj[3] = rsl;
       myValue += ParaExchangeCoupling[idx]
-        * GreenFuncN(4,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,eleGPWKern,myGPWKernNew,myBuffer,myBufferInt);
+        * GreenFuncN(4,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,
+                     eleGPWKern, eleGPWDelta, eleGPWInSum, myGPWKernNew,
+                     myGPWDeltaNew, myGPWInSumNew, myBuffer,
+                     myBufferInt);
 
       myRsi[0] = r0+Nsite; /* s=1 */
       myRsj[0] = r1+Nsite; /* s=1 */
@@ -781,7 +861,10 @@ double complex calHCACA2(const int ri, const int rj, const int rk, const int rl,
       myRsi[3] = rsk;
       myRsj[3] = rsl;
       myValue += ParaExchangeCoupling[idx]
-        * GreenFuncN(4,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,eleGPWKern,myGPWKernNew,myBuffer,myBufferInt);
+        * GreenFuncN(4,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,
+                     eleGPWKern, eleGPWDelta, eleGPWInSum, myGPWKernNew,
+                     myGPWDeltaNew, myGPWInSumNew, myBuffer,
+                     myBufferInt);
     }
 
     /* Inter All */
@@ -796,7 +879,10 @@ double complex calHCACA2(const int ri, const int rj, const int rk, const int rl,
       myRsi[3] = rsk;
       myRsj[3] = rsl;
       myValue += ParaInterAll[idx]
-        * GreenFuncN(4,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,eleGPWKern,myGPWKernNew,myBuffer,myBufferInt);
+        * GreenFuncN(4,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,
+                     eleGPWKern, eleGPWDelta, eleGPWInSum, myGPWKernNew,
+                     myGPWDeltaNew, myGPWInSumNew, myBuffer,
+                     myBufferInt);
     }
 
     v += myValue;

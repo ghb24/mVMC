@@ -48,6 +48,8 @@ void VMCMakeSample_real(MPI_Comm comm) {
   double logIpOld, logIpNew; /* logarithm of inner product <phi|L|x> */ // is this ok ? TBC
   int projCntNew[NProj];
   double eleGPWKernNew[NGPWIdx];
+  int eleGPWDeltaNew[Nsite*GPWTrnCfgSz];
+  double eleGPWInSumNew[GPWTrnCfgSz*Nsite];
   double complex rbmValOld, rbmValNew; /* value of the RBM projector */
   double pfMNew_real[NQPFull];
   double x, w; // TBC x will be complex number
@@ -64,9 +66,9 @@ void VMCMakeSample_real(MPI_Comm comm) {
   StartTimer(30);
   if (BurnFlag == 0) {
     makeInitialSample(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt,
-                      TmpEleGPWKern, qpStart, qpEnd, comm);
+                      TmpEleGPWKern, TmpEleGPWDelta, TmpEleGPWInSum, qpStart, qpEnd, comm);
   } else {
-    copyFromBurnSample(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, TmpEleGPWKern);
+    copyFromBurnSample(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, TmpEleGPWKern, TmpEleGPWDelta, TmpEleGPWInSum);
   }
 
   if (UseOrbital) {
@@ -76,7 +78,8 @@ void VMCMakeSample_real(MPI_Comm comm) {
     if (!isfinite(logIpOld)) {
       if (rank == 0) fprintf(stderr, "warning: VMCMakeSample remakeSample logIpOld=%e\n", creal(logIpOld)); //TBC
       makeInitialSample(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt,
-                        TmpEleGPWKern, qpStart, qpEnd, comm);
+                        TmpEleGPWKern, TmpEleGPWDelta, TmpEleGPWInSum,
+                        qpStart, qpEnd, comm);
       CalculateMAll_real(TmpEleIdx, qpStart, qpEnd);
       //printf("DEBUG: maker2: PfM=%lf\n",creal(PfM[0]));
       logIpOld = CalculateLogIP_real(PfM_real, qpStart, qpEnd, comm);
@@ -111,7 +114,8 @@ void VMCMakeSample_real(MPI_Comm comm) {
         /* The mi-th electron with spin s hops to site rj */
         updateEleConfig(mi, ri, rj, s, TmpEleIdx, TmpEleCfg, TmpEleNum);
         UpdateProjCnt(ri, rj, s, projCntNew, TmpEleProjCnt, TmpEleNum);
-        UpdateGPWKern(ri, rj, eleGPWKernNew, TmpEleGPWKern, TmpEleNum);
+        UpdateGPWKern(ri, rj, eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
+                      TmpEleGPWKern, TmpEleGPWDelta, TmpEleGPWInSum, TmpEleNum);
         StopTimer(60);
         if (UseOrbital) {
           StartTimer(61);
@@ -155,6 +159,8 @@ void VMCMakeSample_real(MPI_Comm comm) {
 
           for (i = 0; i < NProj; i++) TmpEleProjCnt[i] = projCntNew[i];
           for (i = 0; i < NGPWIdx; i++) TmpEleGPWKern[i] = eleGPWKernNew[i];
+          for (i = 0; i < Nsite*GPWTrnCfgSz;i ++) TmpEleGPWDelta[i] = eleGPWDeltaNew[i];
+          for (i = 0; i < GPWTrnCfgSz*Nsite; i++) TmpEleGPWInSum[i] = eleGPWInSumNew[i];
           logIpOld = logIpNew;
           rbmValOld = rbmValNew;
           nAccept++;
@@ -184,11 +190,11 @@ void VMCMakeSample_real(MPI_Comm comm) {
         /* The mi-th electron with spin s hops to rj */
         updateEleConfig(mi, ri, rj, s, TmpEleIdx, TmpEleCfg, TmpEleNum);
         UpdateProjCnt(ri, rj, s, projCntNew, TmpEleProjCnt, TmpEleNum);
-        UpdateGPWKern(ri, rj, eleGPWKernNew, TmpEleGPWKern, TmpEleNum);
         /* The mj-th electron with spin t hops to ri */
         updateEleConfig(mj, rj, ri, t, TmpEleIdx, TmpEleCfg, TmpEleNum);
         UpdateProjCnt(rj, ri, t, projCntNew, projCntNew, TmpEleNum);
-        UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWKernNew, TmpEleNum);
+        UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
+                      TmpEleGPWKern, TmpEleGPWDelta, TmpEleGPWInSum, TmpEleNum);
 
         StopTimer(65);
         if (UseOrbital) {
@@ -226,6 +232,8 @@ void VMCMakeSample_real(MPI_Comm comm) {
 
           for (i = 0; i < NProj; i++) TmpEleProjCnt[i] = projCntNew[i];
           for (i = 0; i < NGPWIdx; i++) TmpEleGPWKern[i] = eleGPWKernNew[i];
+          for(i = 0; i < Nsite*GPWTrnCfgSz; i++) TmpEleGPWDelta[i] = eleGPWDeltaNew[i];
+          for(i = 0; i < GPWTrnCfgSz*Nsite; i++) TmpEleGPWInSum[i] = eleGPWInSumNew[i];
           logIpOld = logIpNew;
           rbmValOld = rbmValNew;
           nAccept++;
@@ -254,19 +262,22 @@ void VMCMakeSample_real(MPI_Comm comm) {
     /* save Electron Configuration */
     if (outStep >= nOutStep - NVMCSample) {
       sample = outStep - (nOutStep - NVMCSample);
-      saveEleConfig(sample, logIpOld, rbmValOld, TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, TmpEleGPWKern);
+      saveEleConfig(sample, logIpOld, rbmValOld, TmpEleIdx, TmpEleCfg, TmpEleNum,
+                    TmpEleProjCnt, TmpEleGPWKern, TmpEleGPWDelta, TmpEleGPWInSum);
     }
     StopTimer(35);
 
   } /* end of outstep */
 
-  copyToBurnSample(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, TmpEleGPWKern);
+  copyToBurnSample(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, TmpEleGPWKern,
+                   TmpEleGPWDelta, TmpEleGPWInSum);
   BurnFlag = 1;
   return;
 }
 
 int makeInitialSample_real(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                           const int qpStart, const int qpEnd, MPI_Comm comm) {
+                           int *eleGPWDelta, double *eleGPWInSum, const int qpStart, const int qpEnd,
+                           MPI_Comm comm) {
   const int nsize = Nsize;
   const int nsite2 = Nsite2;
   int flag = 1, flagRdc, loop = 0;
@@ -315,7 +326,7 @@ int makeInitialSample_real(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCn
     }
 
     MakeProjCnt(eleProjCnt, eleNum);
-    CalculateGPWKern(eleGPWKern, eleNum);
+    CalculateGPWKern(eleGPWKern, eleGPWDelta, eleGPWInSum, eleNum);
 
     if (UseOrbital) {
       flag = CalculateMAll_real(eleIdx, qpStart, qpEnd);

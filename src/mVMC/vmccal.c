@@ -69,8 +69,8 @@ void calculateQCACAQ_real(double *qcacaq, const double *lslca, const double w,
                           int **cacaIdx);
 
 void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
-  int *eleIdx,*eleCfg,*eleNum,*eleProjCnt;
-  double *eleGPWKern;
+  int *eleIdx,*eleCfg,*eleNum,*eleProjCnt,*eleGPWDelta;
+  double *eleGPWKern, *eleGPWInSum;
   double complex innerSum, differential;
   double complex e,ip, amp;
   double w;
@@ -129,6 +129,8 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
     eleNum = EleNum + sample*Nsite2;
     eleProjCnt = EleProjCnt + sample*NProj;
     eleGPWKern = EleGPWKern + sample*NGPWIdx;
+    eleGPWDelta = EleGPWDelta + sample*Nsite*GPWTrnCfgSz;
+    eleGPWInSum = EleGPWInSum + sample*GPWTrnCfgSz*Nsite;
 
     StartTimer(40);
 #ifdef _DEBUG_VMCCAL
@@ -185,12 +187,12 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
 #ifdef _DEBUG_VMCCAL
       printf("  Debug: sample=%d: calculateHam_real \n",sample);
 #endif
-      e = CalculateHamiltonian_real(creal(ip),eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
+      e = CalculateHamiltonian_real(creal(ip),eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern,eleGPWDelta,eleGPWInSum);
     }else{
 #ifdef _DEBUG_VMCCAL
       printf("  Debug: sample=%d: calculateHam_cmp \n",sample);
 #endif
-      e = CalculateHamiltonian(ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
+      e = CalculateHamiltonian(ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern,eleGPWDelta,eleGPWInSum);
     }
     //printf("MDEBUG: %lf %lf \n",creal(e),cimag(e));
     StopTimer(41);
@@ -348,7 +350,7 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
       }
 
       //below needs to extended for cases where NLanczosMode>1
-      if(RealEvolve==1) CalculateGreenFunc(w,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
+      if(RealEvolve==1) CalculateGreenFunc(w,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern,eleGPWDelta,eleGPWInSum);
       StopTimer(43);
 
     } else if(NVMCCalMode==1) {
@@ -357,7 +359,7 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
 #ifdef _DEBUG_VMCCAL
       fprintf(stdout, "Debug: Start: CalcGreenFunc\n");
 #endif
-      CalculateGreenFunc(w,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
+      CalculateGreenFunc(w,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern,eleGPWDelta,eleGPWInSum);
       StopTimer(42);
 
       if(NLanczosMode>0){
@@ -368,10 +370,10 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
         /* Calculate local QQQQ */
         StartTimer(43);
         if(AllComplexFlag==0) {
-          LSLocalQ_real(creal(e),creal(ip),eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern, LSLQ_real);
+          LSLocalQ_real(creal(e),creal(ip),eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern,eleGPWDelta,eleGPWInSum, LSLQ_real);
           calculateQQQQ_real(QQQQ_real,LSLQ_real,w,NLSHam);
         }else{
-          LSLocalQ(e,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern, LSLQ);
+          LSLocalQ(e,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern,eleGPWDelta,eleGPWInSum, LSLQ);
           calculateQQQQ(QQQQ,LSLQ,w,NLSHam);
         }
         StopTimer(43);
@@ -382,14 +384,14 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
           StartTimer(44);
           if(AllComplexFlag==0) {
 
-            LSLocalCisAjs_real(creal(e),creal(ip),eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
+            LSLocalCisAjs_real(creal(e),creal(ip),eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern,eleGPWDelta,eleGPWInSum);
             calculateQCAQ_real(QCisAjsQ_real,LSLCisAjs_real,LSLQ_real,w,NLSHam,NCisAjs);
             calculateQCACAQ_real(QCisAjsCktAltQ_real,LSLCisAjs_real,w,NLSHam,NCisAjs,
                             NCisAjsCktAltDC, CisAjsCktAltLzIdx);
 
           }
           else{
-            LSLocalCisAjs(e,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern);
+            LSLocalCisAjs(e,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern,eleGPWDelta,eleGPWInSum);
             calculateQCAQ(QCisAjsQ,LSLCisAjs,LSLQ,w,NLSHam,NCisAjs);
             calculateQCACAQ(QCisAjsCktAltQ,LSLCisAjs,w,NLSHam,NCisAjs,
                             NCisAjsCktAltDC,CisAjsCktAltLzIdx);
@@ -433,7 +435,8 @@ void VMC_BF_MainCal(MPI_Comm comm) {
   double complex *InvM_Moto, *PfM_Moto;
 //  double *InvM_real_Moto, *PfM_real_Moto;
 
-  double *eleGPWKern; // Dummy variable, backflow is not supported.
+  double *eleGPWKern, *eleGPWInSum; // Dummy variables, backflow is not supported.
+  int *eleGPWDelta; // Dummy variables, backflow is not supported.
 
   /* optimazation for Kei */
   const int nProj = NProj;
@@ -613,10 +616,10 @@ for(i=0;i<nProj;i++) srOptO[i+1] = (double)(eleProjCnt[i]);
         /* Calculate local QQQQ */
         StartTimer(43);
         if (AllComplexFlag == 0) {
-          LSLocalQ_real(creal(e), creal(ip), eleIdx, eleCfg, eleNum, eleProjCnt, eleGPWKern, LSLQ_real);
+          LSLocalQ_real(creal(e), creal(ip), eleIdx, eleCfg, eleNum, eleProjCnt, eleGPWKern, eleGPWDelta, eleGPWInSum, LSLQ_real);
           calculateQQQQ_real(QQQQ_real, LSLQ_real, w, NLSHam);
         } else {
-          LSLocalQ(e, ip, eleIdx, eleCfg, eleNum, eleProjCnt, eleGPWKern, LSLQ);
+          LSLocalQ(e, ip, eleIdx, eleCfg, eleNum, eleProjCnt, eleGPWKern, eleGPWDelta, eleGPWInSum, LSLQ);
           calculateQQQQ(QQQQ, LSLQ, w, NLSHam);
           return;
         }
@@ -625,12 +628,12 @@ for(i=0;i<nProj;i++) srOptO[i+1] = (double)(eleProjCnt[i]);
           /* Calculate local QcisAjsQ */
           StartTimer(44);
           if (AllComplexFlag == 0) {
-            LSLocalCisAjs_real(creal(e), creal(ip), eleIdx, eleCfg, eleNum, eleProjCnt, eleGPWKern);
+            LSLocalCisAjs_real(creal(e), creal(ip), eleIdx, eleCfg, eleNum, eleProjCnt, eleGPWKern, eleGPWDelta, eleGPWInSum);
             calculateQCAQ_real(QCisAjsQ_real, LSLCisAjs_real, LSLQ_real, w, NLSHam, NCisAjs);
             calculateQCACAQ_real(QCisAjsCktAltQ_real, LSLCisAjs_real, w, NLSHam, NCisAjs,
                 NCisAjsCktAltDC, CisAjsCktAltLzIdx);
           } else {
-            LSLocalCisAjs(e, ip, eleIdx, eleCfg, eleNum, eleProjCnt, eleGPWKern);
+            LSLocalCisAjs(e, ip, eleIdx, eleCfg, eleNum, eleProjCnt, eleGPWKern, eleGPWDelta, eleGPWInSum);
             calculateQCAQ(QCisAjsQ, LSLCisAjs, LSLQ, w, NLSHam, NCisAjs);
             calculateQCACAQ(QCisAjsCktAltQ, LSLCisAjs, w, NLSHam, NCisAjs,
                 NCisAjsCktAltDC, CisAjsCktAltLzIdx);

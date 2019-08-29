@@ -29,8 +29,8 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler);
 
 void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
-  int *eleIdx,*eleCfg,*eleNum,*eleProjCnt,*eleSpn; //fsz
-  double *eleGPWKern;
+  int *eleIdx,*eleCfg,*eleNum,*eleProjCnt,*eleSpn,*eleGPWDelta; //fsz
+  double *eleGPWKern, *eleGPWInSum;
   double complex innerSum, differential;
   double complex e,ip, amp;
   double w;
@@ -89,6 +89,8 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
     eleNum = EleNum + sample*Nsite2;
     eleProjCnt = EleProjCnt + sample*NProj;
     eleGPWKern = EleGPWKern + sample*NGPWIdx;
+    eleGPWDelta = EleGPWDelta + sample*Nsite*GPWTrnCfgSz;
+    eleGPWInSum = EleGPWInSum + sample*GPWTrnCfgSz*Nsite;
     eleSpn     = EleSpn + sample*Nsize; //fsz
 
     StartTimer(40);
@@ -135,8 +137,8 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
 #ifdef _DEBUG_DETAIL
     printf("  Debug: sample=%d: calculateHam_cmp \n",sample);
 #endif
-    e  = CalculateHamiltonian_fsz(ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern,eleSpn);//fsz
-    Sz = CalculateSz_fsz(ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern,eleSpn);//fsz
+    e  = CalculateHamiltonian_fsz(ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern,eleGPWDelta,eleGPWInSum,eleSpn);//fsz
+    Sz = CalculateSz_fsz(ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern,eleGPWDelta,eleGPWInSum,eleSpn);//fsz
     //printf("MDEBUG: Sz=%lf \n",Sz);
     //printf("MDEBUG: e= %lf %lf ip= %lf %lf \n",creal(e),cimag(e),creal(ip),cimag(ip));
     StopTimer(41);
@@ -270,7 +272,7 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
     } else if(NVMCCalMode==1) {
       StartTimer(42);
       /* Calculate Green Function */
-      CalculateGreenFunc_fsz(w,ip,eleIdx,eleCfg,eleNum,eleSpn,eleProjCnt,eleGPWKern);
+      CalculateGreenFunc_fsz(w,ip,eleIdx,eleCfg,eleNum,eleSpn,eleProjCnt,eleGPWKern,eleGPWDelta,eleGPWInSum);
       StopTimer(42);
 
       if(NLanczosMode>0){

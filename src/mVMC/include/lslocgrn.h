@@ -3,9 +3,11 @@
 #include <complex.h>
 #include "global.h"
 
-void LSLocalQ(const double complex h1, const double complex ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double *eleGPWKern, double complex* _LSLocalQ);
+void LSLocalQ(const double complex h1, const double complex ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
+              double *eleGPWKern, int *eleGPWDelta, double *eleGPWInSum, double complex *_LSLQ);
 
-void LSLocalCisAjs(const double complex h1, const double complex ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double *eleGPWKern);
+void LSLocalCisAjs(const double complex h1, const double complex ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
+                   double *eleGPWKern, int *eleGPWDelta, double *eleGPWInSum);
 
 
 #endif

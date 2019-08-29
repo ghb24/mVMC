@@ -3,15 +3,24 @@
 
 double GreenFunc1_real(const int ri, const int rj, const int s, const double ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,
-                  int *projCntNew, const double *eleGPWKern, double *eleGPWKernNew, double *buffer);
+                  int *projCntNew, const double *eleGPWKern, const int *eleGPWDelta,
+                  const double *eleGPWInSum, double *eleGPWKernNew,
+                  int *eleGPWDeltaNew, double *eleGPWInSumNew,
+                  double *buffer);
 double GreenFunc2_real(const int ri, const int rj, const int rk, const int rl,
                   const int s, const int t, const double  ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,
-                  int *projCntNew, const double *eleGPWKern, double *eleGPWKernNew, double *buffer);
+                  int *projCntNew, const double *eleGPWKern, const int *eleGPWDelta,
+                  const double *eleGPWInSum, double *eleGPWKernNew,
+                  int *eleGPWDeltaNew, double *eleGPWInSumNew,
+                  double *buffer);
 
-double GreenFuncN_real(const int n, int *rsi, int *rsj, const double ip,
+double GreenFuncN_real(const int n, int *rsi, int *rsj, const double  ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,
-                  const double *eleGPWKern, double *eleGPWKernNew, double *buffer, int *bufferInt);
+                  const double *eleGPWKern, const int *eleGPWDelta,
+                  const double *eleGPWInSum, double *eleGPWKernNew,
+                  int *eleGPWDeltaNew, double *eleGPWInSumNew,
+                  double *buffer, int *bufferInt);
 
 double GreenFunc1BF_real(const int ri, const int rj, const int s, const double ip, double *bufM,
                     int *eleIdx, int *eleCfg, int *eleNum, const int *eleProjCnt,

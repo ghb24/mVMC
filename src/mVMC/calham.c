@@ -30,9 +30,11 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 #pragma once
 
 double complex CalculateHamiltonian1(const double complex ip, int *eleIdx, const int *eleCfg,
-                             int *eleNum, const int *eleProjCnt, const double *eleGPWKern);
+                             int *eleNum, const int *eleProjCnt, const double *eleGPWKern,
+                             int *eleGPWDelta, double *eleGPWInSum);
 double complex CalculateHamiltonian2(const double complex ip, int *eleIdx, const int *eleCfg,
-                             int *eleNum, const int *eleProjCnt, const double *eleGPWKern);
+                             int *eleNum, const int *eleProjCnt, const double *eleGPWKern,
+                             int *eleGPWDelta, double *eleGPWInSum);
 
 double CalculateDoubleOccupation(int *eleIdx, const int *eleCfg,
                                  int *eleNum, const int *eleProjCnt) {
@@ -57,19 +59,20 @@ double CalculateDoubleOccupation(int *eleIdx, const int *eleCfg,
 }
 
 double complex CalculateHamiltonian(const double complex ip, int *eleIdx, const int *eleCfg,
-                             int *eleNum, const int *eleProjCnt, const double *eleGPWKern) {
+                             int *eleNum, const int *eleProjCnt, const double *eleGPWKern,
+                             int *eleGPWDelta, double *eleGPWInSum) {
   const int *n0 = eleNum;
   const int *n1 = eleNum + Nsite;
   double complex e=0.0, tmp;
   int idx;
   int ri,rj,s,rk,rl,t;
-  int *myEleIdx, *myEleNum, *myProjCntNew;
-  double *myGPWKernNew;
+  int *myEleIdx, *myEleNum, *myProjCntNew, *myGPWDeltaNew;
+  double *myGPWKernNew, *myGPWInSumNew;
   double complex *myBuffer;
   double complex myEnergy;
 
-  RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj);
-  RequestWorkSpaceThreadDouble(NGPWIdx);
+  RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj+Nsite*GPWTrnCfgSz);
+  RequestWorkSpaceThreadDouble(NGPWIdx+GPWTrnCfgSz*Nsite);
   RequestWorkSpaceThreadComplex(NQPFull+2*Nsize);
   /* GreenFunc1: NQPFull, GreenFunc2: NQPFull+2*Nsize */
 
@@ -79,17 +82,19 @@ double complex CalculateHamiltonian(const double complex ip, int *eleIdx, const 
   reduction(+:e)
   */
 #pragma omp parallel default(none)                                      \
-  private(myEleIdx,myEleNum,myProjCntNew,myGPWKernNew,myBuffer,myEnergy, idx, ri, rj, rk, rl, s, t) \
-  firstprivate(Nsize, Nsite2, NProj, NGPWIdx, NQPFull, NCoulombIntra, CoulombIntra, ParaCoulombIntra, \
+  private(myEleIdx,myEleNum,myProjCntNew,myGPWKernNew,myGPWDeltaNew,myGPWInSumNew,myBuffer,myEnergy, idx, ri, rj, rk, rl, s, t) \
+  firstprivate(Nsize, Nsite, Nsite2, NProj, NGPWIdx, GPWTrnCfgSz, NQPFull, NCoulombIntra, CoulombIntra, ParaCoulombIntra, \
                NCoulombInter, CoulombInter, ParaCoulombInter, NHundCoupling, HundCoupling, ParaHundCoupling, \
                NTransfer, Transfer, ParaTransfer, NPairHopping, PairHopping, ParaPairHopping, \
                NExchangeCoupling, ExchangeCoupling, ParaExchangeCoupling, NInterAll, InterAll, ParaInterAll, n0, n1) \
-  shared(eleCfg, eleProjCnt, eleGPWKern, eleIdx, eleNum) reduction(+:e)
+  shared(eleCfg, eleProjCnt, eleGPWKern, eleGPWDelta, eleGPWInSum, eleIdx, eleNum) reduction(+:e)
   {
     myEleIdx = GetWorkSpaceThreadInt(Nsize);
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myProjCntNew = GetWorkSpaceThreadInt(NProj);
     myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
+    myGPWDeltaNew = GetWorkSpaceThreadInt(Nsite*GPWTrnCfgSz);
+    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWTrnCfgSz*Nsite);
     myBuffer = GetWorkSpaceThreadComplex(NQPFull+2*Nsize);
 
     #pragma loop noalias
@@ -138,7 +143,10 @@ double complex CalculateHamiltonian(const double complex ip, int *eleIdx, const 
       s  = Transfer[idx][3];
 
       myEnergy -= ParaTransfer[idx]
-        * GreenFunc1(ri,rj,s,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
+        * GreenFunc1(ri,rj,s,ip,myEleIdx,eleCfg,myEleNum,
+                     eleProjCnt,myProjCntNew,eleGPWKern,
+                     eleGPWDelta,eleGPWInSum,myGPWKernNew,
+                     myGPWDeltaNew,myGPWInSumNew,myBuffer);
       /* Caution: negative sign */
     }
 
@@ -152,7 +160,10 @@ double complex CalculateHamiltonian(const double complex ip, int *eleIdx, const 
       rj = PairHopping[idx][1];
 
       myEnergy += ParaPairHopping[idx]
-        * GreenFunc2(ri,rj,ri,rj,0,1,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
+        * GreenFunc2(ri,rj,ri,rj,0,1,ip,myEleIdx,eleCfg,myEleNum,
+                     eleProjCnt,myProjCntNew,eleGPWKern,
+                     eleGPWDelta,eleGPWInSum,myGPWKernNew,
+                     myGPWDeltaNew,myGPWInSumNew,myBuffer);
     }
 
     /* Exchange Coupling */
@@ -161,8 +172,14 @@ double complex CalculateHamiltonian(const double complex ip, int *eleIdx, const 
       ri = ExchangeCoupling[idx][0];
       rj = ExchangeCoupling[idx][1];
 
-      tmp =  GreenFunc2(ri,rj,rj,ri,0,1,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
-      tmp += GreenFunc2(ri,rj,rj,ri,1,0,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
+      tmp =  GreenFunc2(ri,rj,rj,ri,0,1,ip,myEleIdx,eleCfg,myEleNum,
+                        eleProjCnt,myProjCntNew,eleGPWKern,
+                        eleGPWDelta,eleGPWInSum,myGPWKernNew,
+                        myGPWDeltaNew,myGPWInSumNew,myBuffer);
+      tmp += GreenFunc2(ri,rj,rj,ri,1,0,ip,myEleIdx,eleCfg,myEleNum,
+                        eleProjCnt,myProjCntNew,eleGPWKern,
+                        eleGPWDelta,eleGPWInSum,myGPWKernNew,
+                        myGPWDeltaNew,myGPWInSumNew,myBuffer);
       myEnergy += ParaExchangeCoupling[idx] * tmp;
     }
 
@@ -177,7 +194,10 @@ double complex CalculateHamiltonian(const double complex ip, int *eleIdx, const 
       t  = InterAll[idx][7];
 
       myEnergy += ParaInterAll[idx]
-        * GreenFunc2(ri,rj,rk,rl,s,t,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
+        * GreenFunc2(ri,rj,rk,rl,s,t,ip,myEleIdx,eleCfg,myEleNum,
+                     eleProjCnt,myProjCntNew,eleGPWKern,
+                     eleGPWDelta,eleGPWInSum,myGPWKernNew,
+                     myGPWDeltaNew,myGPWInSumNew,myBuffer);
     }
 
     #pragma omp master
@@ -242,28 +262,31 @@ double complex CalculateHamiltonian0(const int *eleNum) {
 /* which can be calculated by 1-body Green function. */
 /* This function will be used in the Lanczos mode */
 double complex CalculateHamiltonian1(const double complex ip, int *eleIdx, const int *eleCfg,
-                             int *eleNum, const int *eleProjCnt, const double *eleGPWKern) {
+                             int *eleNum, const int *eleProjCnt, const double *eleGPWKern,
+                             int *eleGPWDelta, double *eleGPWInSum) {
   double complex e=0.0;
   int idx;
   int ri,rj,s;
-  int *myEleIdx, *myEleNum, *myProjCntNew;
-  double *myGPWKernNew;
+  int *myEleIdx, *myEleNum, *myProjCntNew, *myGPWDeltaNew;
+  double *myGPWKernNew, *myGPWInSumNew;
   double complex *myBuffer;
   double complex myEnergy;
 
-  RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj);
-  RequestWorkSpaceThreadDouble(NGPWIdx);
+  RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj+Nsite*GPWTrnCfgSz);
+  RequestWorkSpaceThreadDouble(NGPWIdx+GPWTrnCfgSz*Nsite);
   RequestWorkSpaceThreadComplex(NQPFull);
   /* GreenFunc1: NQPFull */
 
 #pragma omp parallel default(shared)\
-  private(myEleIdx,myEleNum,myProjCntNew,myGPWKernNew,myBuffer,myEnergy,idx)  \
+  private(myEleIdx,myEleNum,myProjCntNew,myGPWKernNew,myGPWDeltaNew,myGPWInSumNew,myBuffer,myEnergy,idx)  \
   reduction(+:e)
   {
     myEleIdx = GetWorkSpaceThreadInt(Nsize);
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myProjCntNew = GetWorkSpaceThreadInt(NProj);
     myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
+    myGPWDeltaNew = GetWorkSpaceThreadInt(Nsite*GPWTrnCfgSz);
+    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWTrnCfgSz*Nsite);
     myBuffer = GetWorkSpaceThreadComplex(NQPFull);
 
     #pragma loop noalias
@@ -281,7 +304,10 @@ double complex CalculateHamiltonian1(const double complex ip, int *eleIdx, const
       s  = Transfer[idx][3];
 
       myEnergy -= ParaTransfer[idx]
-        * GreenFunc1(ri,rj,s,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
+        * GreenFunc1(ri,rj,s,ip,myEleIdx,eleCfg,myEleNum,
+                     eleProjCnt,myProjCntNew,eleGPWKern,
+                     eleGPWDelta,eleGPWInSum,myGPWKernNew,
+                     myGPWDeltaNew,myGPWInSumNew,myBuffer);
       /* Caution: negative sign */
     }
 
@@ -298,28 +324,31 @@ double complex CalculateHamiltonian1(const double complex ip, int *eleIdx, const
 /* which can be calculated by 2-body Green function. */
 /* This function will be used in the Lanczos mode */
 double complex CalculateHamiltonian2(const double complex ip, int *eleIdx, const int *eleCfg,
-                             int *eleNum, const int *eleProjCnt, const double *eleGPWKern) {
+                             int *eleNum, const int *eleProjCnt, const double *eleGPWKern,
+                             int *eleGPWDelta, double *eleGPWInSum) {
   double e=0.0, tmp;
   int idx;
   int ri,rj,s,rk,rl,t;
-  int *myEleIdx, *myEleNum, *myProjCntNew;
-  double *myGPWKernNew;
+  int *myEleIdx, *myEleNum, *myProjCntNew, *myGPWDeltaNew;
+  double *myGPWKernNew, *myGPWInSumNew;
   double complex *myBuffer;
   double complex myEnergy;
 
-  RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj);
-  RequestWorkSpaceThreadDouble(NGPWIdx);
+  RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj+Nsite*GPWTrnCfgSz);
+  RequestWorkSpaceThreadDouble(NGPWIdx+GPWTrnCfgSz*Nsite);
   RequestWorkSpaceThreadComplex(NQPFull+2*Nsize);
   /* GreenFunc2: NQPFull+2*Nsize */
 
 #pragma omp parallel default(shared)\
-  private(myEleIdx,myEleNum,myProjCntNew,myGPWKernNew,myBuffer,myEnergy,idx)  \
+  private(myEleIdx,myEleNum,myProjCntNew,myGPWKernNew,myGPWDeltaNew,myGPWInSumNew,myBuffer,myEnergy,idx)  \
   reduction(+:e)
   {
     myEleIdx = GetWorkSpaceThreadInt(Nsize);
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myProjCntNew = GetWorkSpaceThreadInt(NProj);
     myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
+    myGPWDeltaNew = GetWorkSpaceThreadInt(Nsite*GPWTrnCfgSz);
+    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWTrnCfgSz*Nsite);
     myBuffer = GetWorkSpaceThreadComplex(NQPFull+2*Nsize);
 
     #pragma loop noalias
@@ -336,8 +365,10 @@ double complex CalculateHamiltonian2(const double complex ip, int *eleIdx, const
       rj = PairHopping[idx][1];
 
       myEnergy += ParaPairHopping[idx]
-        * GreenFunc2(ri,rj,ri,rj,0,1,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,
-                     myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
+        * GreenFunc2(ri,rj,ri,rj,0,1,ip,myEleIdx,eleCfg,myEleNum,
+                     eleProjCnt,myProjCntNew,eleGPWKern,
+                     eleGPWDelta,eleGPWInSum,myGPWKernNew,
+                     myGPWDeltaNew,myGPWInSumNew,myBuffer);
     }
 
     /* Exchange Coupling */
@@ -346,10 +377,14 @@ double complex CalculateHamiltonian2(const double complex ip, int *eleIdx, const
       ri = ExchangeCoupling[idx][0];
       rj = ExchangeCoupling[idx][1];
 
-      tmp =  GreenFunc2(ri,rj,ri,rj,0,1,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,
-                        myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
-      tmp += GreenFunc2(ri,rj,ri,rj,0,1,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,
-                        myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
+      tmp =  GreenFunc2(ri,rj,ri,rj,0,1,ip,myEleIdx,eleCfg,myEleNum,
+                        eleProjCnt,myProjCntNew,eleGPWKern,
+                        eleGPWDelta,eleGPWInSum,myGPWKernNew,
+                        myGPWDeltaNew,myGPWInSumNew,myBuffer);
+      tmp += GreenFunc2(ri,rj,ri,rj,0,1,ip,myEleIdx,eleCfg,myEleNum,
+                        eleProjCnt,myProjCntNew,eleGPWKern,
+                        eleGPWDelta,eleGPWInSum,myGPWKernNew,
+                        myGPWDeltaNew,myGPWInSumNew,myBuffer);
       myEnergy += ParaExchangeCoupling[idx] * tmp;
     }
 
@@ -364,8 +399,10 @@ double complex CalculateHamiltonian2(const double complex ip, int *eleIdx, const
       t  = InterAll[idx][7];
 
       myEnergy += ParaInterAll[idx]
-        * GreenFunc2(ri,rj,ri,rj,0,1,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,
-                     myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
+        * GreenFunc2(ri,rj,ri,rj,0,1,ip,myEleIdx,eleCfg,myEleNum,
+                     eleProjCnt,myProjCntNew,eleGPWKern,
+                     eleGPWDelta,eleGPWInSum,myGPWKernNew,
+                     myGPWDeltaNew,myGPWInSumNew,myBuffer);
     }
 
     e += myEnergy;
@@ -391,7 +428,8 @@ double complex CalculateHamiltonianBF_fcmp(const double complex ip, int *eleIdx,
   double complex *myBuffer;
   double complex myEnergy;
 
-  double *eleGPWKern, *myGPWKernNew; // Dummy variables, backflow is not supported.
+  double *eleGPWKern, *myGPWKernNew, *eleGPWInSum, *myGPWInSumNew; // Dummy variables, backflow is not supported.
+  int *eleGPWDelta, *myGPWDeltaNew; // Dummy variables, backflow is not supported.
 
   RequestWorkSpaceThreadInt(Nsize+2*Nsite2+NProj+16*Nsite*Nrange);
   RequestWorkSpaceThreadComplex(NQPFull+2*Nsize+NQPFull*Nsite2*Nsite2);
@@ -475,7 +513,7 @@ double complex CalculateHamiltonianBF_fcmp(const double complex ip, int *eleIdx,
       rj = PairHopping[idx][1];
 
       myEnergy += ParaPairHopping[idx]
-                  * GreenFunc2(ri,rj,ri,rj,0,1,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
+                  * GreenFunc2(ri,rj,ri,rj,0,1,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,eleGPWKern,eleGPWDelta,eleGPWInSum,myGPWKernNew,myGPWDeltaNew,myGPWInSumNew,myBuffer);
     }
 
     /* Exchange Coupling */
@@ -484,8 +522,8 @@ double complex CalculateHamiltonianBF_fcmp(const double complex ip, int *eleIdx,
       ri = ExchangeCoupling[idx][0];
       rj = ExchangeCoupling[idx][1];
 
-      tmp =  GreenFunc2(ri,rj,rj,ri,0,1,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
-      tmp += GreenFunc2(ri,rj,rj,ri,1,0,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
+      tmp =  GreenFunc2(ri,rj,rj,ri,0,1,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,eleGPWKern,eleGPWDelta,eleGPWInSum,myGPWKernNew,myGPWDeltaNew,myGPWInSumNew,myBuffer);
+      tmp += GreenFunc2(ri,rj,rj,ri,1,0,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,eleGPWKern,eleGPWDelta,eleGPWInSum,myGPWKernNew,myGPWDeltaNew,myGPWInSumNew,myBuffer);
       myEnergy += ParaExchangeCoupling[idx] * tmp;
     }
 
@@ -499,7 +537,7 @@ double complex CalculateHamiltonianBF_fcmp(const double complex ip, int *eleIdx,
       rl = InterAll[idx][6];
       t  = InterAll[idx][7];
       myEnergy += ParaInterAll[idx]
-                  * GreenFunc2(ri,rj,rk,rl,s,t,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,eleGPWKern,myGPWKernNew,myBuffer);
+                  * GreenFunc2(ri,rj,rk,rl,s,t,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myProjCntNew,eleGPWKern,eleGPWDelta,eleGPWInSum,myGPWKernNew,myGPWDeltaNew,myGPWInSumNew,myBuffer);
     }
 
 #pragma omp master

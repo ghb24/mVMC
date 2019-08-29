@@ -39,7 +39,9 @@ double complex calculateNewPfMN_child(const int qpidx, const int n, const int *m
 /* buffer size = NQPFull */
 double complex GreenFunc1(const int ri, const int rj, const int s, const double complex  ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,
-                  int *projCntNew, const double *eleGPWKern, double *eleGPWKernNew, double complex *buffer) {
+                  int *projCntNew, const double *eleGPWKern, const int *eleGPWDelta,
+                  const double *eleGPWInSum, double *eleGPWKernNew, int *eleGPWDeltaNew,
+                  double *eleGPWInSumNew, double complex *buffer) {
   double complex z;
   int mj,msj,rsi,rsj;
   double complex *pfMNew = buffer; /* NQPFull */
@@ -58,7 +60,8 @@ double complex GreenFunc1(const int ri, const int rj, const int s, const double 
   eleNum[rsi] = 1;
   UpdateProjCnt(rj, ri, s, projCntNew, eleProjCnt, eleNum);
   z = ProjRatio(projCntNew,eleProjCnt);
-  UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWKern, eleNum);
+  UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
+                eleGPWKern, eleGPWDelta, eleGPWInSum, eleNum);
   z *= GPWRatio(eleGPWKernNew,eleGPWKern);
   z *= RBMVal(eleNum);
 
@@ -81,7 +84,9 @@ double complex GreenFunc1(const int ri, const int rj, const int s, const double 
 double complex GreenFunc2(const int ri, const int rj, const int rk, const int rl,
                   const int s, const int t, const double complex ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,
-                  int *projCntNew, const double *eleGPWKern, double *eleGPWKernNew, double complex *buffer) {
+                  int *projCntNew, const double *eleGPWKern, const int *eleGPWDelta,
+                  const double *eleGPWInSum, double *eleGPWKernNew, int *eleGPWDeltaNew,
+                  double *eleGPWInSumNew, double complex *buffer) {
   double complex z;
   int mj,msj,ml,mtl;
   int rsi,rsj,rtk,rtl;
@@ -97,36 +102,48 @@ double complex GreenFunc2(const int ri, const int rj, const int rk, const int rl
     if(rk==rl) { /* CisAjsNks */
       if(eleNum[rtk]==0) return 0.0;
       else return GreenFunc1(ri,rj,s,ip,eleIdx,eleCfg,eleNum,
-                             eleProjCnt,projCntNew,eleGPWKern,eleGPWKernNew,buffer); /* CisAjs */
+                             eleProjCnt,projCntNew, eleGPWKern, eleGPWDelta,
+                             eleGPWInSum, eleGPWKernNew, eleGPWDeltaNew,
+                             eleGPWInSumNew, buffer); /* CisAjs */
     }else if(rj==rl) {
       return 0.0; /* CisAjsCksAjs (j!=k) */
     }else if(ri==rl) { /* AjsCksNis */
       if(eleNum[rsi]==0) return 0.0;
       else if(rj==rk) return 1.0-eleNum[rsj];
       else return -GreenFunc1(rk,rj,s,ip,eleIdx,eleCfg,eleNum,
-                              eleProjCnt,projCntNew,eleGPWKern,eleGPWKernNew,buffer); /* -CksAjs */
+                              eleProjCnt,projCntNew, eleGPWKern, eleGPWDelta,
+                              eleGPWInSum, eleGPWKernNew, eleGPWDeltaNew,
+                              eleGPWInSumNew, buffer); /* -CksAjs */
     }else if(rj==rk) { /* CisAls(1-Njs) */
       if(eleNum[rsj]==1) return 0.0;
       else if(ri==rl) return eleNum[rsi];
       else return GreenFunc1(ri,rl,s,ip,eleIdx,eleCfg,eleNum,
-                             eleProjCnt,projCntNew,eleGPWKern,eleGPWKernNew,buffer); /* CisAls */
+                             eleProjCnt,projCntNew, eleGPWKern, eleGPWDelta,
+                             eleGPWInSum, eleGPWKernNew, eleGPWDeltaNew,
+                             eleGPWInSumNew, buffer); /* CisAls */
     }else if(ri==rk) {
       return 0.0; /* CisAjsCisAls (i!=j) */
     }else if(ri==rj) { /* NisCksAls (i!=k,l) */
       if(eleNum[rsi]==0) return 0.0;
       else return GreenFunc1(rk,rl,s,ip,eleIdx,eleCfg,eleNum,
-                             eleProjCnt,projCntNew,eleGPWKern,eleGPWKernNew,buffer); /* CksAls */
+                             eleProjCnt,projCntNew, eleGPWKern, eleGPWDelta,
+                             eleGPWInSum, eleGPWKernNew, eleGPWDeltaNew,
+                             eleGPWInSumNew, buffer); /* CksAls */
     }
   }else{
     if(rk==rl) { /* CisAjsNkt */
       if(eleNum[rtk]==0) return 0.0;
       else if(ri==rj) return eleNum[rsi];
       else return GreenFunc1(ri,rj,s,ip,eleIdx,eleCfg,eleNum,
-                             eleProjCnt,projCntNew,eleGPWKern,eleGPWKernNew,buffer); /* CisAjs */
+                             eleProjCnt,projCntNew, eleGPWKern, eleGPWDelta,
+                             eleGPWInSum, eleGPWKernNew, eleGPWDeltaNew,
+                             eleGPWInSumNew, buffer); /* CisAjs */
     }else if(ri==rj) { /* NisCktAlt */
       if(eleNum[rsi]==0) return 0.0;
       else return GreenFunc1(rk,rl,t,ip,eleIdx,eleCfg,eleNum,
-                             eleProjCnt,projCntNew,eleGPWKern,eleGPWKernNew,buffer); /* CktAlt */
+                             eleProjCnt,projCntNew, eleGPWKern, eleGPWDelta,
+                             eleGPWInSum, eleGPWKernNew, eleGPWDeltaNew,
+                             eleGPWInSumNew, buffer); /* CktAlt */
     }
   }
 
@@ -142,12 +159,14 @@ double complex GreenFunc2(const int ri, const int rj, const int rk, const int rl
   eleNum[rtl] = 0;
   eleNum[rtk] = 1;
   UpdateProjCnt(rl, rk, t, projCntNew, eleProjCnt, eleNum);
-  UpdateGPWKern(rl, rk, eleGPWKernNew, eleGPWKern, eleNum);
+  UpdateGPWKern(rl, rk, eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
+                eleGPWKern, eleGPWDelta, eleGPWInSum, eleNum);
   eleIdx[msj] = ri;
   eleNum[rsj] = 0;
   eleNum[rsi] = 1;
   UpdateProjCnt(rj, ri, s, projCntNew, projCntNew, eleNum);
-  UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWKernNew, eleNum);
+  UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
+                eleGPWKern, eleGPWDelta, eleGPWInSum, eleNum);
 
   z = ProjRatio(projCntNew,eleProjCnt);
   z *= GPWRatio(eleGPWKernNew,eleGPWKern);
@@ -183,7 +202,9 @@ double complex GreenFunc2(const int ri, const int rj, const int rk, const int rl
 
 double complex GreenFuncN(const int n, int *rsi, int *rsj, const double complex ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,
-                  const double *eleGPWKern, double *eleGPWKernNew, double complex *buffer, int *bufferInt){
+                  const double *eleGPWKern, const int *eleGPWDelta,
+                  const double *eleGPWInSum, double *eleGPWKernNew, int *eleGPWDeltaNew,
+                  double *eleGPWInSumNew, double complex *buffer, int *bufferInt){
   int ri,rj,rk,rl,si,sj,sk,mj;
   int k,l,m,rsk;
   double complex z,x;
@@ -206,7 +227,9 @@ double complex GreenFuncN(const int n, int *rsi, int *rsj, const double complex 
     ri = rsi[0]%Nsite;
     rj = rsj[0]%Nsite;
     si = rsi[0]/Nsite;
-    return GreenFunc1(ri,rj,si,ip,eleIdx,eleCfg,eleNum,eleProjCnt,projCntNew,eleGPWKern,eleGPWKernNew,buffer);
+    return GreenFunc1(ri,rj,si,ip,eleIdx,eleCfg,eleNum,eleProjCnt,projCntNew,
+                      eleGPWKern, eleGPWDelta, eleGPWInSum, eleGPWKernNew,
+                      eleGPWDeltaNew, eleGPWInSumNew, buffer);
   } else if(n==2) {
     ri = rsi[0]%Nsite;
     rj = rsj[0]%Nsite;
@@ -214,7 +237,9 @@ double complex GreenFuncN(const int n, int *rsi, int *rsj, const double complex 
     rk = rsi[1]%Nsite;
     rl = rsj[1]%Nsite;
     sk = rsi[1]/Nsite;
-    return GreenFunc2(ri,rj,rk,rl,si,sk,ip,eleIdx,eleCfg,eleNum,eleProjCnt,projCntNew,eleGPWKern,eleGPWKernNew,buffer);
+    return GreenFunc2(ri,rj,rk,rl,si,sk,ip,eleIdx,eleCfg,eleNum,eleProjCnt,
+                      projCntNew, eleGPWKern, eleGPWDelta, eleGPWInSum,
+                      eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew, buffer);
   }
 
   /* reduction */
@@ -229,7 +254,9 @@ double complex GreenFuncN(const int n, int *rsi, int *rsj, const double complex 
           rsi[m] = rsi[m+1];
           rsj[m] = rsj[m+1];
         }
-        return GreenFuncN(n-1,rsi,rsj,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern,eleGPWKernNew,buffer,bufferInt);
+        return GreenFuncN(n-1,rsi,rsj,ip,eleIdx,eleCfg,eleNum,eleProjCnt,
+                          eleGPWKern, eleGPWDelta, eleGPWInSum, eleGPWKernNew,
+                          eleGPWDeltaNew, eleGPWInSumNew, buffer, bufferInt);
       }
       /* rsj[k] == rsj[l] */
       if(rsk==rsj[l]) return 0;
@@ -245,7 +272,9 @@ double complex GreenFuncN(const int n, int *rsi, int *rsj, const double complex 
         rsi[m] = rsi[m+1];
         rsj[m] = rsj[m+1];
       }
-      return GreenFuncN(n-1,rsi,rsj,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern,eleGPWKernNew,buffer,bufferInt);
+      return GreenFuncN(n-1,rsi,rsj,ip,eleIdx,eleCfg,eleNum,eleProjCnt,
+                        eleGPWKern, eleGPWDelta, eleGPWInSum, eleGPWKernNew,
+                        eleGPWDeltaNew, eleGPWInSumNew, buffer, bufferInt);
     }
     for(l=k+1;l<n;l++) {
       /* rsi[k] == rsi[l] */
@@ -257,7 +286,9 @@ double complex GreenFuncN(const int n, int *rsi, int *rsj, const double complex 
           rsi[m] = rsi[m+1];
           rsj[m] = rsj[m+1];
         }
-        return (-1.0)*GreenFuncN(n-1,rsi,rsj,ip,eleIdx,eleCfg,eleNum,eleProjCnt,eleGPWKern,eleGPWKernNew,buffer,bufferInt);
+        return (-1.0)*GreenFuncN(n-1,rsi,rsj,ip,eleIdx,eleCfg,eleNum,eleProjCnt,
+                                 eleGPWKern, eleGPWDelta, eleGPWInSum, eleGPWKernNew,
+                                 eleGPWDeltaNew, eleGPWInSumNew, buffer, bufferInt);
       }
     }
     /* check electron number */
@@ -281,7 +312,7 @@ double complex GreenFuncN(const int n, int *rsi, int *rsj, const double complex 
   MakeProjCnt(projCntNew,eleNum);
   x = ProjRatio(projCntNew,eleProjCnt);
 
-  CalculateGPWKern(eleGPWKernNew,eleNum);
+  CalculateGPWKern(eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew ,eleNum);
   x *= GPWRatio(eleGPWKernNew,eleGPWKern);
   x *= RBMVal(eleNum);
 

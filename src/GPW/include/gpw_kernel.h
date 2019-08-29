@@ -26,6 +26,9 @@ void GPWKernel1Vec(const unsigned long *configsAUp, const unsigned long *configs
 void CalculatePairDelta(int *delta, const int *cfgA, const int sizeA,
                         const int *cfgB, const int sizeB);
 
+void CalculatePairDeltaFlipped(int *delta, const int *cfgA, const int sizeA,
+                               const int *cfgB, const int sizeB);
+
 // Sets up the index list for the two lattices
 int SetupPlaquetteIdx(const int rC, const int *neighboursA,
                       const int sizeA, const int *neighboursB,
@@ -36,7 +39,50 @@ int SetupPlaquetteIdx(const int rC, const int *neighboursA,
 void FreeMemPlaquetteIdx(int *plaquetteAIdx, int *plaquetteBIdx,
                          int *distList);
 
+// Sets up the hash tables for the fast update of the inSum matrix
+void SetupPlaquetteHash(const int sysSize, const int plaqSize,
+                        const int *plaqIdx, int ***plaqHash,
+                        int **plaqHashSz);
 
+// Frees the memory allocated in SetupPlaquetteHash
+void FreeMemPlaquetteHash(const int sysSize, int **plaqHash, int *plaqHashSz);
+
+// Computes the inner sum for the full kernel
+void ComputeInSum(double *inSum, const int *delta, const int *plaquetteAIdx,
+                  const int sizeA, const int *plaquetteBIdx, const int sizeB,
+                  const int plaquetteSize, const int *distList);
+
+// Updates the inner sum for the full kernel
+void UpdateInSum(double *inSumNew, const double *inSumOld, const int *deltaNew,
+                 const int *deltaOld, const int *plaquetteAIdx, const int sizeA,
+                 const int *plaquetteBIdx, const int sizeB,
+                 const int plaquetteSize, const int *distList,
+                 int **plaqHash, int *plaqHashSz, const int siteA,
+                 const int siteB);
+
+// Updates the delta list
+void UpdateDelta(int *deltaNew, const int *deltaOld, const int *cfgA, const int sizeA,
+                 const int *cfgB, const int sizeB, const int siteA,
+                 const int siteB);
+
+// Updates the delta list for the flipped configuration
+void UpdateDeltaFlipped(int *deltaNew, const int *deltaOld, const int *cfgA, const int sizeA,
+                        const int *cfgB, const int sizeB, const int siteA,
+                        const int siteB);
+
+// Computes the full kernel
+double ComputeKernel(const int sizeA, const int sizeB, const int power,
+                     const double theta0, const double norm, const int tRSym,
+                     const int shift, const int *delta, const int *deltaFlipped,
+                     const double *inSum, const double *inSumFlipped);
+
+// Computes the kn kernel
+double ComputeKernelN(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
+                      const int *cfgB, const int *plaquetteBIdx, const int sizeB,
+                      const int n, const int tRSym, const int shift, const int *delta,
+                      const int *deltaFlipped);
+
+// Computes the kn kernel in place
 double GPWKernelN(const int *cfgA, const int *plaquetteAIdx,
                   const int sizeA, const int *cfgB, const int *plaquetteBIdx,
                   const int sizeB, const int dim, const int n, const int tRSym,
@@ -62,12 +108,12 @@ void GPWKernelNVec(const unsigned long *configsAUp,
                    const int sizeRef, const int dim, const int n,
                    const int tRSym, const int shift, double *kernelVec);
 
-// Computes the full kernel
+// Computes the full kernel in place
 double GPWKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
                  const int *cfgB, const int *plaquetteBIdx, const int sizeB,
-                 const int dim, const int power, const double theta0,
-                 const double thetaC, const int tRSym, const int shift,
-                 const int plaquetteSize, const int *distList, int *workspace);
+                 const int power, const double theta0, const int tRSym,
+                 const int shift, const int plaquetteSize, const int *distList,
+                 int *workspaceInt, double *workspaceDouble);
 
 /* computes the kernel matrix (complete kernel) for two lists of configurations
 (in bitstring representation) */

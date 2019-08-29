@@ -883,7 +883,8 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
       //+ NInterAll /* ParaInterAll */
       + NQPOptTrans /* ParaQPTransOpt */
       + NGPWTrnLat /* GPWTheta0 */
-      + NGPWTrnLat; /* GPWThetaC */
+      + NGPWTrnLat /* GPWThetaC */
+      + NGPWTrnLat; /* GPWNorm */
 
   return 0;
 }
@@ -1198,7 +1199,18 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
       GPWPlaquetteSizes[i] = SetupPlaquetteIdx(GPWCutRad[i], SysNeighbours, Nsite, GPWTrnNeighbours[i], GPWTrnSize[i], Dim,
                                                &(GPWSysPlaquetteIdx[i]), &(GPWTrnPlaquetteIdx[i]), &(GPWDistList[i]));
     }
-  }
+
+    SetupPlaquetteHash(Nsite, GPWPlaquetteSizes[i], GPWSysPlaquetteIdx[i],
+                       &(GPWSysPlaqHash[i]), &(GPWSysPlaqHashSz[i]));
+
+    GPWNorm[i] = 0.0;
+    for (j = 0; j < GPWPlaquetteSizes[i]; j++) {
+      GPWNorm[i] += 1.0/GPWDistList[i][j];
+    }
+    if (GPWPower[i] > 0) {
+      GPWNorm[i] = (GPWTheta0[i] + 1.0/(GPWPower[i])*GPWNorm[i]);
+    }     
+   }
 
   return 0;
 }

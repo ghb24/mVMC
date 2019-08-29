@@ -173,6 +173,25 @@ void CalculatePairDelta(int *delta, const int *cfgA, const int sizeA,
   return;
 }
 
+void CalculatePairDeltaFlipped(int *delta, const int *cfgA, const int sizeA,
+                               const int *cfgB, const int sizeB) {
+  int i, a;
+
+  for (i = 0; i < sizeA; i++) {
+    for (a = 0; a < sizeB; a++) {
+      // TODO: can this be optimised by a bitwise comparison?
+      if ((cfgA[i%sizeA]==cfgB[a%sizeB+sizeB])&&
+          (cfgA[i%sizeA+sizeA]==cfgB[a%sizeB])) {
+        delta[i*sizeB+a] = 1;
+      }
+      else {
+        delta[i*sizeB+a] = 0;
+      }
+    }
+  }
+  return;
+}
+
 int SetupPlaquetteIdx(const int rC, const int *neighboursA, const int sizeA,
                       const int *neighboursB, const int sizeB,
                       const int dim, int **plaquetteAIdx, int **plaquetteBIdx,
@@ -343,13 +362,258 @@ void FreeMemPlaquetteIdx(int *plaquetteAIdx, int *plaquetteBIdx,
   free(plaquetteAIdx);
 }
 
-double GPWKernelN(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
-                  const int *cfgB, const int *plaquetteBIdx, const int sizeB,
-                  const int dim, const int n, const int tRSym, const int shift,
-                  int *workspace) {
+void SetupPlaquetteHash(const int sysSize, const int plaqSize,
+                        const int *plaqIdx, int ***plaqHash,
+                        int **plaqHashSz) {
+  int i, j, id;
+
+  int *hashCount = (int*)(malloc(sizeof(int)*sysSize*sysSize));
+
+  *plaqHash = (int**)(malloc(sizeof(int*)*sysSize*sysSize));
+  *plaqHashSz = (int*)(malloc(sizeof(int)*sysSize*sysSize));
+
+  for (i = 0; i < sysSize*sysSize; i++) {
+    (*plaqHashSz)[i] = 0;
+    hashCount[i] = 0;
+  }
+
+  for (i = 0; i < sysSize; i++) {
+    for (j = 0; j < plaqSize; j++) {
+      id = i*sysSize + plaqIdx[i*plaqSize + j];
+      ((*plaqHashSz)[id])++;
+    }
+  }
+
+  for (i = 0; i < sysSize*sysSize; i++) {
+    (*plaqHash)[i] = (int*)(malloc(sizeof(int)*((*plaqHashSz)[i])));
+  }
+
+  for (i = 0; i < sysSize; i++) {
+    for (j = 0; j < plaqSize; j++) {
+      id = i*sysSize + plaqIdx[i*plaqSize + j];
+      (*plaqHash)[id][hashCount[id]] = j;
+      (hashCount[id])++;
+    }
+  }
+  free(hashCount);
+}
+
+void FreeMemPlaquetteHash(const int sysSize, int **plaqHash, int *plaqHashSz) {
+  int i;
+  for (i = 0; i < sysSize*sysSize; i++) {
+    free(plaqHash[i]);
+  }
+
+  free(plaqHashSz);
+  free(plaqHash);
+}
+
+void ComputeInSum(double *inSum, const int *delta, const int *plaquetteAIdx,
+                  const int sizeA, const int *plaquetteBIdx, const int sizeB,
+                  const int plaquetteSize, const int *distList) {
+  int i, a, k;
+  double innerSum;
+
+  for (i = 0; i < sizeA; i++) {
+    for (a = 0; a < sizeB; a++) {
+      innerSum = 0.0;
+      for (k = 0; k < plaquetteSize; k++) {
+        if (delta[plaquetteAIdx[i*plaquetteSize+k]*sizeB +
+                  plaquetteBIdx[a*plaquetteSize+k]]) {
+          innerSum += 1.0/distList[k];
+        }
+      }
+      inSum[i*sizeB + a] = innerSum;
+    }
+  }
+}
+
+
+void UpdateInSum(double *inSumNew, const double *inSumOld, const int *deltaNew,
+                 const int *deltaOld, const int *plaquetteAIdx, const int sizeA,
+                 const int *plaquetteBIdx, const int sizeB,
+                 const int plaquetteSize, const int *distList,
+                 int **plaqHash, int *plaqHashSz, const int siteA,
+                 const int siteB) {
+  int i, a, k, countA, countB, id;
+  const int *hashListA, *hashListB;
+
+  for (i = 0; i < sizeA; i++) {
+    countA = plaqHashSz[sizeA*i + siteA];
+    countB = plaqHashSz[sizeA*i + siteB];
+    hashListA = plaqHash[sizeA*i + siteA];
+    hashListB = plaqHash[sizeA*i + siteB];
+
+    for (a = 0; a < sizeB; a++) {
+      inSumNew[i*sizeB + a] = inSumOld[i*sizeB + a];
+
+      for (k = 0; k < countA; k++) {
+        id = hashListA[k];
+        if (deltaNew[siteA*sizeB + plaquetteBIdx[a*plaquetteSize+id]]) {
+          inSumNew[i*sizeB + a] += 1.0/distList[id];
+        }
+        else if (deltaOld[siteA*sizeB + plaquetteBIdx[a*plaquetteSize+id]]) {
+          inSumNew[i*sizeB + a] -= 1.0/distList[id];
+        }
+      }
+
+      for (k = 0; k < countB; k++) {
+        id = hashListB[k];
+
+        if (deltaNew[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]]) {
+          inSumNew[i*sizeB + a] += 1.0/distList[id];
+        }
+        else if (deltaOld[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]]) {
+          inSumNew[i*sizeB + a] -= 1.0/distList[id];
+        }
+      }
+    }
+  }
+}
+
+
+void UpdateDelta(int *deltaNew, const int *deltaOld, const int *cfgA, const int sizeA,
+                 const int *cfgB, const int sizeB, const int siteA,
+                 const int siteB) {
+  int i, a;
+
+  for (i = 0; i < sizeA*sizeB; i++) {
+    deltaNew[i] = deltaOld[i];
+  }
+
+  for (a = 0; a < sizeB; a++) {
+    if ((cfgA[siteA%sizeA]==cfgB[a%sizeB])&&
+        (cfgA[siteA%sizeA+sizeA]==cfgB[a%sizeB+sizeB])) {
+      deltaNew[siteA*sizeB+a] = 1;
+    }
+    else {
+      deltaNew[siteA*sizeB+a] = 0;
+    }
+
+    if ((cfgA[siteB%sizeA]==cfgB[a%sizeB])&&
+        (cfgA[siteB%sizeA+sizeA]==cfgB[a%sizeB+sizeB])) {
+      deltaNew[siteB*sizeB+a] = 1;
+    }
+    else {
+      deltaNew[siteB*sizeB+a] = 0;
+    }
+  }
+}
+
+void UpdateDeltaFlipped(int *deltaNew, const int *deltaOld, const int *cfgA, const int sizeA,
+                        const int *cfgB, const int sizeB, const int siteA,
+                        const int siteB) {
+  int i, a;
+
+  for (i = 0; i < sizeA*sizeB; i++) {
+    deltaNew[i] = deltaOld[i];
+  }
+
+  for (a = 0; a < sizeB; a++) {
+    if ((cfgA[siteA%sizeA]==cfgB[a%sizeB+sizeB])&&
+        (cfgA[siteA%sizeA+sizeA]==cfgB[a%sizeB])) {
+      deltaNew[siteA*sizeB+a] = 1;
+    }
+    else {
+      deltaNew[siteA*sizeB+a] = 0;
+    }
+
+    if ((cfgA[siteB%sizeA]==cfgB[a%sizeB+sizeB])&&
+        (cfgA[siteB%sizeA+sizeA]==cfgB[a%sizeB])) {
+      deltaNew[siteB*sizeB+a] = 1;
+    }
+    else {
+      deltaNew[siteB*sizeB+a] = 0;
+    }
+  }
+}
+
+double ComputeKernel(const int sizeA, const int sizeB, const int power,
+                     const double theta0, const double norm, const int tRSym,
+                     const int shift, const int *delta, const int *deltaFlipped,
+                     const double *inSum, const double *inSumFlipped) {
+  int i, a;
+  int shiftSys = 1;
+  int shiftTrn = 1;
+  int translationSys = 1;
+  int translationTrn = 1;
+
+  double kernel = 0.0;
+
+  if (abs(shift) & 1) {
+    shiftSys = sizeA;
+    if (shift < 0) {
+      translationSys = sizeB;
+    }
+  }
+  if ((abs(shift) & 2) >> 1) {
+    shiftTrn = sizeB;
+
+    if (shift < 0) {
+      translationTrn = sizeA;
+    }
+  }
+
+  // looks ugly but we want speed here
+  if (tRSym) {
+    if (power == -1) {
+      for (i = 0; i < shiftSys; i+=translationSys) {
+        for (a = 0; a < shiftTrn; a+=translationTrn) {
+          if (delta[i*sizeB+a]) {
+            kernel += exp(-1.0/theta0 * (norm - inSum[i*sizeB+a]));
+          }
+          if (deltaFlipped[i*sizeB+a]) {
+            kernel += exp(-1.0/theta0 * (norm - inSumFlipped[i*sizeB+a]));
+          }
+        }
+      }
+    }
+    else {
+      for (i = 0; i < shiftSys; i+=translationSys) {
+        for (a = 0; a < shiftTrn; a+=translationTrn) {
+          if (delta[i*sizeB+a]) {
+            kernel += pow(((theta0 + 1.0/(power) * inSum[i*sizeB+a])/norm), power);
+          }
+          if (deltaFlipped[i*sizeB+a]) {
+            kernel += pow(((theta0 + 1.0/(power) * inSumFlipped[i*sizeB+a])/norm), power);
+          }
+        }
+      }
+    }
+    kernel /= 2.0;
+  }
+  else {
+    if (power == -1) {
+      for (i = 0; i < shiftSys; i+=translationSys) {
+        for (a = 0; a < shiftTrn; a+=translationTrn) {
+          if (delta[i*sizeB+a]) {
+            kernel += exp(-1.0/theta0 * (norm - inSum[i*sizeB+a]));
+          }
+        }
+      }
+    }
+    else {
+      for (i = 0; i < shiftSys; i+=translationSys) {
+        for (a = 0; a < shiftTrn; a+=translationTrn) {
+          if (delta[i*sizeB+a]) {
+            kernel += pow(((theta0 + 1.0/(power) * inSum[i*sizeB+a])/norm), power);
+          }
+        }
+      }
+    }
+  }
+  return kernel;
+}
+
+
+double ComputeKernelN(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
+                      const int *cfgB, const int *plaquetteBIdx, const int sizeB,
+                      const int n, const int tRSym, const int shift, const int *delta,
+                      const int *deltaFlipped) {
   if (n == 1) {
    return GPWKernel1(cfgA, sizeA, cfgB, sizeB, tRSym, shift);
   }
+
   else {
     int i, a, k, j, b, plaquetteMatches;
 
@@ -361,10 +625,6 @@ double GPWKernelN(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
     int shiftTrn = 1;
     int translationSys = 1;
     int translationTrn = 1;
-
-    int *delta = workspace;
-    int *deltaFlipped = delta + sizeB*sizeA;
-    int *configFlipped = deltaFlipped + sizeB*sizeA;
 
     if (abs(shift) & 1) {
       shiftSys = sizeA;
@@ -380,29 +640,11 @@ double GPWKernelN(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
       }
     }
 
-    CalculatePairDelta(delta, cfgA, sizeA, cfgB, sizeB);
 
-    
     /* add kernel with one configuration flipped to ensure time reversal
        symmetry is respected */
 
     if (tRSym) {
-      // TODO can this be done more efficiently?
-      if (sizeB <= sizeA) {
-        for (i = 0; i < sizeB; i++) {
-          configFlipped[i] = cfgB[i+sizeB];
-          configFlipped[i+sizeB] = cfgB[i];
-        }
-        CalculatePairDelta(deltaFlipped, cfgA, sizeA, configFlipped, sizeB);
-      }
-      else {
-        for (i = 0; i < sizeA; i++) {
-          configFlipped[i] = cfgA[i+sizeA];
-          configFlipped[i+sizeA] = cfgA[i];
-        }
-        CalculatePairDelta(deltaFlipped, configFlipped, sizeA, cfgB, sizeB);
-      }
-
       for (i = 0; i < shiftSys; i+=translationSys) {
         for (a = 0; a < shiftTrn; a+=translationTrn) {
           if (delta[i*sizeB+a]) {
@@ -455,8 +697,29 @@ double GPWKernelN(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
         }
       }
     }
-
     return kernel;
+  }
+}
+
+double GPWKernelN(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
+                  const int *cfgB, const int *plaquetteBIdx, const int sizeB,
+                  const int dim, const int n, const int tRSym, const int shift,
+                  int *workspace) {
+  if (n == 1) {
+   return GPWKernel1(cfgA, sizeA, cfgB, sizeB, tRSym, shift);
+  }
+  else {
+    int *delta = workspace;
+    int *deltaFlipped = delta + sizeA*sizeB;
+
+    CalculatePairDelta(delta, cfgA, sizeA, cfgB, sizeB);
+
+    if (tRSym) {
+      CalculatePairDeltaFlipped(deltaFlipped, cfgA, sizeA, cfgB, sizeB);
+    }
+
+    return ComputeKernelN(cfgA, plaquetteAIdx, sizeA, cfgB, plaquetteBIdx,
+                          sizeB, n, tRSym, shift, delta, deltaFlipped);
   }
 }
 
@@ -501,13 +764,7 @@ void GPWKernelNMat(const unsigned long *configsAUp,
 
     #pragma omp parallel default(shared) private(i, j)
     {
-      int sizeSmall = sizeA;
-      int *workspace;
-
-      if (sizeB < sizeSmall) {
-        sizeSmall = sizeB;
-      }
-      workspace = (int*)malloc(sizeof(int)*(2*sizeA*sizeB+2*sizeSmall));
+      int *workspace = (int*)malloc(sizeof(int)*(2*sizeA*sizeB));
 
       #pragma omp for
       for (i = 0; i < numA; i++) {
@@ -529,13 +786,7 @@ void GPWKernelNMat(const unsigned long *configsAUp,
   else {
     #pragma omp parallel default(shared) private(i, j)
     {
-      int sizeSmall = sizeA;
-      int *workspace;
-
-      if (sizeB < sizeSmall) {
-        sizeSmall = sizeB;
-      }
-      workspace = (int*)malloc(sizeof(int)*(2*sizeA*sizeB+2*sizeSmall));
+      int *workspace = (int*)malloc(sizeof(int)*(2*sizeA*sizeB));
 
       #pragma omp for
       for (i = 0; i < numA; i++) {
@@ -582,13 +833,7 @@ void GPWKernelNVec(const unsigned long *configsAUp, const unsigned long *configs
 
   #pragma omp parallel default(shared) private(i, j)
   {
-    int sizeSmall = sizeA;
-    int *workspace;
-
-    if (sizeRef < sizeSmall) {
-      sizeSmall = sizeRef;
-    }
-    workspace = (int*)malloc(sizeof(int)*(2*sizeA*sizeRef+2*sizeSmall));
+    int *workspace = (int*)malloc(sizeof(int)*(2*sizeA*sizeRef));
 
     #pragma omp for
     for (i = 0; i < numA; i++) {
@@ -612,40 +857,20 @@ void GPWKernelNVec(const unsigned long *configsAUp, const unsigned long *configs
 
 double GPWKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
                  const int *cfgB, const int *plaquetteBIdx, const int sizeB,
-                 const int dim, const int power, const double theta0,
-                 const double thetaC, const int tRSym, const int shift,
-                 const int plaquetteSize, const int *distList,
-                 int *workspace) {
+                 const int power, const double theta0, const int tRSym,
+                 const int shift, const int plaquetteSize, const int *distList,
+                 int *workspaceInt, double *workspaceDouble) {
   int i, a, k, j, b;
 
   double kernel = 0.0;
-  int *delta = workspace;
+  int *delta = workspaceInt;
   int *deltaFlipped = delta + sizeB*sizeA;
-  int *configFlipped = deltaFlipped + sizeB*sizeA;
 
-  int shiftSys = 1;
-  int shiftTrn = 1;
-  int translationSys = 1;
-  int translationTrn = 1;
+  double *innerSum = workspaceDouble;
+  double *innerSumFlipped = innerSum + sizeA*sizeB;
 
-  double innerSum;
   double norm = 0.0;
 
-  if (abs(shift) & 1) {
-    shiftSys = sizeA;
-    if (shift < 0) {
-      translationSys = sizeB;
-    }
-  }
-  if ((abs(shift) & 2) >> 1) {
-    shiftTrn = sizeB;
-
-    if (shift < 0) {
-      translationTrn = sizeA;
-    }
-  }
-
-  // compute norm TODO: do this in a preprocessing step to speed up things
   for (k = 0; k < plaquetteSize; k++) {
     norm += 1.0/distList[k];
   }
@@ -654,113 +879,17 @@ double GPWKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
   }
 
   CalculatePairDelta(delta, cfgA, sizeA, cfgB, sizeB);
+  ComputeInSum(innerSum, delta, plaquetteAIdx, sizeA, plaquetteBIdx,
+               sizeB, plaquetteSize, distList);
 
-  // looks ugly but we want speed here
   if (tRSym) {
-    if (sizeB <= sizeA) {
-      for (i = 0; i < sizeB; i++) {
-        configFlipped[i] = cfgB[i+sizeB];
-        configFlipped[i+sizeB] = cfgB[i];
-      }
-      CalculatePairDelta(deltaFlipped, cfgA, sizeA, configFlipped, sizeB);
-    }
-    else {
-      for (i = 0; i < sizeA; i++) {
-        configFlipped[i] = cfgA[i+sizeA];
-        configFlipped[i+sizeA] = cfgA[i];
-      }
-      CalculatePairDelta(deltaFlipped, configFlipped, sizeA, cfgB, sizeB);
-    }
+    CalculatePairDeltaFlipped(deltaFlipped, cfgA, sizeA, cfgB, sizeB);
+    ComputeInSum(innerSumFlipped, deltaFlipped, plaquetteAIdx, sizeA,
+                 plaquetteBIdx, sizeB, plaquetteSize, distList);
+  }
 
-    if (power == -1) {
-      for (i = 0; i < shiftSys; i+=translationSys) {
-        for (a = 0; a < shiftTrn; a+=translationTrn) {
-          if (delta[i*sizeB+a]) {
-            innerSum = 0.0;
-            for (k = 0; k < plaquetteSize; k++) {
-              if (delta[plaquetteAIdx[i*plaquetteSize+k]*sizeB +
-                        plaquetteBIdx[a*plaquetteSize+k]]) {
-                innerSum += 1.0/distList[k];
-              }
-            }
-            kernel += exp(-1.0/theta0 * (norm - innerSum));
-          }
-          if (deltaFlipped[i*sizeB+a]) {
-            innerSum = 0.0;
-            for (k = 0; k < plaquetteSize; k++) {
-              if (deltaFlipped[plaquetteAIdx[i*plaquetteSize+k]*sizeB +
-                               plaquetteBIdx[a*plaquetteSize+k]]) {
-                innerSum += 1.0/distList[k];
-              }
-            }
-            kernel += exp(-1.0/theta0 * (norm - innerSum));
-          }
-        }
-      }
-    }
-    else {
-      for (i = 0; i < shiftSys; i+=translationSys) {
-        for (a = 0; a < shiftTrn; a+=translationTrn) {
-          if (delta[i*sizeB+a]) {
-            innerSum = 0.0;
-            for (k = 0; k < plaquetteSize; k++) {
-              if (delta[plaquetteAIdx[i*plaquetteSize+k]*sizeB +
-                        plaquetteBIdx[a*plaquetteSize+k]]) {
-                innerSum += 1.0/distList[k];
-              }
-            }
-            kernel += pow(((theta0 + 1.0/(power) * innerSum)/norm), power);
-          }
-          if (deltaFlipped[i*sizeB+a]) {
-            innerSum = 0.0;
-            for (k = 0; k < plaquetteSize; k++) {
-              if (deltaFlipped[plaquetteAIdx[i*plaquetteSize+k]*sizeB +
-                               plaquetteBIdx[a*plaquetteSize+k]]) {
-                innerSum += 1.0/distList[k];
-              }
-            }
-            kernel += pow(((theta0 + 1.0/(power) * innerSum)/norm), power);
-          }
-        }
-      }
-    }
-    kernel /= 2.0;
-  }
-  else {
-    if (power == -1) {
-      for (i = 0; i < shiftSys; i+=translationSys) {
-        for (a = 0; a < shiftTrn; a+=translationTrn) {
-          if (delta[i*sizeB+a]) {
-            innerSum = 0.0;
-            for (k = 0; k < plaquetteSize; k++) {
-              if (delta[plaquetteAIdx[i*plaquetteSize+k]*sizeB +
-                        plaquetteBIdx[a*plaquetteSize+k]]) {
-                innerSum += 1.0/distList[k];
-              }
-            }
-            kernel += exp(-1.0/theta0 * (norm - innerSum));
-          }
-        }
-      }
-    }
-    else {
-      for (i = 0; i < shiftSys; i+=translationSys) {
-        for (a = 0; a < shiftTrn; a+=translationTrn) {
-          if (delta[i*sizeB+a]) {
-            innerSum = 0.0;
-            for (k = 0; k < plaquetteSize; k++) {
-              if (delta[plaquetteAIdx[i*plaquetteSize+k]*sizeB +
-                        plaquetteBIdx[a*plaquetteSize+k]]) {
-                innerSum += 1.0/distList[k];
-              }
-            }
-            kernel += pow(((theta0 + 1.0/(power) * innerSum)/norm), power);
-          }
-        }
-      }
-    }
-  }
-  return kernel;
+  return ComputeKernel(sizeA, sizeB, power, theta0, norm, tRSym, shift,
+                       delta, deltaFlipped, innerSum, innerSumFlipped);
 }
 
 void GPWKernelMat(const unsigned long *configsAUp,
@@ -807,24 +936,20 @@ void GPWKernelMat(const unsigned long *configsAUp,
 
     #pragma omp parallel default(shared) private(i, j)
     {
-      int sizeSmall = sizeA;
-      int *workspace;
-
-      if (sizeB < sizeSmall) {
-        sizeSmall = sizeB;
-      }
-      workspace = (int*)malloc(sizeof(int)*(2*sizeA*sizeB+2*sizeSmall));
+      int *workspaceInt = (int*)malloc(sizeof(int)*(2*sizeA*sizeB));
+      double *workspaceDouble = (double*)malloc(sizeof(double)*(2*sizeA*sizeB));
       #pragma omp for
       for (i = 0; i < numA; i++) {
         for (j = 0; j < numB; j++) {
           kernelMatr[i*numB + j] = GPWKernel(cfgsA[i], plaquetteAIdx, sizeA,
-                                            cfgsB[j], plaquetteBIdx, sizeB,
-                                            dim, power, theta0, thetaC, tRSym,
-                                            shift, plaquetteSize, distList,
-                                            workspace);
+                                             cfgsB[j], plaquetteBIdx, sizeB,
+                                             power, theta0, tRSym, shift,
+                                             plaquetteSize, distList,
+                                             workspaceInt, workspaceDouble);
         }
       }
-      free(workspace);
+      free(workspaceDouble);
+      free(workspaceInt);
     }
 
     for (i = 0; i < numB; i++) {
@@ -836,24 +961,21 @@ void GPWKernelMat(const unsigned long *configsAUp,
   else {
     #pragma omp parallel default(shared) private(i, j)
     {
-      int sizeSmall = sizeA;
-      int *workspace;
+      int *workspaceInt = (int*)malloc(sizeof(int)*(2*sizeA*sizeB));
+      double *workspaceDouble = (double*)malloc(sizeof(double)*(2*sizeA*sizeB));
 
-      if (sizeB < sizeSmall) {
-        sizeSmall = sizeB;
-      }
-      workspace = (int*)malloc(sizeof(int)*(2*sizeA*sizeB+2*sizeSmall));
       #pragma omp for
       for (i = 0; i < numA; i++) {
         for (j = 0; j <= i; j++) {
           kernelMatr[i*numA + j] = GPWKernel(cfgsA[i], plaquetteAIdx, sizeA,
                                              cfgsA[j], plaquetteAIdx, sizeA,
-                                             dim, power, theta0, thetaC, tRSym,
-                                             shift, plaquetteSize, distList,
-                                             workspace);
+                                             power, theta0, tRSym, shift,
+                                             plaquetteSize, distList,
+                                             workspaceInt, workspaceDouble);
         }
       }
-      free(workspace);
+      free(workspaceDouble);
+      free(workspaceInt);
     }
   }
 
@@ -895,22 +1017,18 @@ void GPWKernelVec(const unsigned long *configsAUp,
 
   #pragma omp parallel default(shared) private(i, j)
   {
-    int sizeSmall = sizeA;
-    int *workspace;
-
-    if (sizeRef < sizeSmall) {
-      sizeSmall = sizeRef;
-    }
-    workspace = (int*)malloc(sizeof(int)*(2*sizeA*sizeRef+2*sizeSmall));
+    int *workspaceInt = (int*)malloc(sizeof(int)*(2*sizeA*sizeRef));
+    double *workspaceDouble = (double*)malloc(sizeof(double)*(2*sizeA*sizeRef));
 
     #pragma omp for
     for (i = 0; i < numA; i++) {
       kernelVec[i] = GPWKernel(cfgsA[i], plaquetteAIdx, sizeA, configRef,
-                               plaquetteBIdx, sizeRef, dim, power, theta0,
-                               thetaC, tRSym, shift, plaquetteSize, distList,
-                               workspace);
+                               plaquetteBIdx, sizeRef, power, theta0, tRSym,
+                               shift, plaquetteSize, distList, workspaceInt,
+                               workspaceDouble);
     }
-    free(workspace);
+    free(workspaceDouble);
+    free(workspaceInt);
   }
 
   for (i = 0; i < numA; i++) {

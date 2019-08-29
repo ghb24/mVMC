@@ -14,10 +14,10 @@ the Free Software Foundation, either version 3 of the License, or
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details. 
+GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License 
-along with this program. If not, see http://www.gnu.org/licenses/. 
+You should have received a copy of the GNU General Public License
+along with this program. If not, see http://www.gnu.org/licenses/.
 */
 /*-------------------------------------------------------------
  * Variational Monte Carlo
@@ -49,9 +49,11 @@ void VMCMakeSample(MPI_Comm comm) {
   double complex logIpOld,logIpNew; /* logarithm of inner product <phi|L|x> */ // is this ok ? TBC
   int projCntNew[NProj];
   double eleGPWKernNew[NGPWIdx];
+  int eleGPWDeltaNew[Nsite*GPWTrnCfgSz];
+  double eleGPWInSumNew[GPWTrnCfgSz*Nsite];
   double complex rbmValOld, rbmValNew; /* value of the RBM projector */
   double complex pfMNew[NQPFull];
-  double complex  x;  
+  double complex  x;
   double w;
 
   int qpStart,qpEnd;
@@ -65,9 +67,9 @@ void VMCMakeSample(MPI_Comm comm) {
   StartTimer(30);
   if(BurnFlag==0) {
     makeInitialSample(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleGPWKern,
-                      qpStart,qpEnd,comm);
+                      TmpEleGPWDelta, TmpEleGPWInSum, qpStart,qpEnd,comm);
   } else {
-    copyFromBurnSample(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleGPWKern);
+    copyFromBurnSample(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleGPWKern,TmpEleGPWDelta,TmpEleGPWInSum);
   }
 
   if (UseOrbital) {
@@ -77,7 +79,7 @@ void VMCMakeSample(MPI_Comm comm) {
     if( !isfinite(creal(logIpOld) + cimag(logIpOld)) ) {
       if(rank==0) fprintf(stderr,"waring: VMCMakeSample remakeSample logIpOld=%e\n",creal(logIpOld)); //TBC
       makeInitialSample(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleGPWKern,
-                        qpStart,qpEnd,comm);
+                        TmpEleGPWDelta, TmpEleGPWInSum, qpStart,qpEnd,comm);
       CalculateMAll_fcmp(TmpEleIdx,qpStart,qpEnd);
       //printf("DEBUG: maker2: PfM=%lf\n",creal(PfM[0]));
       logIpOld = CalculateLogIP_fcmp(PfM,qpStart,qpEnd,comm);
@@ -112,7 +114,8 @@ void VMCMakeSample(MPI_Comm comm) {
         /* The mi-th electron with spin s hops to site rj */
         updateEleConfig(mi,ri,rj,s,TmpEleIdx,TmpEleCfg,TmpEleNum);
         UpdateProjCnt(ri,rj,s,projCntNew,TmpEleProjCnt,TmpEleNum);
-        UpdateGPWKern(ri,rj,eleGPWKernNew,TmpEleGPWKern,TmpEleNum);
+        UpdateGPWKern(ri,rj,eleGPWKernNew,eleGPWDeltaNew,eleGPWInSumNew,
+                      TmpEleGPWKern,TmpEleGPWDelta,TmpEleGPWInSum,TmpEleNum);
         StopTimer(60);
 
   //TODO:Add        StartTimer
@@ -155,6 +158,8 @@ void VMCMakeSample(MPI_Comm comm) {
 
           for(i=0;i<NProj;i++) TmpEleProjCnt[i] = projCntNew[i];
           for(i=0;i<NGPWIdx;i++) TmpEleGPWKern[i] = eleGPWKernNew[i];
+          for(i=0;i<Nsite*GPWTrnCfgSz;i++) TmpEleGPWDelta[i] = eleGPWDeltaNew[i];
+          for(i=0;i<GPWTrnCfgSz*Nsite;i++) TmpEleGPWInSum[i] = eleGPWInSumNew[i];
           logIpOld = logIpNew;
           rbmValOld = rbmValNew;
           nAccept++;
@@ -184,11 +189,11 @@ void VMCMakeSample(MPI_Comm comm) {
         /* The mi-th electron with spin s hops to rj */
         updateEleConfig(mi,ri,rj,s,TmpEleIdx,TmpEleCfg,TmpEleNum);
         UpdateProjCnt(ri,rj,s,projCntNew,TmpEleProjCnt,TmpEleNum);
-        UpdateGPWKern(ri,rj,eleGPWKernNew,TmpEleGPWKern,TmpEleNum);
         /* The mj-th electron with spin t hops to ri */
         updateEleConfig(mj,rj,ri,t,TmpEleIdx,TmpEleCfg,TmpEleNum);
         UpdateProjCnt(rj,ri,t,projCntNew,projCntNew,TmpEleNum);
-        UpdateGPWKern(rj,ri,eleGPWKernNew,eleGPWKernNew,TmpEleNum);
+        UpdateGPWKern(rj,ri,eleGPWKernNew,eleGPWDeltaNew,eleGPWInSumNew,
+                      TmpEleGPWKern,TmpEleGPWDelta,TmpEleGPWInSum,TmpEleNum);
 
         StopTimer(65);
         if (UseOrbital) {
@@ -227,6 +232,8 @@ void VMCMakeSample(MPI_Comm comm) {
 
           for(i=0;i<NProj;i++) TmpEleProjCnt[i] = projCntNew[i];
           for(i=0;i<NGPWIdx;i++) TmpEleGPWKern[i] = eleGPWKernNew[i];
+          for(i=0;i<Nsite*GPWTrnCfgSz;i++) TmpEleGPWDelta[i] = eleGPWDeltaNew[i];
+          for(i=0;i<GPWTrnCfgSz*Nsite;i++) TmpEleGPWInSum[i] = eleGPWInSumNew[i];
           logIpOld = logIpNew;
           rbmValOld = rbmValNew;
           nAccept++;
@@ -255,19 +262,22 @@ void VMCMakeSample(MPI_Comm comm) {
     /* save Electron Configuration */
     if(outStep >= nOutStep-NVMCSample) {
       sample = outStep-(nOutStep-NVMCSample);
-      saveEleConfig(sample,logIpOld,rbmValOld,TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleGPWKern);
+      saveEleConfig(sample,logIpOld,rbmValOld,TmpEleIdx,TmpEleCfg,TmpEleNum,
+                    TmpEleProjCnt,TmpEleGPWKern,TmpEleGPWDelta,TmpEleGPWInSum);
     }
     StopTimer(35);
 
   } /* end of outstep */
 
-  copyToBurnSample(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleGPWKern);
+  copyToBurnSample(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleGPWKern,
+                   TmpEleGPWDelta,TmpEleGPWInSum);
   BurnFlag=1;
   return;
 }
 
 int makeInitialSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                      const int qpStart, const int qpEnd, MPI_Comm comm) {
+                      int *eleGPWDelta, double *eleGPWInSum, const int qpStart, const int qpEnd,
+                      MPI_Comm comm) {
   const int nsize = Nsize;
   const int nsite2 = Nsite2;
   int flag=1,flagRdc,loop=0;
@@ -275,14 +285,14 @@ int makeInitialSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, do
   int rank,size;
   MPI_Comm_size(comm,&size);
   MPI_Comm_rank(comm,&rank);
-  
+
   do {
     /* initialize */
     #pragma omp parallel for default(shared) private(msi)
     for(msi=0;msi<nsize;msi++) eleIdx[msi] = -1;
     #pragma omp parallel for default(shared) private(rsi)
     for(rsi=0;rsi<nsite2;rsi++) eleCfg[rsi] = -1;
-    
+
     /* local spin */
     for(ri=0;ri<Nsite;ri++) {
       if(LocSpn[ri]==1) {
@@ -294,7 +304,7 @@ int makeInitialSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, do
         eleIdx[mi+si*Ne] = ri;
       }
     }
-    
+
     /* itinerant electron */
     for(si=0;si<2;si++) {
       for(mi=0;mi<Ne;mi++) {
@@ -307,16 +317,16 @@ int makeInitialSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, do
         }
       }
     }
-    
+
     /* EleNum */
     #pragma omp parallel for default(shared) private(rsi)
     #pragma loop noalias
     for(rsi=0;rsi<nsite2;rsi++) {
       eleNum[rsi] = (eleCfg[rsi] < 0) ? 0 : 1;
     }
-    
+
     MakeProjCnt(eleProjCnt,eleNum);
-    CalculateGPWKern(eleGPWKern,eleNum);
+    CalculateGPWKern(eleGPWKern, eleGPWDelta, eleGPWInSum, eleNum);
 
     if (UseOrbital) {
       flag = CalculateMAll_fcmp(eleIdx,qpStart,qpEnd);
@@ -337,43 +347,57 @@ int makeInitialSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, do
       MPI_Abort(MPI_COMM_WORLD,EXIT_FAILURE);
     }
   } while (flag>0);
- 
+
   return 0;
 }
 
-void copyFromBurnSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double *eleGPWKern) {
+void copyFromBurnSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
+                        double *eleGPWKern, int *eleGPWDelta, double *eleGPWInSum) {
   int i,n;
   const int *burnEleIdx = BurnEleIdx;
   const int nGPWIdx = NGPWIdx;
   const double *burnGPWKern = BurnEleGPWKern;
-  
+  const int *burnGPWDelta = BurnEleGPWDelta;
+  const double *burnGPWInSum = BurnEleGPWInSum;
+
   n = Nsize + 2*Nsite + 2*Nsite + NProj;
   #pragma loop noalias
   for(i=0;i<n;i++) eleIdx[i] = burnEleIdx[i];
   #pragma loop noalias
   for(i=0;i<nGPWIdx;i++) eleGPWKern[i] = burnGPWKern[i];
-  
+  #pragma loop noalias
+  for(i=0;i<Nsite*GPWTrnCfgSz;i++) eleGPWDelta[i] = burnGPWDelta[i];
+  #pragma loop noalias
+  for(i=0;i<GPWTrnCfgSz*Nsite;i++) eleGPWInSum[i] = burnGPWInSum[i];
   return;
 }
 
 void copyToBurnSample(const int *eleIdx, const int *eleCfg, const int *eleNum,
-                      const int *eleProjCnt, const double *eleGPWKern) {
+                      const int *eleProjCnt, const double *eleGPWKern,
+                      int *eleGPWDelta, double *eleGPWInSum) {
   int i,n;
   int *burnEleIdx = BurnEleIdx;
   const int nGPWIdx = NGPWIdx;
   double *burnGPWKern = BurnEleGPWKern;
-  
+  int *burnGPWDelta = BurnEleGPWDelta;
+  double *burnGPWInSum = BurnEleGPWInSum;
+
   n = Nsize + 2*Nsite + 2*Nsite + NProj;
   #pragma loop noalias
   for(i=0;i<n;i++) burnEleIdx[i] = eleIdx[i];
   #pragma loop noalias
   for(i=0;i<nGPWIdx;i++) burnGPWKern[i] = eleGPWKern[i];
-  
+  #pragma loop noalias
+  for(i=0;i<Nsite*GPWTrnCfgSz;i++) burnGPWDelta[i] = eleGPWDelta[i];
+  #pragma loop noalias
+  for(i=0;i<GPWTrnCfgSz*Nsite;i++) burnGPWInSum[i] = eleGPWInSum[i];
+
   return;
 }
 
 void saveEleConfig(const int sample, const double complex logIp, const double complex rbmVal, const int *eleIdx,
-                   const int *eleCfg, const int *eleNum, const int *eleProjCnt, const double *eleGPWKern) {
+                   const int *eleCfg, const int *eleNum, const int *eleProjCnt,
+                   const double *eleGPWKern, const int *eleGPWDelta, const double *eleGPWInSum) {
   int i,offset;
   double complex x;
   const int nsize=Nsize;
@@ -394,8 +418,14 @@ void saveEleConfig(const int sample, const double complex logIp, const double co
   for(i=0;i<nProj;i++) EleProjCnt[offset+i] = eleProjCnt[i];
   offset = sample*nGPWIdx;
   #pragma loop noalias
-  
   for(i=0;i<nGPWIdx;i++) EleGPWKern[offset+i] = eleGPWKern[i];
+  offset = sample*Nsite*GPWTrnCfgSz;
+  #pragma loop noalias
+  for(i=0;i<Nsite*GPWTrnCfgSz;i++) EleGPWDelta[offset+i] = eleGPWDelta[i];
+  offset = sample*GPWTrnCfgSz*Nsite;
+  #pragma loop noalias
+  for(i=0;i<Nsite*GPWTrnCfgSz;i++) EleGPWInSum[offset+i] = eleGPWInSum[i];
+
   x = LogProjVal(eleProjCnt);
   x += LogGPWVal(eleGPWKern);
   x += clog(rbmVal);
@@ -558,7 +588,7 @@ UpdateType getUpdateType(int path) {
         return (genrand_real2()<0.5) ? EXCHANGE : LOCALSPINFLIP; /* exchange or localspinflip */ //fsz
       }else{
         return EXCHANGE ; /* exchange */
-      } 
+      }
     }
   }else if(path==3){ //for KondoGC
     if(genrand_real2()<0.5){ // for conduction electrons

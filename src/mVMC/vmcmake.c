@@ -49,8 +49,8 @@ void VMCMakeSample(MPI_Comm comm) {
   double complex logIpOld,logIpNew; /* logarithm of inner product <phi|L|x> */ // is this ok ? TBC
   int projCntNew[NProj];
   double eleGPWKernNew[NGPWIdx];
-  int eleGPWDeltaNew[Nsite*GPWTrnCfgSz];
-  double eleGPWInSumNew[GPWTrnCfgSz*Nsite];
+  int *eleGPWDeltaNew;
+  double *eleGPWInSumNew;
   double complex rbmValOld, rbmValNew; /* value of the RBM projector */
   double complex pfMNew[NQPFull];
   double complex  x;
@@ -61,6 +61,9 @@ void VMCMakeSample(MPI_Comm comm) {
   int rank,size;
   MPI_Comm_size(comm,&size);
   MPI_Comm_rank(comm,&rank);
+
+  eleGPWDeltaNew = (int*)malloc(Nsite*GPWTrnCfgSz*sizeof(int));
+  eleGPWInSumNew = (double*)malloc(Nsite*GPWTrnCfgSz*sizeof(double));
 
   SplitLoop(&qpStart,&qpEnd,NQPFull,rank,size);
 
@@ -272,6 +275,10 @@ void VMCMakeSample(MPI_Comm comm) {
   copyToBurnSample(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleGPWKern,
                    TmpEleGPWDelta,TmpEleGPWInSum);
   BurnFlag=1;
+
+  free(eleGPWInSumNew);
+  free(eleGPWDeltaNew);
+
   return;
 }
 

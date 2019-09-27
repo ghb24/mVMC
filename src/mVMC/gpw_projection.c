@@ -52,7 +52,7 @@ void CalculateGPWKern(double *eleGPWKern, int *eleGPWDelta, double *eleGPWInSum,
 
     if (GPWKernelFunc[latId] == 1) {
       eleGPWKern[i] = GPWKernel1(eleNum, Nsite, GPWTrnCfg[i], GPWTrnSize[latId],
-                                 GPWTRSym[latId], GPWShift[latId]);
+                                 GPWTRSym[latId], GPWShift[latId], 0, 0);
     }
 
     else {
@@ -80,7 +80,7 @@ void CalculateGPWKern(double *eleGPWKern, int *eleGPWDelta, double *eleGPWInSum,
         eleGPWKern[i] = ComputeKernel(Nsite, GPWTrnSize[latId],
                                       GPWPower[latId], GPWTheta0[latId],
                                       GPWNorm[latId], GPWTRSym[latId],
-                                      GPWShift[latId], eleGPWDelta+offset,
+                                      GPWShift[latId], 0, 0, eleGPWDelta+offset,
                                       eleGPWDelta+(GPWTrnCfgSz/2)*Nsite+offset,
                                       eleGPWInSum+offset,
                                       eleGPWInSum+(GPWTrnCfgSz/2)*Nsite+offset);
@@ -90,7 +90,7 @@ void CalculateGPWKern(double *eleGPWKern, int *eleGPWDelta, double *eleGPWInSum,
         eleGPWKern[i] = ComputeKernelN(eleNum, GPWSysPlaquetteIdx[latId], Nsite,
                                        GPWTrnCfg[i], GPWTrnPlaquetteIdx[latId], GPWTrnSize[latId],
                                        GPWKernelFunc[latId], GPWTRSym[latId],
-                                       GPWShift[latId], eleGPWDelta+offset,
+                                       GPWShift[latId], 0, 0, eleGPWDelta+offset,
                                        eleGPWDelta+(GPWTrnCfgSz/2)*Nsite+offset);
       }
     }
@@ -118,7 +118,7 @@ void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew,
 
     if (GPWKernelFunc[latId] == 1) {
       eleGPWKernNew[i] = GPWKernel1(eleNum, Nsite, GPWTrnCfg[i], GPWTrnSize[latId],
-                                    GPWTRSym[latId], GPWShift[latId]);
+                                    GPWTRSym[latId], GPWShift[latId], 0, 0);
     }
 
     else {
@@ -155,7 +155,7 @@ void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew,
         eleGPWKernNew[i] = ComputeKernel(Nsite, GPWTrnSize[latId],
                                          GPWPower[latId], GPWTheta0[latId],
                                          GPWNorm[latId], GPWTRSym[latId],
-                                         GPWShift[latId], eleGPWDeltaNew+offset,
+                                         GPWShift[latId], 0, 0, eleGPWDeltaNew+offset,
                                          eleGPWDeltaNew+(GPWTrnCfgSz/2)*Nsite+offset,
                                          eleGPWInSumNew+offset,
                                          eleGPWInSumNew+(GPWTrnCfgSz/2)*Nsite+offset);
@@ -165,7 +165,7 @@ void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew,
         eleGPWKernNew[i] = ComputeKernelN(eleNum, GPWSysPlaquetteIdx[latId], Nsite,
                                           GPWTrnCfg[i], GPWTrnPlaquetteIdx[latId], GPWTrnSize[latId],
                                           GPWKernelFunc[latId], GPWTRSym[latId],
-                                          GPWShift[latId], eleGPWDeltaNew+offset,
+                                          GPWShift[latId], 0, 0, eleGPWDeltaNew+offset,
                                           eleGPWDeltaNew+(GPWTrnCfgSz/2)*Nsite+offset);
       }
     }

@@ -38,7 +38,7 @@ void InitParameter() {
   #pragma omp parallel for default(shared) private(i)
   for(i=0;i<NProj;i++) Proj[i] = 0.0+0.0*I;
   for(i=0;i<NGPWIdx;i++) GPWVar[i] = 0.0+0.0*I;
-  for(i=0;i<NRBMTotal;i++) RBMVar[i] = 0.1*genrand_real1()-0.05+0.0*I;
+  for(i=0;i<NRBMTotal;i++) RBMVar[i] = 0.01*genrand_real1()-0.005+0.0*I;
   if(AllComplexFlag==0){
     for(i=0;i<NSlater;i++){
       if(OptFlag[2*i+2*NProj+2*NGPWIdx+2*NRBMTotal] > 0){ //TBC

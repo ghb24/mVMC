@@ -93,12 +93,19 @@ int StochasticOpt(MPI_Comm comm) {
   }
 
 // search for max and min
-  sDiag = r[0];
+  pi = 0;
+  while(OptFlag[pi] != 1 && pi < 2*nPara) {
+    pi++;
+  }
+
+  sDiag = r[pi];
   sDiagMax=sDiag; sDiagMin=sDiag;
   for(pi=0;pi<2*nPara;pi++) {
-    sDiag = r[pi];
-    if(sDiag>sDiagMax) sDiagMax=sDiag;
-    if(sDiag<sDiagMin) sDiagMin=sDiag;
+    if (OptFlag[pi] == 1) {
+      sDiag = r[pi];
+      if(sDiag>sDiagMax) sDiagMax=sDiag;
+      if(sDiag<sDiagMin) sDiagMin=sDiag;
+    }
   }
 
 // threshold

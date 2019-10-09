@@ -53,6 +53,9 @@ int StochasticOpt(MPI_Comm comm) {
 
 // for real
   int int_x,int_y,j,i;
+  int maxId, minId;
+
+  FILE *FileRedInfo = fopen("output/redundancy_info.dat", "a+");
 
   double complex *para=Para;
 
@@ -100,11 +103,20 @@ int StochasticOpt(MPI_Comm comm) {
 
   sDiag = r[pi];
   sDiagMax=sDiag; sDiagMin=sDiag;
+  maxId = pi;
+  minId = pi;
+
   for(pi=0;pi<2*nPara;pi++) {
     if (OptFlag[pi] == 1) {
       sDiag = r[pi];
-      if(sDiag>sDiagMax) sDiagMax=sDiag;
-      if(sDiag<sDiagMin) sDiagMin=sDiag;
+      if(sDiag>sDiagMax) {
+        sDiagMax=sDiag;
+        maxId = pi;
+      }
+      if(sDiag<sDiagMin) {
+        sDiagMin=sDiag;
+        minId = pi;
+      }
     }
   }
 
@@ -127,12 +139,17 @@ int StochasticOpt(MPI_Comm comm) {
       smatToParaIdx[si] = pi; // si -> restricted parameters , pi -> full paramer 0 <-> 2*NPara
       si += 1;
     }
+    fprintf(FileRedInfo, "% .5e ", sDiag);
 // e
   }
   nSmat = si;
   for(si=nSmat;si<2*nPara;si++) {
     smatToParaIdx[si] = -1; // parameters that will not be optimized
   }
+  fprintf(FileRedInfo, "%d %d %d \n", cutNum, minId, maxId);
+  fclose(FileRedInfo);
+
+
 
 #ifdef _DEBUG_STCOPT
   printf("DEBUG in %s (%d): diagCutThreshold = %lg\n", __FILE__, __LINE__, diagCutThreshold);

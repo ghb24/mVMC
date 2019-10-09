@@ -593,7 +593,7 @@ void saveEleConfig_fsz(const int sample, const double complex logIp, const doubl
   #pragma loop noalias
   for(i=0;i<Nsite*GPWTrnCfgSz;i++) EleGPWDelta[sample][i] = eleGPWDelta[i];
   #pragma loop noalias
-  for(i=0;i<Nsite*GPWTrnCfgSz*Nsite;i++) EleGPWInSum[sample][i] = eleGPWInSum[i];
+  for(i=0;i<Nsite*GPWTrnCfgSz;i++) EleGPWInSum[sample][i] = eleGPWInSum[i];
 
   x = LogProjVal(eleProjCnt);
   x += LogGPWVal(eleGPWKern);

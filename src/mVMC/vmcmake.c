@@ -426,12 +426,10 @@ void saveEleConfig(const int sample, const double complex logIp, const double co
   offset = sample*nGPWIdx;
   #pragma loop noalias
   for(i=0;i<nGPWIdx;i++) EleGPWKern[offset+i] = eleGPWKern[i];
-  offset = sample*Nsite*GPWTrnCfgSz;
   #pragma loop noalias
-  for(i=0;i<Nsite*GPWTrnCfgSz;i++) EleGPWDelta[offset+i] = eleGPWDelta[i];
-  offset = sample*GPWTrnCfgSz*Nsite;
+  for(i=0;i<Nsite*GPWTrnCfgSz;i++) EleGPWDelta[sample][i] = eleGPWDelta[i];
   #pragma loop noalias
-  for(i=0;i<Nsite*GPWTrnCfgSz;i++) EleGPWInSum[offset+i] = eleGPWInSum[i];
+  for(i=0;i<Nsite*GPWTrnCfgSz;i++) EleGPWInSum[sample][i] = eleGPWInSum[i];
 
   x = LogProjVal(eleProjCnt);
   x += LogGPWVal(eleGPWKern);

@@ -385,8 +385,12 @@ void SetMemory() {
   EleProjBFCnt = (int*)malloc(sizeof(int)*( NVMCSample*4*4*Nsite*Nrange));
 //[e] MERGE BY TM
   EleGPWKern        = (double*)malloc(sizeof(double)*(NVMCSample*NGPWIdx));
-  EleGPWDelta        = (int*)malloc(sizeof(int)*(NVMCSample*Nsite*GPWTrnCfgSz));
-  EleGPWInSum        = (double*)malloc(sizeof(double)*(NVMCSample*GPWTrnCfgSz*Nsite));
+  EleGPWDelta       = (int**)malloc(sizeof(int*)*NVMCSample);
+  EleGPWInSum       = (double**)malloc(sizeof(int*)*NVMCSample);
+  for (i = 0; i < NVMCSample; i++) {
+    EleGPWDelta[i] = (int*)malloc(sizeof(int)*(Nsite*GPWTrnCfgSz));
+    EleGPWInSum[i] = (double*)malloc(sizeof(double)*(GPWTrnCfgSz*Nsite));
+  }
   logSqPfFullSlater = (double*)malloc(sizeof(double)*(NVMCSample));
   SmpSltElmBF_real = (double *)malloc(sizeof(double)*(NVMCSample*NQPFull*(2*Nsite)*(2*Nsite)));
   SmpEta = (double*)malloc(sizeof(double*)*NVMCSample*NQPFull*Nsite*Nsite);
@@ -548,6 +552,7 @@ void SetMemory() {
 }
 
 void FreeMemory() {
+  int i;
   FreeWorkSpaceAll();
 
   if(NVMCCalMode==1){
@@ -592,6 +597,10 @@ void FreeMemory() {
   free(TmpEleGPWKern);
   free(TmpEleIdx);
   free(logSqPfFullSlater);
+  for (i = 0; i < NVMCSample; i++) {
+    free(EleGPWInSum[i]);
+    free(EleGPWDelta[i]);
+  }
   free(EleGPWInSum);
   free(EleGPWDelta);
   free(EleGPWKern);

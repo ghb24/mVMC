@@ -89,8 +89,8 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
     eleNum = EleNum + sample*Nsite2;
     eleProjCnt = EleProjCnt + sample*NProj;
     eleGPWKern = EleGPWKern + sample*NGPWIdx;
-    eleGPWDelta = EleGPWDelta + sample*Nsite*GPWTrnCfgSz;
-    eleGPWInSum = EleGPWInSum + sample*GPWTrnCfgSz*Nsite;
+    eleGPWDelta = EleGPWDelta[sample];
+    eleGPWInSum = EleGPWInSum[sample];
     eleSpn     = EleSpn + sample*Nsize; //fsz
 
     StartTimer(40);

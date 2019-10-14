@@ -453,7 +453,7 @@ void UpdateInSum(double *inSumNew, const double *inSumOld, const int *deltaNew,
         if (deltaNew[siteA*sizeB + plaquetteBIdx[a*plaquetteSize+id]]) {
           inSumNew[i*sizeB + a] += 1.0/distList[id];
         }
-        else if (deltaOld[siteA*sizeB + plaquetteBIdx[a*plaquetteSize+id]]) {
+        if (deltaOld[siteA*sizeB + plaquetteBIdx[a*plaquetteSize+id]]) {
           inSumNew[i*sizeB + a] -= 1.0/distList[id];
         }
       }
@@ -464,7 +464,7 @@ void UpdateInSum(double *inSumNew, const double *inSumOld, const int *deltaNew,
         if (deltaNew[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]]) {
           inSumNew[i*sizeB + a] += 1.0/distList[id];
         }
-        else if (deltaOld[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]]) {
+        if (deltaOld[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]]) {
           inSumNew[i*sizeB + a] -= 1.0/distList[id];
         }
       }

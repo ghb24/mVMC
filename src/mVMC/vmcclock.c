@@ -14,10 +14,10 @@ the Free Software Foundation, either version 3 of the License, or
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details. 
+GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License 
-along with this program. If not, see http://www.gnu.org/licenses/. 
+You should have received a copy of the GNU General Public License
+along with this program. If not, see http://www.gnu.org/licenses/.
 */
 /*-------------------------------------------------------------
  * Variational Monte Carlo
@@ -79,7 +79,7 @@ void StopTimer(int n) {
 void OutputTimerParaOpt() {
   char fileName[D_FileNameMax];
   FILE *fp;
-  sprintf(fileName, "%s_CalcTimer.dat", CDataFileHead); 
+  sprintf(fileName, "%s_CalcTimer.dat", CDataFileHead);
   fp = fopen(fileName, "w");
 
   fprintf(fp,"All                         [0] %12.5lf\n",Timer[0]);
@@ -133,6 +133,9 @@ void OutputTimerParaOpt() {
   fprintf(fp,"  cal                      [24] %12.5lf\n",Timer[24]);
   fprintf(fp,"  SR                       [25] %12.5lf\n",Timer[25]);
   fprintf(fp,"  MAll                     [69] %12.5lf\n",Timer[69]);
+  fprintf(fp,"  GPW matrix update        [80] %12.5lf\n",Timer[80]);
+  fprintf(fp,"  GPW computation          [81] %12.5lf\n",Timer[81]);
+
 
   fclose(fp);
 }
@@ -140,7 +143,7 @@ void OutputTimerParaOpt() {
 void OutputTimerPhysCal() {
   char fileName[D_FileNameMax];
   FILE *fp;
-  sprintf(fileName, "%s_CalcTimer.dat", CDataFileHead); 
+  sprintf(fileName, "%s_CalcTimer.dat", CDataFileHead);
   fp = fopen(fileName, "w");
 
   fprintf(fp,"All                         [0] %12.5lf\n",Timer[0]);
@@ -186,6 +189,8 @@ void OutputTimerPhysCal() {
   fprintf(fp,"  UpdateSlaterElm          [20] %12.5lf\n",Timer[20]);
   fprintf(fp,"  WeightAverage            [21] %12.5lf\n",Timer[21]);
   fprintf(fp,"  outputData               [22] %12.5lf\n",Timer[22]);
+  fprintf(fp," GPW update mat (Thread 0) [80] %12.5lf\n",Timer[80]);
+  fprintf(fp," GPW comp (Thread 0)       [81] %12.5lf\n",Timer[81]);
 
   fclose(fp);
 }

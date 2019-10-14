@@ -133,6 +133,9 @@ void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew,
 
 
       if (GPWKernelFunc[latId] == 0) {
+        if (omp_get_thread_num() == 0) {
+            StartTimer(80);
+        }
         UpdateInSum(eleGPWInSumNew+offset, eleGPWInSumOld+offset, eleGPWDeltaNew+offset,
                     eleGPWDeltaOld+offset, GPWSysPlaquetteIdx[latId],
                     Nsite, GPWTrnPlaquetteIdx[latId],
@@ -152,6 +155,10 @@ void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew,
                       GPWSysPlaqHash[latId], GPWSysPlaqHashSz[latId],
                       ri, rj);
         }
+        if (omp_get_thread_num() == 0) {
+          StopTimer(80);
+          StartTimer(81);
+        }
         eleGPWKernNew[i] = ComputeKernel(Nsite, GPWTrnSize[latId],
                                          GPWPower[latId], GPWTheta0[latId],
                                          GPWNorm[latId], GPWTRSym[latId],
@@ -159,6 +166,9 @@ void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew,
                                          eleGPWDeltaNew+(GPWTrnCfgSz/2)*Nsite+offset,
                                          eleGPWInSumNew+offset,
                                          eleGPWInSumNew+(GPWTrnCfgSz/2)*Nsite+offset);
+        if (omp_get_thread_num() == 0) {
+          StopTimer(81);
+        }
       }
 
       else {

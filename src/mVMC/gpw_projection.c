@@ -78,7 +78,7 @@ void CalculateGPWKern(double *eleGPWKern, int *eleGPWDelta, double *eleGPWInSum,
                        GPWPlaquetteSizes[latId], GPWDistList[latId]);
         }
         eleGPWKern[i] = ComputeKernel(Nsite, GPWTrnSize[latId],
-                                      GPWPower[latId], GPWTheta0[latId],
+                                      GPWPower[latId], GPWThetaVar[latId],
                                       GPWNorm[latId], GPWTRSym[latId],
                                       GPWShift[latId], 0, 0, eleGPWDelta+offset,
                                       eleGPWDelta+(GPWTrnCfgSz/2)*Nsite+offset,
@@ -160,7 +160,7 @@ void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew,
           StartTimer(81);
         }
         eleGPWKernNew[i] = ComputeKernel(Nsite, GPWTrnSize[latId],
-                                         GPWPower[latId], GPWTheta0[latId],
+                                         GPWPower[latId], GPWThetaVar[latId],
                                          GPWNorm[latId], GPWTRSym[latId],
                                          GPWShift[latId], 0, 0, eleGPWDeltaNew+offset,
                                          eleGPWDeltaNew+(GPWTrnCfgSz/2)*Nsite+offset,

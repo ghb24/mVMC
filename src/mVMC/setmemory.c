@@ -371,9 +371,10 @@ void SetMemory() {
   Proj     = Para;
   ProjBF   = Para + NProj;
   GPWVar   = Para + NProj + NProjBF;
-  RBMVar   = Para + NProj + NProjBF + NGPWIdx;
-  Slater   = Para + NProj + NProjBF + NGPWIdx + NRBMTotal;
-  OptTrans = Para + NProj + NProjBF + NGPWIdx + NRBMTotal + NSlater;
+  GPWThetaVar = Para + NProj + NProjBF + NGPWIdx;
+  RBMVar   = Para + NProj + NProjBF + NGPWIdx + NGPWTrnLat;
+  Slater   = Para + NProj + NProjBF + NGPWIdx + NGPWTrnLat + NRBMTotal;
+  OptTrans = Para + NProj + NProjBF + NGPWIdx + NGPWTrnLat + NRBMTotal + NSlater;
 
   /***** Electron Configuration ******/
   EleIdx            = (int*)malloc(sizeof(int)*( NVMCSample*2*Ne ));

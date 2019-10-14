@@ -319,12 +319,12 @@ int SetupPlaquetteIdx(const int rC, const int *neighboursA, const int sizeA,
               }
 
               tmpDirections[dim*tmpCount+d] += (dir==0?1:-1);
-              tmpCount ++;
+              tmpCount++;
 
               (*plaquetteAIdx)[i*plaquetteSize+plaquetteCount] = j;
               (*plaquetteBIdx)[a*plaquetteSize+plaquetteCount] = b;
               (*distList)[plaquetteCount] = dist;
-              plaquetteCount += 1;
+              plaquetteCount++;
 
               if (plaquetteCount >= plaquetteSize) {
                 break;
@@ -539,8 +539,8 @@ double ComputeKernel(const int sizeA, const int sizeB, const int power,
   int shiftTrn = 1 + startIdB;
   int translationSys = 1;
   int translationTrn = 1;
-
   double kernel = 0.0;
+  const double scaledNorm = theta0 + norm/power;
 
   if (abs(shift) & 1) {
     shiftSys = sizeA;
@@ -574,10 +574,10 @@ double ComputeKernel(const int sizeA, const int sizeB, const int power,
       for (i = startIdA; i < shiftSys; i+=translationSys) {
         for (a = startIdB; a < shiftTrn; a+=translationTrn) {
           if (delta[i*sizeB+a]) {
-            kernel += pow(((theta0 + 1.0/(power) * inSum[i*sizeB+a])/norm), power);
+            kernel += pow(((theta0 + inSum[i*sizeB+a]/power)/scaledNorm), power);
           }
           if (deltaFlipped[i*sizeB+a]) {
-            kernel += pow(((theta0 + 1.0/(power) * inSumFlipped[i*sizeB+a])/norm), power);
+            kernel += pow(((theta0 + inSumFlipped[i*sizeB+a]/power)/scaledNorm), power);
           }
         }
       }
@@ -598,13 +598,88 @@ double ComputeKernel(const int sizeA, const int sizeB, const int power,
       for (i = startIdA; i < shiftSys; i+=translationSys) {
         for (a = startIdB; a < shiftTrn; a+=translationTrn) {
           if (delta[i*sizeB+a]) {
-            kernel += pow(((theta0 + 1.0/(power) * inSum[i*sizeB+a])/norm), power);
+            kernel += pow(((theta0 + inSum[i*sizeB+a]/power)/scaledNorm), power);
           }
         }
       }
     }
   }
   return kernel;
+}
+
+double ComputeKernDeriv(const int sizeA, const int sizeB, const int power,
+                        const double theta0, const double norm, const int tRSym,
+                        const int shift, const int startIdA, const int startIdB,
+                        const int *delta, const int *deltaFlipped,
+                        const double *inSum, const double *inSumFlipped) {
+  int i, a;
+  int shiftSys = 1 + startIdA;
+  int shiftTrn = 1 + startIdB;
+  int translationSys = 1;
+  int translationTrn = 1;
+  const double scaledNorm = theta0 + norm/power;
+
+  double kernDeriv = 0.0;
+
+  if (abs(shift) & 1) {
+    shiftSys = sizeA;
+    if (shift < 0) {
+      translationSys = sizeB;
+    }
+  }
+  if ((abs(shift) & 2) >> 1) {
+    shiftTrn = sizeB;
+
+    if (shift < 0) {
+      translationTrn = sizeA;
+    }
+  }
+
+  if (power == -1) {
+    for (i = startIdA; i < shiftSys; i+=translationSys) {
+      for (a = startIdB; a < shiftTrn; a+=translationTrn) {
+        if (delta[i*sizeB+a]) {
+          kernDeriv += exp(-1.0/theta0 * (norm - inSum[i*sizeB+a]))*
+                       (norm-inSum[i*sizeB+a]);
+        }
+      }
+    }
+    if (tRSym) {
+      for (i = startIdA; i < shiftSys; i+=translationSys) {
+        for (a = startIdB; a < shiftTrn; a+=translationTrn) {
+          if (deltaFlipped[i*sizeB+a]) {
+            kernDeriv += exp(-1.0/theta0 * (norm - inSumFlipped[i*sizeB+a]))*
+                         (norm-inSumFlipped[i*sizeB+a]);
+          }
+        }
+      }
+    kernDeriv /= 2.0;
+    }
+    kernDeriv /= (theta0 * theta0);
+  }
+  else {
+    for (i = startIdA; i < shiftSys; i+=translationSys) {
+      for (a = startIdB; a < shiftTrn; a+=translationTrn) {
+        if (delta[i*sizeB+a]) {
+          kernDeriv += pow(((theta0 + (inSum[i*sizeB+a]/power))/scaledNorm), power-1)*
+                       ((norm - inSum[i*sizeB+a])/power);
+        }
+      }
+    }
+    if (tRSym) {
+      for (i = startIdA; i < shiftSys; i+=translationSys) {
+        for (a = startIdB; a < shiftTrn; a+=translationTrn) {
+          if (deltaFlipped[i*sizeB+a]) {
+            kernDeriv += pow(((theta0 + (inSumFlipped[i*sizeB+a]/power))/scaledNorm), power-1)*
+                         ((norm - inSumFlipped[i*sizeB+a])/power);
+          }
+        }
+      }
+    kernDeriv /= 2.0;
+    }
+    kernDeriv *= power/(scaledNorm * scaledNorm);
+  }
+  return kernDeriv;
 }
 
 
@@ -881,9 +956,6 @@ double GPWKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
 
   for (k = 0; k < plaquetteSize; k++) {
     norm += 1.0/distList[k];
-  }
-  if (power > 0) {
-    norm = (theta0 + 1.0/(power)*norm);
   }
 
   CalculatePairDelta(delta, cfgA, sizeA, cfgB, sizeB);

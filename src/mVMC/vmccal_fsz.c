@@ -31,7 +31,7 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler);
 void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
   int *eleIdx,*eleCfg,*eleNum,*eleProjCnt,*eleSpn,*eleGPWDelta; //fsz
   double *eleGPWKern, *eleGPWInSum;
-  double complex innerSum, differential;
+  double complex innerSum, derivative;
   double complex e,ip, amp;
   double w;
   double sqrtw;
@@ -41,18 +41,19 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
   const int qpStart=0;
   const int qpEnd=NQPFull;
   int sample,sampleStart,sampleEnd,sampleSize;
-  int i,info,j,offset,idx,f,targetBasis;
+  int i,info,j,offset,idx,f,targetBasis,k;
 
   /* optimazation for Kei */
   const int nProj=NProj;
   const int nGPWIdx=NGPWIdx;
+  const int nGPWTrnLat=NGPWTrnLat;
   const int nRBMVis=RBMNVisibleIdx;
   const int nRBMHidden=RBMNHiddenIdx;
   const int nsite2=Nsite2;
   double complex *srOptO = SROptO;
 //  double         *srOptO_real = SROptO_real;
 
-  double GPWNorm;
+  double GPWAmpNorm;
 
   int rank,size,int_i,rankSampler;
   char fileNameSamples[D_FileNameMax];
@@ -71,11 +72,11 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
   clearPhysQuantity();
   StopTimer(24);
 
-  GPWNorm = creal(LogGPWVal(EleGPWKern));
+  GPWAmpNorm = creal(LogGPWVal(EleGPWKern));
   for(sample = 0; sample < NVMCSample; sample++) {
     eleGPWKern = EleGPWKern + sample*NGPWIdx;
-    if (creal(LogGPWVal(eleGPWKern)) > GPWNorm) {
-      GPWNorm = creal(LogGPWVal(eleGPWKern));
+    if (creal(LogGPWVal(eleGPWKern)) > GPWAmpNorm) {
+      GPWAmpNorm = creal(LogGPWVal(eleGPWKern));
     }
   }
 
@@ -160,7 +161,7 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
         cfgDown |= (((unsigned long) 1) << i);
       }
     }
-    amp = cexp(LogProjVal(eleProjCnt)+LogGPWVal(eleGPWKern)-GPWNorm)*ip;
+    amp = cexp(LogProjVal(eleProjCnt)+LogGPWVal(eleGPWKern)-GPWAmpNorm)*ip;
 
     fprintf(fp,"%lu  %lu  %.10e  %.10e  %.10e  %.10e  %.10e  %f\n", cfgUp, cfgDown,
             creal(amp), cimag(amp), creal(ip/RBMVal(eleNum)),
@@ -192,6 +193,33 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
       }
       offset += nGPWIdx;
 
+      /* this is not ideal but an easy way to make use of threads
+         (usually the number of training lattices will be small) */
+      for (i = 0; i < nGPWTrnLat; i++){
+        derivative = 0.0;
+        if (GPWKernelFunc[i] == 0 && OptFlag[2*(NProj + NGPWIdx + i)]) {
+          #pragma omp parallel for default(shared) private(j, k) reduction(+:derivative)
+          for (j = 0; j < nGPWIdx; j++) {
+            int matOffset;
+            if (i == GPWTrnLat[j]){
+              matOffset = 0;
+              for (k = 0; k < j; k++) {
+                matOffset += Nsite*GPWTrnSize[GPWTrnLat[k]];
+              }
+              derivative += GPWVar[j] * ComputeKernDeriv(Nsite, GPWTrnSize[i], GPWPower[i],
+                                                         GPWThetaVar[i], GPWNorm[i], GPWTRSym[i],
+                                                         GPWShift[i], 0, 0, eleGPWDelta+matOffset,
+                                                         eleGPWDelta+(GPWTrnCfgSz/2)*Nsite+matOffset,
+                                                         eleGPWInSum+matOffset,
+                                                         eleGPWInSum+(GPWTrnCfgSz/2)*Nsite+matOffset);
+            }
+          }
+        }
+        srOptO[(offset+i)*2]     = derivative;    // even real
+        srOptO[(offset+i)*2+1]   = derivative*I;  // odd  comp
+        offset++;
+      }
+
       #pragma omp parallel for default(shared) private(f, i)
       for(f = 0; f < nRBMVis; f++) {
         srOptO[(offset+f)*2]     = 0.0;    // even real
@@ -204,42 +232,42 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
       offset += nRBMVis;
 
       for(f = 0; f < nRBMHidden; f++) {
-        differential = 0;
-        #pragma omp parallel for default(shared) private(i, innerSum) reduction(+:differential)
+        derivative = 0;
+        #pragma omp parallel for default(shared) private(i, innerSum) reduction(+:derivative)
         for(i = 0; i < Nsite; i++) {
           innerSum = RBMHiddenLayerSum(f, i, eleNum);
-          differential += (cexp(innerSum) - cexp(-innerSum))/(cexp(innerSum) + cexp(-innerSum));
+          derivative += (cexp(innerSum) - cexp(-innerSum))/(cexp(innerSum) + cexp(-innerSum));
         }
 
-        srOptO[(offset+f)*2]     = differential;    // even real
-        srOptO[(offset+f)*2+1]   = differential*I;  // odd  comp
+        srOptO[(offset+f)*2]     = derivative;    // even real
+        srOptO[(offset+f)*2+1]   = derivative*I;  // odd  comp
 
 
 
         for(j = 0; j < Nsite; j++) {
-          differential = 0;
+          derivative = 0;
 
-          #pragma omp parallel for default(shared) private(i, targetBasis, innerSum) reduction(+:differential)
+          #pragma omp parallel for default(shared) private(i, targetBasis, innerSum) reduction(+:derivative)
           for(i = 0; i < Nsite; i++) {
             targetBasis = (j + i) % Nsite;
             innerSum = RBMHiddenLayerSum(f, i, eleNum);
-            differential += (eleNum[targetBasis]*2-1)*(cexp(innerSum) - cexp(-innerSum))/(cexp(innerSum) + cexp(-innerSum));
+            derivative += (eleNum[targetBasis]*2-1)*(cexp(innerSum) - cexp(-innerSum))/(cexp(innerSum) + cexp(-innerSum));
           }
           idx = RBMWeightMatrIdx[j][f];
-          srOptO[(offset+nRBMHidden+idx)*2]     = differential;    // even real
-          srOptO[(offset+nRBMHidden+idx)*2+1]   = differential*I;  // odd  comp
+          srOptO[(offset+nRBMHidden+idx)*2]     = derivative;    // even real
+          srOptO[(offset+nRBMHidden+idx)*2+1]   = derivative*I;  // odd  comp
 
 
 
-          #pragma omp parallel for default(shared) private(i, targetBasis, innerSum) reduction(+:differential)
+          #pragma omp parallel for default(shared) private(i, targetBasis, innerSum) reduction(+:derivative)
           for(i = 0; i < Nsite; i++) {
             targetBasis = (j + i) % Nsite + Nsite;
             innerSum = RBMHiddenLayerSum(f, i, eleNum);
-            differential += (eleNum[targetBasis]*2-1)*(cexp(innerSum) - cexp(-innerSum))/(cexp(innerSum) + cexp(-innerSum));
+            derivative += (eleNum[targetBasis]*2-1)*(cexp(innerSum) - cexp(-innerSum))/(cexp(innerSum) + cexp(-innerSum));
           }
           idx = RBMWeightMatrIdx[j+Nsite][f];
-          srOptO[(offset+nRBMHidden+idx)*2]     = differential;    // even real
-          srOptO[(offset+nRBMHidden+idx)*2+1]   = differential*I;  // odd  comp
+          srOptO[(offset+nRBMHidden+idx)*2]     = derivative;    // even real
+          srOptO[(offset+nRBMHidden+idx)*2+1]   = derivative*I;  // odd  comp
         }
       }
       offset += nsite2*nRBMHidden+nRBMHidden;

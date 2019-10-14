@@ -78,6 +78,14 @@ double ComputeKernel(const int sizeA, const int sizeB, const int power,
                      const int *delta, const int *deltaFlipped,
                      const double *inSum, const double *inSumFlipped);
 
+/* Computes the derivative of the kernel (divided by the wave function amplitude)
+with respect to theta0 */
+double ComputeKernDeriv(const int sizeA, const int sizeB, const int power,
+                        const double theta0, const double norm, const int tRSym,
+                        const int shift, const int startIdA, const int startIdB,
+                        const int *delta, const int *deltaFlipped,
+                        const double *inSum, const double *inSumFlipped);
+
 // Computes the kn kernel
 double ComputeKernelN(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
                       const int *cfgB, const int *plaquetteBIdx, const int sizeB,

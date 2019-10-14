@@ -152,6 +152,11 @@ void OutputOptData() {
 			  NGPWIdx, NGPWIdx,
 			  count_i, n);
       count_i += NGPWIdx;
+      sprintf(fileName, "%s_gpw_hyp_opt_int_id.dat", CParaFileHead);
+      Child_OutputOptData(fp, fileName, "NGPWTrnLat",
+			  NGPWTrnLat, NGPWTrnLat,
+			  count_i, n);
+      count_i += NGPWTrnLat;
     }
 
     if(NRBMTotal != 0){

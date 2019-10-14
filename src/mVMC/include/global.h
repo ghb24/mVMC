@@ -213,7 +213,7 @@ int FlagBinary=0;
 int NFileFlushInterval=1;
 
 /***** Variational Parameters *****/
-int NPara; /* the total number of variational prameters NPara= NProj + NGPWIdx + NSlater+ NOptTrans */
+int NPara; /* the total number of variational prameters NPara= NProj + NGPWIdx + NGPWTrnLat + NSlater+ NOptTrans */
 int NProj;    /* the number of correlation factor */
 int NProjBF;    /* the number of correlation factor */
 int NSlater;  /* the number of pair orbital (f_ij) = NOrbitalIdx */
@@ -224,7 +224,8 @@ double complex *Para;   /* variatonal parameters */
 double complex *Proj;   /* correlation factor (Proj    =Para) */
 double complex *ProjBF; /* Back flow correlation factor (Proj    =Para) */
 double complex *GPWVar;   /* Variational parameters of the GPW training sets (GPWVar = Proj+NProj) */
-double complex *RBMVar; /* Variational parameters of the RBM projector (GPWVar = GPWVar+NGPWIdx)*/
+double complex *GPWThetaVar;   /* Theta values of the kernel (variational parameters, GPWThetaVar = GPWVar+NGPWIdx) */
+double complex *RBMVar; /* Variational parameters of the RBM projector (RBMVar = GPWThetaVar+NGPWTrnLat)*/
 double complex *Slater; /* pair orbital       (Slater  =Para+NProj+NGPWIdx+RBMNVisibleIdx + RBMNHiddenIdx + RBMNHiddenIdx * Nsite2) */
 double complex *OptTrans; /* weights          (OptTrans=Para+NProj+NGPWIdx+RBMNVisibleIdx + RBMNHiddenIdx + RBMNHiddenIdx * Nsite2 + NSlater) */
 double complex **eta;   /* Back Flow correlation factor (eta = 1.0 or ProjBF[0])*/

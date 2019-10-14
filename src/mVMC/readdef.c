@@ -193,8 +193,8 @@ char *ReadBuffGPWInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, in
       sscanf(ctmp, "%s %lf\n", ctmp2, &dtmp);
       if (CheckWords(ctmp2, "KernelFunc") != 0  && CheckWords(ctmp2, "Power") != 0 &&
           CheckWords(ctmp2, "CutRad") != 0 && CheckWords(ctmp2, "Theta0") != 0 &&
-          CheckWords(ctmp2, "ThetaC") != 0 && CheckWords(ctmp2, "TRSym") != 0 &&
-          CheckWords(ctmp2, "Shift") != 0) {
+          CheckWords(ctmp2, "OptTheta") != 0 && CheckWords(ctmp2, "ThetaC") != 0 &&
+          CheckWords(ctmp2, "TRSym") != 0 && CheckWords(ctmp2, "Shift") != 0) {
         read = 0;
       }
     }
@@ -821,7 +821,7 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
   }
   /* [e] For BackFlow */
 
-  NPara = NProj + NGPWIdx + NRBMTotal + NSlater + NOptTrans + NProjBF;
+  NPara = NProj + NGPWIdx + NGPWTrnLat + NRBMTotal + NSlater + NOptTrans + NProjBF;
   NQPFix = NSPGaussLeg * NMPTrans;
   NQPFull = NQPFix * NQPOptTrans;
   SROptSize = NPara + 1;
@@ -995,7 +995,7 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
 
         case KWRBM:
           fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
-          fidx = NProj + NGPWIdx;
+          fidx = NProj + NGPWIdx + NGPWTrnLat;
           if (GetInfoRBM(fp, RBMWeightMatrIdx, OptFlag, iComplexFlgRBM, &count_idx,
                          fidx, Nsite, RBMNVisibleIdx, RBMNHiddenIdx, defname) != 0)
             info = 1;
@@ -1004,7 +1004,7 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
         case KWOrbital:
         case KWOrbitalAntiParallel:
           /*orbitalidxs.def------------------------------------*/
-          fidx = NProj + NGPWIdx + NRBMTotal;
+          fidx = NProj + NGPWIdx + NGPWTrnLat + NRBMTotal;
           if (GetInfoOrbitalAntiParallel(fp, OrbitalIdx, OptFlag, OrbitalSgn, &count_idx,
                                          fidx, iComplexFlgOrbital, iFlgOrbitalGeneral, APFlag, Nsite, iNOrbitalAntiParallel,
                                          defname) != 0)
@@ -1012,7 +1012,7 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
           break;
 
         case KWOrbitalGeneral:
-          fidx = NProj + NGPWIdx + NRBMTotal;
+          fidx = NProj + NGPWIdx + NGPWTrnLat + NRBMTotal;
           if (GetInfoOrbitalGeneral(fp, OrbitalIdx, OptFlag, OrbitalSgn, &count_idx,
                                     fidx, iComplexFlgOrbital, iFlgOrbitalGeneral, APFlag, Nsite, NOrbitalIdx,
                                     defname) != 0)
@@ -1021,7 +1021,7 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
 
         case KWOrbitalParallel:
           /*orbitalidxt.def------------------------------------*/
-          fidx = NProj + NGPWIdx + NRBMTotal + iNOrbitalAntiParallel;
+          fidx = NProj + NGPWIdx + NGPWTrnLat + NRBMTotal + iNOrbitalAntiParallel;
           if (GetInfoOrbitalParallel(fp, OrbitalIdx, OptFlag, OrbitalSgn, &count_idx,
                                      fidx, iComplexFlgOrbital, iFlgOrbitalGeneral, APFlag, Nsite, iNOrbitalParallel,
                                      iNOrbitalAntiParallel, defname) != 0)
@@ -1060,7 +1060,7 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
 
         case KWOptTrans:
           /*qpopttrans.def------------------------------------*/
-          fidx = NProj + NGPWIdx + NRBMTotal + NOrbitalIdx;
+          fidx = NProj + NGPWIdx + NGPWTrnLat + NRBMTotal + NOrbitalIdx;
           if (GetInfoOptTrans(fp, QPOptTrans, ParaQPOptTrans, OptFlag, QPOptTransSgn, FlagOptTrans, &count_idx, fidx,
                               APFlag, Nsite, NQPOptTrans, defname) != 0)
             info = 1;
@@ -1207,9 +1207,6 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
     for (j = 0; j < GPWPlaquetteSizes[i]; j++) {
       GPWNorm[i] += 1.0/GPWDistList[i][j];
     }
-    if (GPWPower[i] > 0) {
-      GPWNorm[i] = (GPWTheta0[i] + 1.0/(GPWPower[i])*GPWNorm[i]);
-    }     
    }
 
   return 0;
@@ -2148,6 +2145,7 @@ int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int
   unsigned long trnCfgUp = 0, trnCfgDown = 0;
   int fidx = _fidx;
   double dtmp;
+  int *optTheta = ArrayOpt + 2*(fidx + NGPWIdx);
 
   // TODO: sanity checks!!
   int *mapping = (int*)malloc(sizeof(int)*NGPWTrnLat);
@@ -2159,6 +2157,8 @@ int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int
       trnSize[i] = trnSz;
       mapping[i] = tmp;
 
+      optTheta[i] = 0;
+      (*iOptCount)++;
 
       // read kernel paramters
       read = 1;
@@ -2174,6 +2174,8 @@ int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int
           cutRad[i] = (int) dtmp;
         } else if (CheckWords(ctmp2, "Theta0") == 0) {
           theta0[i] = dtmp;
+        } else if (CheckWords(ctmp2, "OptTheta") == 0) {
+          optTheta[i] = dtmp;
         } else if (CheckWords(ctmp2, "ThetaC") == 0) {
           thetaC[i] = dtmp;
         } else if (CheckWords(ctmp2, "TRSym") == 0) {

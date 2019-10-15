@@ -55,14 +55,16 @@ int StochasticOpt(MPI_Comm comm) {
   int int_x,int_y,j,i;
   int maxId, minId;
 
-  FILE *FileRedInfo = fopen("output/redundancy_info.dat", "a+");
+  FILE *FileRedInfo;
 
   double complex *para=Para;
 
   int rank,size;
   MPI_Comm_rank(comm,&rank);
   MPI_Comm_size(comm,&size);
-
+  if (rank == 0) {
+    FileRedInfo = fopen("output/redundancy_info.dat", "a+");
+  }
   r = (double*)calloc(2*SROptSize, sizeof(double));
 
   StartTimer(50);
@@ -139,15 +141,19 @@ int StochasticOpt(MPI_Comm comm) {
       smatToParaIdx[si] = pi; // si -> restricted parameters , pi -> full paramer 0 <-> 2*NPara
       si += 1;
     }
-    fprintf(FileRedInfo, "% .5e ", sDiag);
+    if (rank == 0) {
+      fprintf(FileRedInfo, "% .5e ", sDiag);
+    }
 // e
   }
   nSmat = si;
   for(si=nSmat;si<2*nPara;si++) {
     smatToParaIdx[si] = -1; // parameters that will not be optimized
   }
-  fprintf(FileRedInfo, "%d %d %d \n", cutNum, minId, maxId);
-  fclose(FileRedInfo);
+    if (rank == 0) {
+      fprintf(FileRedInfo, "%d %d %d \n", cutNum, minId, maxId);
+      fclose(FileRedInfo);
+    }
 
 
 

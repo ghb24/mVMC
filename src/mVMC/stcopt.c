@@ -56,6 +56,7 @@ int StochasticOpt(MPI_Comm comm) {
   int maxId, minId;
 
   FILE *FileRedInfo;
+  FILE *FileThetaOpt;
 
   double complex *para=Para;
 
@@ -150,10 +151,19 @@ int StochasticOpt(MPI_Comm comm) {
   for(si=nSmat;si<2*nPara;si++) {
     smatToParaIdx[si] = -1; // parameters that will not be optimized
   }
-    if (rank == 0) {
-      fprintf(FileRedInfo, "%d %d %d \n", cutNum, minId, maxId);
-      fclose(FileRedInfo);
+  if (rank == 0) {
+    fprintf(FileRedInfo, "%d %d %d \n", cutNum, minId, maxId);
+    fclose(FileRedInfo);
+  }
+
+  if (NGPWIdx > 0 && rank == 0) {
+    FileThetaOpt = fopen("output/theta_opt.dat", "a+");
+    for (i = 0; i < NGPWTrnLat; i++) {
+      fprintf(FileRedInfo, "%f %.5e   ", creal(GPWThetaVar[i]) , r[2*(NProj+NGPWIdx+i)]);
     }
+    fprintf(FileRedInfo, "\n");
+    fclose(FileRedInfo);
+  }
 
 
 

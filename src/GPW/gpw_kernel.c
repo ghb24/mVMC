@@ -199,17 +199,30 @@ int SetupPlaquetteIdx(const int rC, const int *neighboursA, const int sizeA,
                       int **distList) {
   int i, a, j, b, k, l, dist, count, tmpCount, d;
 
-  int plaquetteSize, plaquetteCount;
+  int plaquetteSize, plaquetteCount, doubleCounting;
   int maxShellSize = 2;
 
   int *prevIndSys, *tmpPrevIndSys, *prevIndTrn, *tmpPrevIndTrn;
+  int *visitedA, *visitedB;
   int *directions, *tmpDirections;
 
   plaquetteSize = 0;
 
   if (rC < 0) {
-    maxShellSize = abs(rC)-1;
-    plaquetteSize = abs(rC)-1;
+    if (abs(rC) < sizeA && abs(rC) < sizeB) {
+      maxShellSize = abs(rC)-1;
+      plaquetteSize = abs(rC)-1;
+    }
+    else if (sizeA < sizeB) {
+      maxShellSize = sizeA-1;
+      plaquetteSize = sizeA-1;
+    }
+    else {
+      maxShellSize = sizeB-1;
+      plaquetteSize = sizeB-1;
+    }
+
+    doubleCounting = 0;
   }
 
   else {
@@ -235,6 +248,8 @@ int SetupPlaquetteIdx(const int rC, const int *neighboursA, const int sizeA,
         plaquetteSize += (2+4*i*i);
       }
     }
+    // double count contributions if plaquette size is determined from cutoff range
+    doubleCounting = 1;
   }
 
 
@@ -242,15 +257,25 @@ int SetupPlaquetteIdx(const int rC, const int *neighboursA, const int sizeA,
   *plaquetteBIdx = (int*)malloc((plaquetteSize*sizeB)*sizeof(int));
   *distList = (int*)malloc(plaquetteSize*sizeof(int));
 
-  prevIndSys = (int*)malloc((4*maxShellSize+2*dim*maxShellSize)*sizeof(int));
+  prevIndSys = (int*)malloc((4*maxShellSize+2*dim*maxShellSize + sizeA + sizeB)*sizeof(int));
   tmpPrevIndSys = prevIndSys + maxShellSize;
   prevIndTrn = tmpPrevIndSys + maxShellSize;
   tmpPrevIndTrn = prevIndTrn + maxShellSize;
   directions = tmpPrevIndTrn + maxShellSize;
   tmpDirections = directions + maxShellSize*dim;
+  visitedA = tmpDirections + maxShellSize*dim;
+  visitedB = visitedA + sizeA;
 
   for (i = 0; i < sizeA; i++) {
     for (a = 0; a < sizeB; a++) {
+      for (k = 0; k < sizeA; k++) {
+        visitedA[k] = 0;
+      }
+
+      for (k = 0; k < sizeB; k++) {
+        visitedB[k] = 0;
+      }
+
       // set up starting point (dist = 0)
       plaquetteCount = 0;
       count = 1;
@@ -260,6 +285,8 @@ int SetupPlaquetteIdx(const int rC, const int *neighboursA, const int sizeA,
       b = a;
       prevIndSys[0] = j;
       prevIndTrn[0] = b;
+      visitedA[j] = 1;
+      visitedB[b] = 1;
 
       for (d = 0; d < dim; d++) {
         directions[d] = 0;
@@ -285,20 +312,24 @@ int SetupPlaquetteIdx(const int rC, const int *neighboursA, const int sizeA,
             j = neighboursA[prevIndSys[k]*2*dim + d*2+dir];
             b = neighboursB[prevIndTrn[k]*2*dim + d*2+dir];
 
-            tmpPrevIndSys[tmpCount] = j;
-            tmpPrevIndTrn[tmpCount] = b;
+            if ((!visitedA[j] && !visitedB[b]) || doubleCounting) {
+              visitedA[j] = 1;
+              visitedB[b] = 1;
+              tmpPrevIndSys[tmpCount] = j;
+              tmpPrevIndTrn[tmpCount] = b;
 
-            for(l = 0; l < dim; l++) {
-              tmpDirections[dim*tmpCount+l] = directions[dim*k+l];
+              for(l = 0; l < dim; l++) {
+                tmpDirections[dim*tmpCount+l] = directions[dim*k+l];
+              }
+
+              tmpDirections[dim*tmpCount+d] += (dir==0?1:-1);
+              tmpCount ++;
+
+              (*plaquetteAIdx)[i*plaquetteSize+plaquetteCount] = j;
+              (*plaquetteBIdx)[a*plaquetteSize+plaquetteCount] = b;
+              (*distList)[plaquetteCount] = dist;
+              plaquetteCount += 1;
             }
-
-            tmpDirections[dim*tmpCount+d] += (dir==0?1:-1);
-            tmpCount ++;
-
-            (*plaquetteAIdx)[i*plaquetteSize+plaquetteCount] = j;
-            (*plaquetteBIdx)[a*plaquetteSize+plaquetteCount] = b;
-            (*distList)[plaquetteCount] = dist;
-            plaquetteCount += 1;
 
             if (plaquetteCount >= plaquetteSize) {
               break;
@@ -311,20 +342,24 @@ int SetupPlaquetteIdx(const int rC, const int *neighboursA, const int sizeA,
               j = neighboursA[prevIndSys[k]*2*dim+d*2+dir];
               b = neighboursB[prevIndTrn[k]*2*dim+d*2+dir];
 
-              tmpPrevIndSys[tmpCount] = j;
-              tmpPrevIndTrn[tmpCount] = b;
+              if ((!visitedA[j] && !visitedB[b]) || doubleCounting) {
+                visitedA[j] = 1;
+                visitedB[b] = 1;
+                tmpPrevIndSys[tmpCount] = j;
+                tmpPrevIndTrn[tmpCount] = b;
 
-              for (l = 0; l < dim; l++) {
-                tmpDirections[dim*tmpCount+l] = directions[k*dim+l];
+                for (l = 0; l < dim; l++) {
+                  tmpDirections[dim*tmpCount+l] = directions[k*dim+l];
+                }
+
+                tmpDirections[dim*tmpCount+d] += (dir==0?1:-1);
+                tmpCount++;
+
+                (*plaquetteAIdx)[i*plaquetteSize+plaquetteCount] = j;
+                (*plaquetteBIdx)[a*plaquetteSize+plaquetteCount] = b;
+                (*distList)[plaquetteCount] = dist;
+                plaquetteCount++;
               }
-
-              tmpDirections[dim*tmpCount+d] += (dir==0?1:-1);
-              tmpCount++;
-
-              (*plaquetteAIdx)[i*plaquetteSize+plaquetteCount] = j;
-              (*plaquetteBIdx)[a*plaquetteSize+plaquetteCount] = b;
-              (*distList)[plaquetteCount] = dist;
-              plaquetteCount++;
 
               if (plaquetteCount >= plaquetteSize) {
                 break;

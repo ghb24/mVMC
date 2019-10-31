@@ -145,11 +145,13 @@ char *ReadBuffIntCmpFlg(FILE *fp, int *iNbuf, int *iComplexFlag) {
 }
 
 char *ReadBuffGPWInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, int *iLatNbSzBuf,
-                      int *iTrnCfgSzBuf) {
+                      int *iTrnCfgSzBuf, int *iLinModFlag) {
   char *cerr;
   char ctmp[D_FileNameMax];
   char ctmp2[D_FileNameMax];
   int i, j, k, l, trnSz, latIdIntern, latIdFile, mappingFound;
+
+  int linModel;
 
   int read = 1;
   double dtmp;
@@ -158,6 +160,7 @@ char *ReadBuffGPWInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, in
 
   *iLatNbSzBuf = 0;
   *iTrnCfgSzBuf = 0;
+  *iLinModFlag = 0;
 
   cerr = ReadBuffIntCmpFlg(fp, iNbuf, iComplexFlag);
 
@@ -172,8 +175,16 @@ char *ReadBuffGPWInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, in
   // mapping between specified lattice reference and internal lattice index
   mapping = latSz + *iNLatBuf;
 
-  // skip two lines
   fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
+  sscanf(ctmp, "%s %d\n", ctmp2, &linModel);
+
+  if (CheckWords(ctmp2, "LinModel") == 0) {
+    *iLinModFlag = linModel;
+    IgnoreAddLineGPWDef = 1;
+    fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
+  }
+
+  // skip one more line
   fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
 
   // read in the sizes of the training lattices
@@ -528,7 +539,8 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
 
           case KWGPW:
             cerr = ReadBuffGPWInfo(fp, &bufInt[IdxNGPW], &iComplexFlgGPW, &bufInt[IdxNGPWTrnLat],
-                                   &bufInt[IdxTrnLatNbSz], &bufInt[IdxTrnCfgSz]);
+                                   &bufInt[IdxTrnLatNbSz], &bufInt[IdxTrnCfgSz],
+                                   &bufInt[IdxLinModFlag]);
             break;
 
           case KWTopology:
@@ -764,6 +776,7 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
   NGPWTrnLat = bufInt[IdxNGPWTrnLat];
   GPWTrnLatNeighboursSz = 2 * Dim * bufInt[IdxTrnLatNbSz];
   GPWTrnCfgSz = 2 * bufInt[IdxTrnCfgSz];
+  GPWLinModFlag = bufInt[IdxLinModFlag];
   RBMNVisibleIdx = bufInt[IdxNRBMVisible];
   RBMNHiddenIdx = bufInt[IdxNRBMHidden];
   UseOrbital = bufInt[IdxUseOrb];
@@ -981,6 +994,10 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
 
         case KWGPW:
           fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
+          if (IgnoreAddLineGPWDef) {
+            fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
+          }
+
           fidx = NGutzwillerIdx + NJastrowIdx + 2 * 3 * NDoublonHolon2siteIdx + 2 * 5 * NDoublonHolon4siteIdx;
           if (GetInfoGPW(fp, GPWTrnSize, GPWTrnNeighboursFlat, GPWTrnLat, GPWTrnCfgFlat, GPWKernelFunc, GPWPower,
                          GPWCutRad, GPWTheta0, GPWThetaC, GPWTRSym, GPWShift, OptFlag, iComplexFlgGPW, &count_idx, fidx,

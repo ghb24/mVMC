@@ -137,6 +137,7 @@ int NGPWIdx; /* NGPWIdx = total number of training configurations */
 int NGPWTrnLat; /* NGPWTrnLat = total number of different training lattices */
 int GPWTrnLatNeighboursSz; /* total size of the training lattice neighbours array (sum_(all training lattices) 2*Dim*latSize) */
 int GPWTrnCfgSz; /* total size of the training configurations array (sum_(all training configs) 2*latSize) */
+int GPWLinModFlag; /* 1: linear model, 0: correction to log */
 int *GPWTrnSize; /* [NGPWTrnLat] Lattice sizes of training configurations*/
 int *GPWTrnLat; /* [NGPWIdx] Training lattice reference for each training configuration */
 int *GPWTrnNeighboursFlat; /* [GPWTrnLatNeighboursSz] flat array of all the neighbours in the training system required for GPW */

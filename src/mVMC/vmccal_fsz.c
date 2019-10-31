@@ -186,10 +186,17 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
       }
       offset = nProj+1;
 
-      #pragma loop noalias
+      #pragma omp parallel for default(shared) private(i)
       for(i=0;i<nGPWIdx;i++){
         srOptO[(offset+i)*2]     = eleGPWKern[i];    // even real
         srOptO[(offset+i)*2+1]   = eleGPWKern[i]*I;  // odd  comp
+      }
+      if (GPWLinModFlag) {
+        #pragma omp parallel for default(shared) private(i)
+        for(i=0;i<nGPWIdx;i++){
+          srOptO[(offset+i)*2] = srOptO[(offset+i)*2]/GPWVal(eleGPWKern);    // even real
+          srOptO[(offset+i)*2+1] = srOptO[(offset+i)*2+1]/GPWVal(eleGPWKern);    // odd comp
+        }
       }
       offset += nGPWIdx;
 
@@ -217,6 +224,10 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
         }
         srOptO[(offset+i)*2]     = derivative;    // even real
         srOptO[(offset+i)*2+1]   = derivative*I;  // odd  comp
+        if (GPWLinModFlag) {
+          srOptO[(offset+i)*2] = srOptO[(offset+i)*2]/GPWVal(eleGPWKern);    // even real
+          srOptO[(offset+i)*2+1] = srOptO[(offset+i)*2+1]/GPWVal(eleGPWKern);    // odd comp
+        }
         offset++;
       }
 

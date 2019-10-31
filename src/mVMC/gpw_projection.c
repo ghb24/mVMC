@@ -9,28 +9,66 @@ TODO: Add License + Description*/
 inline double complex LogGPWVal(const double *eleGPWKern) {
   int idx;
   double complex z=0.0+0.0*I;
+
+  #pragma omp parallel for default(shared) private(idx) reduction(+:z)
   for(idx=0;idx<NGPWIdx;idx++) {
     z += GPWVar[idx] * eleGPWKern[idx];
   }
-  return z;
+
+  if (!GPWLinModFlag) {
+    return z;
+  }
+  else {
+    return clog(z);
+  }
+}
+
+inline double complex GPWVal(const double *eleGPWKern) {
+  int idx;
+  double complex z=0.0+0.0*I;
+
+  #pragma omp parallel for default(shared) private(idx) reduction(+:z)
+  for(idx=0;idx<NGPWIdx;idx++) {
+    z += GPWVar[idx] * eleGPWKern[idx];
+  }
+
+  if (!GPWLinModFlag) {
+    return cexp(z);
+  }
+  else {
+    return z;
+  }
 }
 
 inline double complex LogGPWRatio(const double *eleGPWKernNew, const double *eleGPWKernOld) {
   int idx;
   double complex z=0.0+0.0*I;
-  for(idx=0;idx<NGPWIdx;idx++) {
-    z += GPWVar[idx] * (eleGPWKernNew[idx]-eleGPWKernOld[idx]);
+
+  if (!GPWLinModFlag) {
+    #pragma omp parallel for default(shared) private(idx) reduction(+:z)
+    for(idx=0;idx<NGPWIdx;idx++) {
+      z += GPWVar[idx] * (eleGPWKernNew[idx]-eleGPWKernOld[idx]);
+    }
+    return z;
   }
-  return z;
+
+  else {
+    return (LogGPWVal(eleGPWKernNew)-LogGPWVal(eleGPWKernOld));
+  }
+
 }
 
 inline double complex GPWRatio(const double *eleGPWKernNew, const double *eleGPWKernOld) {
   int idx;
   double complex z=0.0+0.0*I;
-  for(idx=0;idx<NGPWIdx;idx++) {
-    z += GPWVar[idx] * (eleGPWKernNew[idx]-eleGPWKernOld[idx]);
+
+  if (!GPWLinModFlag) {
+    return cexp(LogGPWRatio(eleGPWKernNew, eleGPWKernOld));
   }
-  return cexp(z);
+
+  else {
+    return (GPWVal(eleGPWKernNew)/GPWVal(eleGPWKernOld));
+  }
 }
 
 void CalculateGPWKern(double *eleGPWKern, int *eleGPWDelta, double *eleGPWInSum, const int *eleNum) {

@@ -81,7 +81,8 @@ enum ParamIdxInt{
   IdxNCoulombInter, IdxNHund, IdxNPairHop, 
   IdxNExchange, IdxNGutz, IdxNJast,
   IdxNDH2, IdxNDH4, IdxNGPW, IdxNGPWTrnLat,
-  IdxTrnLatNbSz, IdxTrnCfgSz, IdxDim,
+  IdxTrnLatNbSz, IdxTrnCfgSz, IdxLinModFlag,
+  IdxDim,
   IdxNRBMVisible, IdxNRBMHidden,
   IdxNOrbit, IdxNOrbitGeneral, IdxUseOrb,
 	IdxNQPTrans, IdxNOneBodyG, IdxNTwoBodyG,
@@ -117,3 +118,4 @@ int iComplexFlgRBM=0;
 int iComplexFlgOrbital=0;
 
 int IgnoreLinesDefTopology=5; // number of lines that need to be skipped in topology file
+int IgnoreAddLineGPWDef=0; // flag set if linear model flag is specified in gpw definition file

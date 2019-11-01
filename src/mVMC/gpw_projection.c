@@ -19,7 +19,7 @@ inline double complex LogGPWVal(const double *eleGPWKern) {
     return z;
   }
   else {
-    return clog(z);
+    return clog(z + 1.0);
   }
 }
 
@@ -36,7 +36,7 @@ inline double complex GPWVal(const double *eleGPWKern) {
     return cexp(z);
   }
   else {
-    return z;
+    return (z + 1.0);
   }
 }
 

@@ -161,8 +161,8 @@ void VMCMakeSample_real(MPI_Comm comm) {
 
           for (i = 0; i < NProj; i++) TmpEleProjCnt[i] = projCntNew[i];
           for (i = 0; i < NGPWIdx; i++) TmpEleGPWKern[i] = eleGPWKernNew[i];
-          for (i = 0; i < Nsite*GPWTrnCfgSz;i ++) TmpEleGPWDelta[i] = eleGPWDeltaNew[i];
-          for (i = 0; i < GPWTrnCfgSz*Nsite; i++) TmpEleGPWInSum[i] = eleGPWInSumNew[i];
+          memcpy(TmpEleGPWDelta, eleGPWDeltaNew, sizeof(int)*GPWTrnCfgSz*Nsite);
+          memcpy(TmpEleGPWInSum, eleGPWInSumNew, sizeof(double)*GPWTrnCfgSz*Nsite);
           logIpOld = logIpNew;
           rbmValOld = rbmValNew;
           nAccept++;
@@ -234,8 +234,8 @@ void VMCMakeSample_real(MPI_Comm comm) {
 
           for (i = 0; i < NProj; i++) TmpEleProjCnt[i] = projCntNew[i];
           for (i = 0; i < NGPWIdx; i++) TmpEleGPWKern[i] = eleGPWKernNew[i];
-          for(i = 0; i < Nsite*GPWTrnCfgSz; i++) TmpEleGPWDelta[i] = eleGPWDeltaNew[i];
-          for(i = 0; i < GPWTrnCfgSz*Nsite; i++) TmpEleGPWInSum[i] = eleGPWInSumNew[i];
+          memcpy(TmpEleGPWDelta, eleGPWDeltaNew, sizeof(int)*GPWTrnCfgSz*Nsite);
+          memcpy(TmpEleGPWInSum, eleGPWInSumNew, sizeof(double)*GPWTrnCfgSz*Nsite);
           logIpOld = logIpNew;
           rbmValOld = rbmValNew;
           nAccept++;

@@ -481,27 +481,15 @@ void UpdateInSum(double *inSumNew, const double *inSumOld, const int *deltaNew,
     hashListB = plaqHash[sizeA*i + siteB];
 
     for (a = 0; a < sizeB; a++) {
-      inSumNew[i*sizeB + a] = inSumOld[i*sizeB + a];
-
       for (k = 0; k < countA; k++) {
         id = hashListA[k];
-        if (deltaNew[siteA*sizeB + plaquetteBIdx[a*plaquetteSize+id]]) {
-          inSumNew[i*sizeB + a] += 1.0/distList[id];
-        }
-        if (deltaOld[siteA*sizeB + plaquetteBIdx[a*plaquetteSize+id]]) {
-          inSumNew[i*sizeB + a] -= 1.0/distList[id];
-        }
+        inSumNew[i*sizeB + a] += (double)(deltaNew[siteA*sizeB + plaquetteBIdx[a*plaquetteSize+id]])/distList[id];
+        inSumNew[i*sizeB + a] -= (double)(deltaOld[siteA*sizeB + plaquetteBIdx[a*plaquetteSize+id]])/distList[id];
       }
-
       for (k = 0; k < countB; k++) {
         id = hashListB[k];
-
-        if (deltaNew[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]]) {
-          inSumNew[i*sizeB + a] += 1.0/distList[id];
-        }
-        if (deltaOld[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]]) {
-          inSumNew[i*sizeB + a] -= 1.0/distList[id];
-        }
+        inSumNew[i*sizeB + a] += (double)(deltaNew[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]])/distList[id];
+        inSumNew[i*sizeB + a] -= (double)(deltaOld[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]])/distList[id];
       }
     }
   }
@@ -513,21 +501,17 @@ void UpdateDelta(int *deltaNew, const int *deltaOld, const int *cfgA, const int 
                  const int siteB) {
   int i, a;
 
-  for (i = 0; i < sizeA*sizeB; i++) {
-    deltaNew[i] = deltaOld[i];
-  }
-
   for (a = 0; a < sizeB; a++) {
-    if ((cfgA[siteA%sizeA]==cfgB[a%sizeB])&&
-        (cfgA[siteA%sizeA+sizeA]==cfgB[a%sizeB+sizeB])) {
+    if ((cfgA[siteA]==cfgB[a])&&
+        (cfgA[siteA+sizeA]==cfgB[a+sizeB])) {
       deltaNew[siteA*sizeB+a] = 1;
     }
     else {
       deltaNew[siteA*sizeB+a] = 0;
     }
 
-    if ((cfgA[siteB%sizeA]==cfgB[a%sizeB])&&
-        (cfgA[siteB%sizeA+sizeA]==cfgB[a%sizeB+sizeB])) {
+    if ((cfgA[siteB]==cfgB[a])&&
+        (cfgA[siteB+sizeA]==cfgB[a+sizeB])) {
       deltaNew[siteB*sizeB+a] = 1;
     }
     else {
@@ -541,21 +525,17 @@ void UpdateDeltaFlipped(int *deltaNew, const int *deltaOld, const int *cfgA, con
                         const int siteB) {
   int i, a;
 
-  for (i = 0; i < sizeA*sizeB; i++) {
-    deltaNew[i] = deltaOld[i];
-  }
-
   for (a = 0; a < sizeB; a++) {
-    if ((cfgA[siteA%sizeA]==cfgB[a%sizeB+sizeB])&&
-        (cfgA[siteA%sizeA+sizeA]==cfgB[a%sizeB])) {
+    if ((cfgA[siteA]==cfgB[a+sizeB])&&
+        (cfgA[siteA+sizeA]==cfgB[a])) {
       deltaNew[siteA*sizeB+a] = 1;
     }
     else {
       deltaNew[siteA*sizeB+a] = 0;
     }
 
-    if ((cfgA[siteB%sizeA]==cfgB[a%sizeB+sizeB])&&
-        (cfgA[siteB%sizeA+sizeA]==cfgB[a%sizeB])) {
+    if ((cfgA[siteB]==cfgB[a+sizeB])&&
+        (cfgA[siteB+sizeA]==cfgB[a])) {
       deltaNew[siteB*sizeB+a] = 1;
     }
     else {

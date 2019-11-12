@@ -218,8 +218,8 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
 
           for(i=0;i<NProj;i++) TmpEleProjCnt[i] = projCntNew[i];
           for(i=0;i<NGPWIdx;i++) TmpEleGPWKern[i] = eleGPWKernNew[i];
-          for(i=0;i<Nsite*GPWTrnCfgSz;i++) TmpEleGPWDelta[i] = eleGPWDeltaNew[i];
-          for(i=0;i<GPWTrnCfgSz*Nsite;i++) TmpEleGPWInSum[i] = eleGPWInSumNew[i];
+          memcpy(TmpEleGPWDelta, eleGPWDeltaNew, sizeof(int)*GPWTrnCfgSz*Nsite);
+          memcpy(TmpEleGPWInSum, eleGPWInSumNew, sizeof(double)*GPWTrnCfgSz*Nsite);
           logIpOld = logIpNew;
           rbmValOld = rbmValNew;
           nAccept++;
@@ -294,8 +294,8 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
 
           for(i=0;i<NProj;i++) TmpEleProjCnt[i] = projCntNew[i];
           for(i=0;i<NGPWIdx;i++) TmpEleGPWKern[i] = eleGPWKernNew[i];
-          for(i=0;i<Nsite*GPWTrnCfgSz;i++) TmpEleGPWDelta[i] = eleGPWDeltaNew[i];
-          for(i=0;i<GPWTrnCfgSz*Nsite;i++) TmpEleGPWInSum[i] = eleGPWInSumNew[i];
+          memcpy(TmpEleGPWDelta, eleGPWDeltaNew, sizeof(int)*GPWTrnCfgSz*Nsite);
+          memcpy(TmpEleGPWInSum, eleGPWInSumNew, sizeof(double)*GPWTrnCfgSz*Nsite);
           logIpOld = logIpNew;
           rbmValOld = rbmValNew;
           nAccept++;
@@ -366,8 +366,8 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
 
           for(i=0;i<NProj;i++) TmpEleProjCnt[i] = projCntNew[i];
           for(i=0;i<NGPWIdx;i++) TmpEleGPWKern[i] = eleGPWKernNew[i];
-          for(i=0;i<Nsite*GPWTrnCfgSz;i++) TmpEleGPWDelta[i] = eleGPWDeltaNew[i];
-          for(i=0;i<GPWTrnCfgSz*Nsite;i++) TmpEleGPWInSum[i] = eleGPWInSumNew[i];
+          memcpy(TmpEleGPWDelta, eleGPWDeltaNew, sizeof(int)*GPWTrnCfgSz*Nsite);
+          memcpy(TmpEleGPWInSum, eleGPWInSumNew, sizeof(double)*GPWTrnCfgSz*Nsite);
           logIpOld = logIpNew;
           nAccept++;
           Counter[5]++;
@@ -531,10 +531,8 @@ void copyFromBurnSample_fsz(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjC
   
   #pragma loop noalias
   for(i=0;i<nGPWIdx;i++) eleGPWKern[i] = burnGPWKern[i];
-  #pragma loop noalias
-  for(i=0;i<Nsite*GPWTrnCfgSz;i++) eleGPWDelta[i] = burnGPWDelta[i];
-  #pragma loop noalias
-  for(i=0;i<GPWTrnCfgSz*Nsite;i++) eleGPWInSum[i] = burnGPWInSum[i];
+  memcpy(eleGPWDelta, burnGPWDelta, sizeof(int)*GPWTrnCfgSz*Nsite);
+  memcpy(eleGPWInSum, burnGPWInSum, sizeof(double)*GPWTrnCfgSz*Nsite);
   
   return;
 }
@@ -554,10 +552,8 @@ void copyToBurnSample_fsz(const int *eleIdx, const int *eleCfg, const int *eleNu
   for(i=0;i<n;i++) burnEleIdx[i] = eleIdx[i];
   #pragma loop noalias
   for(i=0;i<nGPWIdx;i++) burnGPWKern[i] = eleGPWKern[i];
-  #pragma loop noalias
-  for(i=0;i<Nsite*GPWTrnCfgSz;i++) burnGPWDelta[i] = eleGPWDelta[i];
-  #pragma loop noalias
-  for(i=0;i<GPWTrnCfgSz*Nsite;i++) burnGPWInSum[i] = eleGPWInSum[i];
+  memcpy(burnGPWDelta, eleGPWDelta, sizeof(int)*GPWTrnCfgSz*Nsite);
+  memcpy(burnGPWInSum, eleGPWInSum, sizeof(double)*GPWTrnCfgSz*Nsite);
   
   return;
 }
@@ -590,10 +586,8 @@ void saveEleConfig_fsz(const int sample, const double complex logIp, const doubl
   offset = sample*nGPWIdx;
   #pragma loop noalias
   for(i=0;i<nGPWIdx;i++) EleGPWKern[offset+i] = eleGPWKern[i];
-  #pragma loop noalias
-  for(i=0;i<Nsite*GPWTrnCfgSz;i++) EleGPWDelta[sample][i] = eleGPWDelta[i];
-  #pragma loop noalias
-  for(i=0;i<Nsite*GPWTrnCfgSz;i++) EleGPWInSum[sample][i] = eleGPWInSum[i];
+  memcpy(EleGPWDelta[sample], eleGPWDelta, sizeof(int)*GPWTrnCfgSz*Nsite);
+  memcpy(EleGPWInSum[sample], eleGPWInSum, sizeof(double)*GPWTrnCfgSz*Nsite);
 
   x = LogProjVal(eleProjCnt);
   x += LogGPWVal(eleGPWKern);

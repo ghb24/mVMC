@@ -143,6 +143,8 @@ void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew,
   const int nGPWIdx=NGPWIdx;
   int i;
   int outerThreadNum = omp_get_thread_num();
+  memcpy(eleGPWDeltaNew, eleGPWDeltaOld, sizeof(int)*GPWTrnCfgSz*Nsite);
+  memcpy(eleGPWInSumNew, eleGPWInSumOld, sizeof(double)*GPWTrnCfgSz*Nsite);
 
   #pragma omp parallel for default(shared) private(i)
   for(i=0;i<nGPWIdx;i++) {
@@ -160,7 +162,6 @@ void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew,
     }
 
     else {
-      memcpy(eleGPWDeltaNew, eleGPWDeltaOld, sizeof(int)*GPWTrnCfgSz*Nsite);
 
       UpdateDelta(eleGPWDeltaNew+offset, eleGPWDeltaOld+offset, eleNum, Nsite, GPWTrnCfg[i],
                   GPWTrnSize[latId], ri, rj);
@@ -176,7 +177,6 @@ void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew,
         if (omp_get_thread_num() == 0) {
             StartTimer(80);
         }
-        memcpy(eleGPWInSumNew, eleGPWInSumOld, sizeof(double)*GPWTrnCfgSz*Nsite);
         UpdateInSum(eleGPWInSumNew+offset, eleGPWInSumOld+offset, eleGPWDeltaNew+offset,
                     eleGPWDeltaOld+offset, GPWSysPlaquetteIdx[latId],
                     Nsite, GPWTrnPlaquetteIdx[latId],

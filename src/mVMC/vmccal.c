@@ -341,12 +341,14 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
       }
       offset += nsite2*nRBMHidden+nRBMHidden;
 
-      StartTimer(42);
-      /* SlaterElmDiff */
-      SlaterElmDiff_fcmp(SROptO+2*offset,ip/RBMVal(eleNum),eleIdx); //TBC: using InvM not InvM_real
-      StopTimer(42);
+      if (UseOrbital) {
+        StartTimer(42);
+        /* SlaterElmDiff */
+        SlaterElmDiff_fcmp(SROptO+2*offset,ip/RBMVal(eleNum),eleIdx); //TBC: using InvM not InvM_real
+        StopTimer(42);
 
-      offset += NSlater;
+        offset += NSlater;
+      }
 
       if(FlagOptTrans>0) { // this part will be not used
         calculateOptTransDiff(SROptO+2*offset, ip/RBMVal(eleNum)); //TBC

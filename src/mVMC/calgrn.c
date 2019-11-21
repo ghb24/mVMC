@@ -40,7 +40,7 @@ void CalculateGreenFunc(const double w, const double complex ip, int *eleIdx, in
   double *myGPWKernNew, *myGPWInSumNew;
   double complex *myBuffer;
 
-  RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj+Nsite*GPWTrnCfgSz);
+  RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj);
   RequestWorkSpaceThreadDouble(NGPWIdx+GPWTrnCfgSz*Nsite);
   RequestWorkSpaceThreadComplex(NQPFull+2*Nsize);
   /* GreenFunc1: NQPFull, GreenFunc2: NQPFull+2*Nsize */
@@ -52,7 +52,6 @@ void CalculateGreenFunc(const double w, const double complex ip, int *eleIdx, in
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myProjCntNew = GetWorkSpaceThreadInt(NProj);
     myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
-    myGPWDeltaNew = GetWorkSpaceThreadInt(Nsite*GPWTrnCfgSz);
     myGPWInSumNew = GetWorkSpaceThreadDouble(GPWTrnCfgSz*Nsite);
     myBuffer = GetWorkSpaceThreadComplex(NQPFull+2*Nsize);
 

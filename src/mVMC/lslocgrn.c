@@ -301,8 +301,8 @@ double complex calHCA1(const int ri, const int rj, const int s,
   UpdateProjCnt(rj, ri, s, projCntNew, eleProjCnt, eleNum);
   z = ProjRatio(projCntNew,eleProjCnt);
 
-  UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
-                eleGPWKern, eleGPWDelta, eleGPWInSum, eleNum);
+  UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWInSumNew,
+                eleGPWKern, eleGPWInSum, eleNum);
   z *= GPWRatio(eleGPWKernNew,eleGPWKern);
 
   if (UseOrbital) {
@@ -361,16 +361,15 @@ double complex calHCA2(const int ri, const int rj, const int s,
   double complex myValue=0;
   double complex v=0.0;
 
-  RequestWorkSpaceInt(NProj+Nsite*GPWTrnCfgSz);      /* for GreenFunc1 */
+  RequestWorkSpaceInt(NProj);      /* for GreenFunc1 */
   RequestWorkSpaceDouble(NGPWIdx+GPWTrnCfgSz*Nsite);      /* for GreenFunc1 */
   RequestWorkSpaceComplex(NQPFull); /* for GreenFunc1 */
-  RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj+6+Nsite*GPWTrnCfgSz);
+  RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj+6);
   RequestWorkSpaceThreadDouble(NGPWIdx+GPWTrnCfgSz*Nsite);
   RequestWorkSpaceThreadComplex(NQPFull+3*Nsize);
 
   bufferInt = GetWorkSpaceInt(NProj);
   eleGPWKernNew = GetWorkSpaceDouble(NGPWIdx);
-  eleGPWDeltaNew = GetWorkSpaceInt(Nsite*GPWTrnCfgSz);
   eleGPWInSumNew = GetWorkSpaceDouble(GPWTrnCfgSz*Nsite);
   buffer = GetWorkSpaceComplex(NQPFull);
 
@@ -400,7 +399,6 @@ double complex calHCA2(const int ri, const int rj, const int s,
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myBufferInt = GetWorkSpaceThreadInt(NProj);
     myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
-    myGPWDeltaNew = GetWorkSpaceThreadInt(Nsite*GPWTrnCfgSz);
     myGPWInSumNew = GetWorkSpaceThreadDouble(GPWTrnCfgSz*Nsite);
     myRsi = GetWorkSpaceThreadInt(3);
     myRsj = GetWorkSpaceThreadInt(3);
@@ -657,8 +655,8 @@ double complex calHCACA1(const int ri, const int rj, const int rk, const int rl,
   eleNum[rsl] = 0;
   eleNum[rsk] = 1;
   UpdateProjCnt(rl, rk, sk, projCntNew, eleProjCnt, eleNum);
-  UpdateGPWKern(rl, rk, eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
-                eleGPWKern, eleGPWDelta, eleGPWInSum, eleNum);
+  UpdateGPWKern(rl, rk, eleGPWKernNew, eleGPWInSumNew,
+                eleGPWKern, eleGPWInSum, eleNum);
 
   /* The mj-th electron with spin si hops from rj to ri */
   mj = eleCfg[rsj];
@@ -668,8 +666,8 @@ double complex calHCACA1(const int ri, const int rj, const int rk, const int rl,
   eleNum[rsj] = 0;
   eleNum[rsi] = 1;
   UpdateProjCnt(rj, ri, si, projCntNew, projCntNew, eleNum);
-  UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
-                eleGPWKern, eleGPWDelta, eleGPWInSum, eleNum);
+  UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWInSumNew,
+                eleGPWKern, eleGPWInSum, eleNum);
 
   z = ProjRatio(projCntNew,eleProjCnt);
   z *= GPWRatio(eleGPWKernNew,eleGPWKern);
@@ -737,16 +735,15 @@ double complex calHCACA2(const int ri, const int rj, const int rk, const int rl,
   double complex myValue=0.0;
   double complex v=0.0;
 
-  RequestWorkSpaceInt(NProj+Nsite*GPWTrnCfgSz);      /* for GreenFunc2 */
+  RequestWorkSpaceInt(NProj);      /* for GreenFunc2 */
   RequestWorkSpaceDouble(NGPWIdx+GPWTrnCfgSz*Nsite);      /* for GreenFunc2 */
   RequestWorkSpaceComplex(NQPFull+2*Nsize); /* for GreenFunc2 */
-  RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj+8+Nsite*GPWTrnCfgSz);
+  RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj+8);
   RequestWorkSpaceThreadDouble(NGPWIdx+GPWTrnCfgSz*Nsite);
   RequestWorkSpaceThreadComplex(NQPFull+3*Nsize);
 
   bufferInt = GetWorkSpaceInt(NProj);
   eleGPWKernNew = GetWorkSpaceDouble(NGPWIdx);
-  eleGPWDeltaNew = GetWorkSpaceInt(Nsite*GPWTrnCfgSz);
   eleGPWInSumNew = GetWorkSpaceDouble(GPWTrnCfgSz*Nsite);
   buffer = GetWorkSpaceComplex(NQPFull+2*Nsize);
 
@@ -781,7 +778,6 @@ double complex calHCACA2(const int ri, const int rj, const int rk, const int rl,
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myBufferInt = GetWorkSpaceThreadInt(NProj);
     myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
-    myGPWDeltaNew = GetWorkSpaceThreadInt(Nsite*GPWTrnCfgSz);
     myGPWInSumNew = GetWorkSpaceThreadDouble(GPWTrnCfgSz*Nsite);
     myRsi = GetWorkSpaceThreadInt(4);
     myRsj = GetWorkSpaceThreadInt(4);

@@ -227,11 +227,6 @@ void SetMemoryDef() {
 
   GPWSysPlaqHash = (int***)malloc(sizeof(int**)*NGPWTrnLat);
 
-  GPWKernWorkspace = (int**)malloc(sizeof(int*)*omp_get_max_threads());
-  for (i = 0; i < omp_get_max_threads(); i++) {
-    GPWKernWorkspace[i] = (int*)malloc(sizeof(int)*(8*(Nsite*Nsite)+2*Nsite));
-  }
-
   // intitialise kernel function with default value
   for (i = 0; i < NGPWTrnLat; i++) {
     GPWKernelFunc[i] = 0;
@@ -320,11 +315,6 @@ void SetMemoryDef() {
 void FreeMemoryDef() {
   int i;
 
-  for (i = 0; i < omp_get_max_threads(); i++) {
-    free(GPWKernWorkspace[i]);
-  }
-  free(GPWKernWorkspace);
-
   for (i = 0; i < NGPWTrnLat; i++) {
     FreeMemPlaquetteHash(Nsite, GPWSysPlaqHash[i], GPWSysPlaqHashSz[i]);
     FreeMemPlaquetteIdx(GPWSysPlaquetteIdx[i], GPWTrnPlaquetteIdx[i],
@@ -386,10 +376,8 @@ void SetMemory() {
   EleProjBFCnt = (int*)malloc(sizeof(int)*( NVMCSample*4*4*Nsite*Nrange));
 //[e] MERGE BY TM
   EleGPWKern        = (double*)malloc(sizeof(double)*(NVMCSample*NGPWIdx));
-  EleGPWDelta       = (int**)malloc(sizeof(int*)*NVMCSample);
   EleGPWInSum       = (double**)malloc(sizeof(int*)*NVMCSample);
   for (i = 0; i < NVMCSample; i++) {
-    EleGPWDelta[i] = (int*)malloc(sizeof(int)*(Nsite*GPWTrnCfgSz));
     EleGPWInSum[i] = (double*)malloc(sizeof(double)*(GPWTrnCfgSz*Nsite));
   }
   logSqPfFullSlater = (double*)malloc(sizeof(double)*(NVMCSample));
@@ -406,7 +394,6 @@ void SetMemory() {
   TmpEleProjBFCnt = TmpEleProjCnt + NProj;
 //[e] MERGE BY TM
   TmpEleGPWKern     = (double*)malloc(sizeof(double)*NGPWIdx);
-  TmpEleGPWDelta     = (int*)malloc(sizeof(double)*Nsite*GPWTrnCfgSz);
   TmpEleGPWInSum     = (double*)malloc(sizeof(double)*GPWTrnCfgSz*Nsite);
 
   BurnEleIdx        = (int*)malloc(sizeof(int)*(2*Ne+2*Nsite+2*Nsite+NProj+2*Ne)); //fsz
@@ -415,7 +402,6 @@ void SetMemory() {
   BurnEleProjCnt    = BurnEleNum + 2*Nsite;
   BurnEleSpn        = BurnEleProjCnt + NProj; //fsz
   BurnEleGPWKern     = (double*)malloc(sizeof(double)*NGPWIdx);
-  BurnEleGPWDelta     = (int*)malloc(sizeof(double)*Nsite*GPWTrnCfgSz);
   BurnEleGPWInSum     = (double*)malloc(sizeof(double)*GPWTrnCfgSz*Nsite);
 
   /***** Slater Elements ******/
@@ -590,20 +576,16 @@ void FreeMemory() {
   free(SlaterElm);
 
   free(BurnEleGPWInSum);
-  free(BurnEleGPWDelta);
   free(BurnEleGPWKern);
   free(BurnEleIdx);
   free(TmpEleGPWInSum);
-  free(TmpEleGPWDelta);
   free(TmpEleGPWKern);
   free(TmpEleIdx);
   free(logSqPfFullSlater);
   for (i = 0; i < NVMCSample; i++) {
     free(EleGPWInSum[i]);
-    free(EleGPWDelta[i]);
   }
   free(EleGPWInSum);
-  free(EleGPWDelta);
   free(EleGPWKern);
   free(EleProjCnt);
   free(EleIdx);

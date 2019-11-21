@@ -130,7 +130,6 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
     eleNum = EleNum + sample*Nsite2;
     eleProjCnt = EleProjCnt + sample*NProj;
     eleGPWKern = EleGPWKern + sample*NGPWIdx;
-    eleGPWDelta = EleGPWDelta[sample];
     eleGPWInSum = EleGPWInSum[sample];
 
     StartTimer(40);
@@ -273,9 +272,7 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
               }
               derivative += GPWVar[j] * ComputeKernDeriv(Nsite, GPWTrnSize[i], GPWPower[i],
                                                          GPWThetaVar[i], GPWNorm[i], GPWTRSym[i],
-                                                         GPWShift[i], 0, 0, eleGPWDelta+matOffset,
-                                                         eleGPWDelta+(GPWTrnCfgSz/2)*Nsite+matOffset,
-                                                         eleGPWInSum+matOffset,
+                                                         GPWShift[i], 0, 0, eleGPWInSum+matOffset,
                                                          eleGPWInSum+(GPWTrnCfgSz/2)*Nsite+matOffset);
             }
           }

@@ -81,8 +81,8 @@ double complex GreenFunc1_fsz(const int ri, const int rj, const int s, const dou
   eleNum[rsi] = 1;
   UpdateProjCnt(rj, ri, s, projCntNew, eleProjCnt, eleNum);
   z = ProjRatio(projCntNew,eleProjCnt);
-  UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
-                eleGPWKern, eleGPWDelta, eleGPWInSum, eleNum);
+  UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWInSumNew,
+                eleGPWKern, eleGPWInSum, eleNum);
   z *= GPWRatio(eleGPWKernNew,eleGPWKern);
   z *= RBMVal(eleNum);
 
@@ -129,8 +129,8 @@ double complex GreenFunc1_fsz2(const int ri, const int rj, const int s,const int
   eleNum[rsi] = 1;
   UpdateProjCnt_fsz(rj, ri, t,s, projCntNew, eleProjCnt, eleNum);
   z = ProjRatio(projCntNew,eleProjCnt);
-  UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
-                eleGPWKern, eleGPWDelta, eleGPWInSum, eleNum);
+  UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWInSumNew,
+                eleGPWKern, eleGPWInSum, eleNum);
   z *= GPWRatio(eleGPWKernNew, eleGPWKern);
   z *= RBMVal(eleNum);
 
@@ -232,15 +232,15 @@ double complex GreenFunc2_fsz(const int ri, const int rj, const int rk, const in
   eleNum[rtl] = 0;
   eleNum[rtk] = 1;
   UpdateProjCnt(rl, rk, t, projCntNew, eleProjCnt, eleNum);
-  UpdateGPWKern(rl, rk, eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
-                eleGPWKern, eleGPWDelta, eleGPWInSum, eleNum);
+  UpdateGPWKern(rl, rk, eleGPWKernNew, eleGPWInSumNew,
+                eleGPWKern, eleGPWInSum, eleNum);
   eleIdx[msj] = ri;
   eleSpn[msj] = s;
   eleNum[rsj] = 0;
   eleNum[rsi] = 1;
   UpdateProjCnt(rj, ri, s, projCntNew, projCntNew, eleNum);
-  UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
-                eleGPWKern, eleGPWDelta, eleGPWInSum, eleNum);
+  UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWInSumNew,
+                eleGPWKern, eleGPWInSum, eleNum);
 
   z = ProjRatio(projCntNew,eleProjCnt);
   z *= GPWRatio(eleGPWKernNew,eleGPWKern);
@@ -381,15 +381,15 @@ double complex GreenFunc2_fsz2(const int ri, const int rj, const int rk, const i
   eleNum[XL] = 0;
   eleNum[XK] = 1;
   UpdateProjCnt_fsz(rl, rk, v,u, projCntNew, eleProjCnt, eleNum); // (rl,v) -> (rk,u) v!=u
-  UpdateGPWKern(rl, rk, eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
-                eleGPWKern, eleGPWDelta, eleGPWInSum, eleNum);
+  UpdateGPWKern(rl, rk, eleGPWKernNew, eleGPWInSumNew,
+                eleGPWKern, eleGPWInSum, eleNum);
   eleIdx[mj]  = ri; // mj : (ri,s)
   eleSpn[mj]  = s;
   eleNum[XJ] = 0;
   eleNum[XI] = 1;
   UpdateProjCnt_fsz(rj,ri, t,s, projCntNew, projCntNew, eleNum); // (rj,t) -> (ri,s) t!=s
-  UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
-                eleGPWKern, eleGPWDelta, eleGPWInSum, eleNum);
+  UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWInSumNew,
+                eleGPWKern, eleGPWInSum, eleNum);
 
   z = ProjRatio(projCntNew,eleProjCnt);
   z *= GPWRatio(eleGPWKernNew,eleGPWKern);

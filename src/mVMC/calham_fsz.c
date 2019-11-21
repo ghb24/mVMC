@@ -71,7 +71,7 @@ double complex CalculateHamiltonian_fsz(const double complex ip, int *eleIdx, co
   double complex *myBuffer;
   double complex myEnergy;
 
-  RequestWorkSpaceThreadInt(Nsize+Nsize+Nsite2+NProj+Nsite*GPWTrnCfgSz);
+  RequestWorkSpaceThreadInt(Nsize+Nsize+Nsite2+NProj);
   RequestWorkSpaceThreadDouble(NGPWIdx+GPWTrnCfgSz*Nsite);
   RequestWorkSpaceThreadComplex(NQPFull+2*Nsize);
   /* GreenFunc1: NQPFull, GreenFunc2: NQPFull+2*Nsize */
@@ -95,7 +95,6 @@ double complex CalculateHamiltonian_fsz(const double complex ip, int *eleIdx, co
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myProjCntNew = GetWorkSpaceThreadInt(NProj);
     myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
-    myGPWDeltaNew = GetWorkSpaceThreadInt(Nsite*GPWTrnCfgSz);
     myGPWInSumNew = GetWorkSpaceThreadDouble(GPWTrnCfgSz*Nsite);
     myBuffer = GetWorkSpaceThreadComplex(NQPFull+2*Nsize);
 
@@ -297,7 +296,7 @@ double complex CalculateHamiltonian1_fsz(const double complex ip, int *eleIdx, c
   double complex *myBuffer;
   double complex myEnergy;
 
-  RequestWorkSpaceThreadInt(Nsize+Nsize+Nsite2+NProj+Nsite*GPWTrnCfgSz);
+  RequestWorkSpaceThreadInt(Nsize+Nsize+Nsite2+NProj);
   RequestWorkSpaceThreadDouble(NGPWIdx+GPWTrnCfgSz*Nsite);
   RequestWorkSpaceThreadComplex(NQPFull);
   /* GreenFunc1: NQPFull */
@@ -311,7 +310,6 @@ double complex CalculateHamiltonian1_fsz(const double complex ip, int *eleIdx, c
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myProjCntNew = GetWorkSpaceThreadInt(NProj);
     myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
-    myGPWDeltaNew = GetWorkSpaceThreadInt(Nsite*GPWTrnCfgSz);
     myGPWInSumNew = GetWorkSpaceThreadDouble(GPWTrnCfgSz*Nsite);
     myBuffer = GetWorkSpaceThreadComplex(NQPFull);
 
@@ -361,7 +359,7 @@ double complex CalculateHamiltonian2_fsz(const double complex ip, int *eleIdx, c
   double complex *myBuffer;
   double complex myEnergy;
 
-  RequestWorkSpaceThreadInt(Nsize+Nsize+Nsite2+NProj+Nsite*GPWTrnCfgSz);
+  RequestWorkSpaceThreadInt(Nsize+Nsize+Nsite2+NProj);
   RequestWorkSpaceThreadDouble(NGPWIdx+GPWTrnCfgSz*Nsite);
   RequestWorkSpaceThreadComplex(NQPFull+2*Nsize);
   /* GreenFunc2: NQPFull+2*Nsize */
@@ -375,7 +373,6 @@ double complex CalculateHamiltonian2_fsz(const double complex ip, int *eleIdx, c
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myProjCntNew = GetWorkSpaceThreadInt(NProj);
     myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
-    myGPWDeltaNew = GetWorkSpaceThreadInt(Nsite*GPWTrnCfgSz);
     myGPWInSumNew = GetWorkSpaceThreadDouble(GPWTrnCfgSz*Nsite);
     myBuffer = GetWorkSpaceThreadComplex(NQPFull+2*Nsize);
 

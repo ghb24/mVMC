@@ -24,10 +24,10 @@ void GPWKernel1Vec(const unsigned long *configsAUp, const unsigned long *configs
                    const int startIdA, const int startIdB, double *kernelVec);
 
 // Computes the delta matrix
-void CalculatePairDelta(int *delta, const int *cfgA, const int sizeA,
+void CalculatePairDelta(double *inSum, const int *cfgA, const int sizeA,
                         const int *cfgB, const int sizeB);
 
-void CalculatePairDeltaFlipped(int *delta, const int *cfgA, const int sizeA,
+void CalculatePairDeltaFlipped(double *inSum, const int *cfgA, const int sizeA,
                                const int *cfgB, const int sizeB);
 
 // Sets up the index list for the two lattices
@@ -49,25 +49,25 @@ void SetupPlaquetteHash(const int sysSize, const int plaqSize,
 void FreeMemPlaquetteHash(const int sysSize, int **plaqHash, int *plaqHashSz);
 
 // Computes the inner sum for the full kernel
-void ComputeInSum(double *inSum, const int *delta, const int *plaquetteAIdx,
+void ComputeInSum(double *inSum, const int *plaquetteAIdx,
                   const int sizeA, const int *plaquetteBIdx, const int sizeB,
                   const int plaquetteSize, const int *distList);
 
 // Updates the inner sum for the full kernel
-void UpdateInSum(double *inSumNew, const double *inSumOld, const int *deltaNew,
-                 const int *deltaOld, const int *plaquetteAIdx, const int sizeA,
+void UpdateInSum(double *inSumNew, const double *inSumOld,
+                 const int *plaquetteAIdx, const int sizeA,
                  const int *plaquetteBIdx, const int sizeB,
                  const int plaquetteSize, const int *distList,
                  int **plaqHash, int *plaqHashSz, const int siteA,
                  const int siteB);
 
 // Updates the delta list
-void UpdateDelta(int *deltaNew, const int *deltaOld, const int *cfgA, const int sizeA,
+void UpdateDelta(double *inSumNew, const int *cfgA, const int sizeA,
                  const int *cfgB, const int sizeB, const int siteA,
                  const int siteB);
 
 // Updates the delta list for the flipped configuration
-void UpdateDeltaFlipped(int *deltaNew, const int *deltaOld, const int *cfgA, const int sizeA,
+void UpdateDeltaFlipped(double *inSumNew, const int *cfgA, const int sizeA,
                         const int *cfgB, const int sizeB, const int siteA,
                         const int siteB);
 
@@ -75,7 +75,6 @@ void UpdateDeltaFlipped(int *deltaNew, const int *deltaOld, const int *cfgA, con
 double ComputeKernel(const int sizeA, const int sizeB, const int power,
                      const double theta0, const double norm, const int tRSym,
                      const int shift, const int startIdA, const int startIdB,
-                     const int *delta, const int *deltaFlipped,
                      const double *inSum, const double *inSumFlipped);
 
 /* Computes the derivative of the kernel (divided by the wave function amplitude)
@@ -83,21 +82,20 @@ with respect to theta0 */
 double ComputeKernDeriv(const int sizeA, const int sizeB, const int power,
                         const double theta0, const double norm, const int tRSym,
                         const int shift, const int startIdA, const int startIdB,
-                        const int *delta, const int *deltaFlipped,
                         const double *inSum, const double *inSumFlipped);
 
 // Computes the kn kernel
 double ComputeKernelN(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
                       const int *cfgB, const int *plaquetteBIdx, const int sizeB,
                       const int n, const int tRSym, const int shift,
-                      const int startIdA, const int startIdB, const int *delta,
-                      const int *deltaFlipped);
+                      const int startIdA, const int startIdB, const double *inSum,
+                      const double *inSumFlipped);
 
 // Computes the kn kernel in place
 double GPWKernelN(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
                   const int *cfgB, const int *plaquetteBIdx, const int sizeB,
                   const int dim, const int n, const int tRSym, const int shift,
-                  const int startIdA, const int startIdB, int *workspace);
+                  const int startIdA, const int startIdB, double *workspace);
 
 /* computes the kernel matrix (k(n) kernel) for two lists of configurations
 (in bitstring representation) */
@@ -126,7 +124,7 @@ double GPWKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
                  const int power, const double theta0, const int tRSym,
                  const int shift, const int startIdA, const int startIdB,
                  const int plaquetteSize, const int *distList,
-                 int *workspaceInt, double *workspaceDouble);
+                 double *workspace);
 
 /* computes the kernel matrix (complete kernel) for two lists of configurations
 (in bitstring representation) */

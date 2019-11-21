@@ -54,7 +54,7 @@ double CalculateHamiltonian_real(const double ip, int *eleIdx, const int *eleCfg
   double  *myBuffer;
   double  myEnergy;
 
-  RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj+Nsite*GPWTrnCfgSz);
+  RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj);
   RequestWorkSpaceThreadDouble(NQPFull+2*Nsize+NGPWIdx+GPWTrnCfgSz*Nsite);
   /* GreenFunc1: NQPFull, GreenFunc2: NQPFull+2*Nsize */
 
@@ -70,7 +70,6 @@ double CalculateHamiltonian_real(const double ip, int *eleIdx, const int *eleCfg
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myProjCntNew = GetWorkSpaceThreadInt(NProj);
     myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
-    myGPWDeltaNew = GetWorkSpaceThreadInt(Nsite*GPWTrnCfgSz);
     myGPWInSumNew = GetWorkSpaceThreadDouble(GPWTrnCfgSz*Nsite);
     myBuffer = GetWorkSpaceThreadDouble(NQPFull+2*Nsize);
 

@@ -116,8 +116,8 @@ void VMCMakeSample_real(MPI_Comm comm) {
         /* The mi-th electron with spin s hops to site rj */
         updateEleConfig(mi, ri, rj, s, TmpEleIdx, TmpEleCfg, TmpEleNum);
         UpdateProjCnt(ri, rj, s, projCntNew, TmpEleProjCnt, TmpEleNum);
-        UpdateGPWKern(ri, rj, eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
-                      TmpEleGPWKern, TmpEleGPWDelta, TmpEleGPWInSum, TmpEleNum);
+        UpdateGPWKern(ri, rj, eleGPWKernNew, eleGPWInSumNew,
+                      TmpEleGPWKern, TmpEleGPWInSum, TmpEleNum);
         StopTimer(60);
         if (UseOrbital) {
           StartTimer(61);
@@ -161,7 +161,6 @@ void VMCMakeSample_real(MPI_Comm comm) {
 
           for (i = 0; i < NProj; i++) TmpEleProjCnt[i] = projCntNew[i];
           for (i = 0; i < NGPWIdx; i++) TmpEleGPWKern[i] = eleGPWKernNew[i];
-          memcpy(TmpEleGPWDelta, eleGPWDeltaNew, sizeof(int)*GPWTrnCfgSz*Nsite);
           memcpy(TmpEleGPWInSum, eleGPWInSumNew, sizeof(double)*GPWTrnCfgSz*Nsite);
           logIpOld = logIpNew;
           rbmValOld = rbmValNew;
@@ -195,8 +194,8 @@ void VMCMakeSample_real(MPI_Comm comm) {
         /* The mj-th electron with spin t hops to ri */
         updateEleConfig(mj, rj, ri, t, TmpEleIdx, TmpEleCfg, TmpEleNum);
         UpdateProjCnt(rj, ri, t, projCntNew, projCntNew, TmpEleNum);
-        UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
-                      TmpEleGPWKern, TmpEleGPWDelta, TmpEleGPWInSum, TmpEleNum);
+        UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWInSumNew,
+                      TmpEleGPWKern, TmpEleGPWInSum, TmpEleNum);
 
         StopTimer(65);
         if (UseOrbital) {
@@ -234,7 +233,6 @@ void VMCMakeSample_real(MPI_Comm comm) {
 
           for (i = 0; i < NProj; i++) TmpEleProjCnt[i] = projCntNew[i];
           for (i = 0; i < NGPWIdx; i++) TmpEleGPWKern[i] = eleGPWKernNew[i];
-          memcpy(TmpEleGPWDelta, eleGPWDeltaNew, sizeof(int)*GPWTrnCfgSz*Nsite);
           memcpy(TmpEleGPWInSum, eleGPWInSumNew, sizeof(double)*GPWTrnCfgSz*Nsite);
           logIpOld = logIpNew;
           rbmValOld = rbmValNew;
@@ -332,7 +330,7 @@ int makeInitialSample_real(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCn
     }
 
     MakeProjCnt(eleProjCnt, eleNum);
-    CalculateGPWKern(eleGPWKern, eleGPWDelta, eleGPWInSum, eleNum);
+    CalculateGPWKern(eleGPWKern, eleGPWInSum, eleNum);
 
     if (UseOrbital) {
       flag = CalculateMAll_real(eleIdx, qpStart, qpEnd);

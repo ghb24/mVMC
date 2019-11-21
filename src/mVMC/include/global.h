@@ -162,7 +162,6 @@ int **GPWTrnPlaquetteIdx; /* site ids to visit in evaluation of kernel function 
 int ***GPWSysPlaqHash; /* hash table to store the indices inside the plaquette where the site is the hash and the ids in GPWSysPlaquetteIdx the value*/
 int **GPWSysPlaqHashSz; /* number of elements in each hash table */
 int **GPWDistList; /* associated distances with the site ids */
-int **GPWKernWorkspace;
 int RBMNVisibleIdx; /* Number of different variational parameters associated with the visible layer in the RBM */
 int RBMNHiddenIdx; /* Number of neurons in the hidden layer */
 int NRBMTotal; /* Total number of of RBM variational parameters (NRBMTotal = RBMNVisibleIdx + RBMNHiddenIdx + Nsite2*RBMNHiddenIdx) */

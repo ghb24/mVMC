@@ -14,10 +14,10 @@ the Free Software Foundation, either version 3 of the License, or
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details. 
+GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License 
-along with this program. If not, see http://www.gnu.org/licenses/. 
+You should have received a copy of the GNU General Public License
+along with this program. If not, see http://www.gnu.org/licenses/.
 */
 
 #ifdef MVMC_SRCG_REAL
@@ -49,7 +49,7 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 #endif
 
 /*
-  layout of VecCG 
+  layout of VecCG
   x :: nSmat
   g :: nSmat
   sdiag :: nSmat
@@ -65,7 +65,7 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 */
 
 int fn_StochasticOptCG(MPI_Comm comm);
-void fn_StochasticOptCG_Init(const int nSmat, int *const smatToParaIdx, double *VecCG); 
+void fn_StochasticOptCG_Init(const int nSmat, int *const smatToParaIdx, double *VecCG);
 int fn_StochasticOptCG_Main(const int nSmat, double *VecCG, MPI_Comm comm);
 int fn_operate_by_S(const int nSmat, double *x, double *z, double *VecCG, MPI_Comm comm);
 void fn_print_Smat_stderr(const int nSmat, double *VecCG, MPI_Comm comm);
@@ -168,7 +168,7 @@ int fn_StochasticOptCG(MPI_Comm comm) {
 
   StopTimer(50);
   StartTimer(51);
-  
+
   RequestWorkSpaceDouble(SIZE_VecCG);
   VecCG = GetWorkSpaceDouble(SIZE_VecCG);
   fn_StochasticOptCG_Init(nSmat, smatToParaIdx, VecCG);
@@ -192,7 +192,7 @@ int fn_StochasticOptCG(MPI_Comm comm) {
   /*** print zqp_SRinfo.dat ***/
   if(rank==0) {
     //if(info!=0) fprintf(stderr, "StcOpt: DPOSV info=%d\n",info);
-    rmax = r[0]; simax=0;;
+    rmax = r[0]; simax=0;
     for(si=0;si<nSmat;si++) {
       if(fabs(rmax) < fabs(r[si])) {
         rmax = r[si]; simax=si;
@@ -272,7 +272,7 @@ int fn_StochasticOptCG_Main(const int nSmat, double *VecCG, MPI_Comm comm) {
 #ifdef _DEBUG_STCOPT_CG
   fprintf(stderr, "DEBUG in %s (%d): Start stcOptCG_Main\n", __FILE__, __LINE__);
 #endif
-  
+
   x = VecCG;
   g = x + nSmat;
   sdiag = g + nSmat;
@@ -285,7 +285,7 @@ int fn_StochasticOptCG_Main(const int nSmat, double *VecCG, MPI_Comm comm) {
   q = z_local + nSmat;
   d = q + nSmat;
   r = d + nSmat;
-  
+
   MPI_Comm_rank(comm,&rank);
   MPI_Comm_size(comm,&size);
 
@@ -298,7 +298,7 @@ int fn_StochasticOptCG_Main(const int nSmat, double *VecCG, MPI_Comm comm) {
   delta = xdot(nSmat, r, r);
 
   for(iter=0; iter < max_iter; iter++){
-    //check convergence 
+    //check convergence
     //if(rank==0) printf("%d: %d %.3e\n",rank, iter,delta);
 #ifdef _DEBUG_STCOPT_CG
     fprintf(stderr, "delta = %lg, cg_thresh = %lg\n", delta, cg_thresh);
@@ -308,7 +308,7 @@ int fn_StochasticOptCG_Main(const int nSmat, double *VecCG, MPI_Comm comm) {
     // compute vector q=S*d
     fn_operate_by_S(nSmat, d, q, VecCG, comm);
     alpha = delta/xdot(nSmat,d,q);
-  
+
     // update solution vector x=x+alpha*d
     #pragma omp parallel for default(shared) private(si)
     #pragma loop noalias
@@ -379,7 +379,7 @@ int fn_operate_by_S(int nSmat, double *x, double *z, double *VecCG, MPI_Comm com
   MPI_Comm_size(comm,&size);
 
   MPI_Bcast(x, nSmat, MPI_DOUBLE, 0, comm);
-  
+
   StartTimer(53);
   #pragma omp parallel for default(shared) private(si)
   #pragma loop noalias
@@ -405,7 +405,7 @@ int fn_operate_by_S(int nSmat, double *x, double *z, double *VecCG, MPI_Comm com
   MPI_Barrier(comm);
   /* compute <OO>*x */
   SafeMpiAllReduce(z_local, z, nSmat, comm);
- 
+
   /* compute <O>*x */
   coef = xdot(nSmat, stcO, x);
 
@@ -450,7 +450,7 @@ void fn_StochasticOptCG_Init(const int nSmat, int *const smatToParaIdx, double *
 #ifdef _DEBUG_STCOPT_CG
   fprintf(stderr, "DEBUG in %s (%d): Start stcOptCG_Init\n", __FILE__, __LINE__);
 #endif
-  
+
   x = VecCG;
   g = x + nSmat;
   sdiag = g + nSmat;
@@ -472,7 +472,7 @@ void fn_StochasticOptCG_Init(const int nSmat, int *const smatToParaIdx, double *
     #pragma loop noalias
     for(si=0;si<nSmat;++si) {
       pi = smatToParaIdx[si];
-      
+
       idx = si + i*nSmat; /* column major */
       stcOs_real[idx] = CREAL(srOptO_Store[offset+pi+OFFSET]);
 #ifndef MVMC_SRCG_REAL
@@ -487,7 +487,7 @@ void fn_StochasticOptCG_Init(const int nSmat, int *const smatToParaIdx, double *
   #pragma loop noalias
   for(si=0;si<nSmat;++si) {
     pi = smatToParaIdx[si];
-    
+
     stcO[si] = CREAL(srOptO[pi+OFFSET]);
     g[si] = -dt*(CREAL(srOptHO[pi+OFFSET]) - srOptHO_0 * CREAL(srOptO[pi+OFFSET]));
 
@@ -538,4 +538,3 @@ void fn_print_Smat_stderr(const int nSmat, double *VecCG, MPI_Comm comm){
 #undef OFFSET
 #undef USE_IMAG
 #undef SIZE_VecCG
-

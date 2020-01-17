@@ -43,9 +43,9 @@ double calculateNewPfMN_real_child(const int qpidx, const int n, const int *msa,
 /* buffer size = NQPFull */
 double  GreenFunc1_real(const int ri, const int rj, const int s, const double ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,
-                  int *projCntNew, const double *eleGPWKern, const int *eleGPWDelta,
+                  int *projCntNew, const double *eleGPWKern,
                   const double *eleGPWInSum, double *eleGPWKernNew,
-                  int *eleGPWDeltaNew, double *eleGPWInSumNew,
+                  double *eleGPWInSumNew,
                   double *buffer) {
   double  z;
   int mj,msj,rsi,rsj;
@@ -89,9 +89,9 @@ double  GreenFunc1_real(const int ri, const int rj, const int s, const double ip
 double GreenFunc2_real(const int ri, const int rj, const int rk, const int rl,
                   const int s, const int t, const double ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,
-                  int *projCntNew, const double *eleGPWKern, const int *eleGPWDelta,
+                  int *projCntNew, const double *eleGPWKern,
                   const double *eleGPWInSum, double *eleGPWKernNew,
-                  int *eleGPWDeltaNew, double *eleGPWInSumNew,
+                  double *eleGPWInSumNew,
                   double *buffer) {
   double z;
   int mj,msj,ml,mtl;
@@ -108,8 +108,8 @@ double GreenFunc2_real(const int ri, const int rj, const int rk, const int rl,
     if(rk==rl) { /* CisAjsNks */
       if(eleNum[rtk]==0) return 0.0;
       else return GreenFunc1_real(ri,rj,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt,projCntNew,
-                                  eleGPWKern, eleGPWDelta, eleGPWInSum,
-                                  eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
+                                  eleGPWKern, eleGPWInSum,
+                                  eleGPWKernNew, eleGPWInSumNew,
                                   buffer); /* CisAjs */
     }else if(rj==rl) {
       return 0.0; /* CisAjsCksAjs (j!=k) */
@@ -117,23 +117,23 @@ double GreenFunc2_real(const int ri, const int rj, const int rk, const int rl,
       if(eleNum[rsi]==0) return 0.0;
       else if(rj==rk) return 1.0-eleNum[rsj];
       else return -GreenFunc1_real(rk,rj,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt,projCntNew,
-                                   eleGPWKern, eleGPWDelta, eleGPWInSum,
-                                   eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
+                                   eleGPWKern, eleGPWInSum,
+                                   eleGPWKernNew, eleGPWInSumNew,
                                    buffer); /* -CksAjs */
     }else if(rj==rk) { /* CisAls(1-Njs) */
       if(eleNum[rsj]==1) return 0.0;
       else if(ri==rl) return eleNum[rsi];
       else return GreenFunc1_real(ri,rl,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt,projCntNew,
-                                  eleGPWKern, eleGPWDelta, eleGPWInSum,
-                                  eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
+                                  eleGPWKern, eleGPWInSum,
+                                  eleGPWKernNew, eleGPWInSumNew,
                                   buffer); /* CisAls */
     }else if(ri==rk) {
       return 0.0; /* CisAjsCisAls (i!=j) */
     }else if(ri==rj) { /* NisCksAls (i!=k,l) */
       if(eleNum[rsi]==0) return 0.0;
       else return GreenFunc1_real(rk,rl,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt,projCntNew,
-                                  eleGPWKern, eleGPWDelta, eleGPWInSum,
-                                  eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
+                                  eleGPWKern, eleGPWInSum,
+                                  eleGPWKernNew, eleGPWInSumNew,
                                   buffer); /* CksAls */
     }
   }else{
@@ -141,14 +141,14 @@ double GreenFunc2_real(const int ri, const int rj, const int rk, const int rl,
       if(eleNum[rtk]==0) return 0.0;
       else if(ri==rj) return eleNum[rsi];
       else return GreenFunc1_real(ri,rj,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt,projCntNew,
-                                  eleGPWKern, eleGPWDelta, eleGPWInSum,
-                                  eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
+                                  eleGPWKern, eleGPWInSum,
+                                  eleGPWKernNew, eleGPWInSumNew,
                                   buffer); /* CisAjs */
     }else if(ri==rj) { /* NisCktAlt */
       if(eleNum[rsi]==0) return 0.0;
       else return GreenFunc1_real(rk,rl,t,ip,eleIdx,eleCfg,eleNum,eleProjCnt,projCntNew,
-                                  eleGPWKern, eleGPWDelta, eleGPWInSum,
-                                  eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
+                                  eleGPWKern, eleGPWInSum,
+                                  eleGPWKernNew, eleGPWInSumNew,
                                   buffer); /* CktAlt */
     }
   }
@@ -215,9 +215,9 @@ double GreenFunc2_real(const int ri, const int rj, const int rk, const int rl,
 /// \version 1.0
 double GreenFuncN_real(const int n, int *rsi, int *rsj, const double  ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,
-                  const double *eleGPWKern, const int *eleGPWDelta,
+                  const double *eleGPWKern,
                   const double *eleGPWInSum, double *eleGPWKernNew,
-                  int *eleGPWDeltaNew, double *eleGPWInSumNew,
+                  double *eleGPWInSumNew,
                   double *buffer, int *bufferInt){
   int ri,rj,rk,rl,si,sj,sk,mj;
   int k,l,m,rsk;
@@ -242,8 +242,8 @@ double GreenFuncN_real(const int n, int *rsi, int *rsj, const double  ip,
     rj = rsj[0]%Nsite;
     si = rsi[0]/Nsite;
     return GreenFunc1_real(ri,rj,si,ip,eleIdx,eleCfg,eleNum,eleProjCnt,projCntNew,
-                           eleGPWKern, eleGPWDelta, eleGPWInSum,
-                           eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
+                           eleGPWKern, eleGPWInSum,
+                           eleGPWKernNew, eleGPWInSumNew,
                            buffer);
   } else if(n==2) {
     ri = rsi[0]%Nsite;
@@ -253,8 +253,8 @@ double GreenFuncN_real(const int n, int *rsi, int *rsj, const double  ip,
     rl = rsj[1]%Nsite;
     sk = rsi[1]/Nsite;
     return GreenFunc2_real(ri,rj,rk,rl,si,sk,ip,eleIdx,eleCfg,eleNum,eleProjCnt,projCntNew,
-                           eleGPWKern, eleGPWDelta, eleGPWInSum,
-                           eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
+                           eleGPWKern, eleGPWInSum,
+                           eleGPWKernNew, eleGPWInSumNew,
                            buffer);
   }
 
@@ -271,8 +271,8 @@ double GreenFuncN_real(const int n, int *rsi, int *rsj, const double  ip,
           rsj[m] = rsj[m+1];
         }
         return GreenFuncN_real(n-1,rsi,rsj,ip,eleIdx,eleCfg,eleNum,eleProjCnt,
-                               eleGPWKern, eleGPWDelta, eleGPWInSum,
-                               eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
+                               eleGPWKern, eleGPWInSum,
+                               eleGPWKernNew, eleGPWInSumNew,
                                buffer, bufferInt);
       }
       /* rsj[k] == rsj[l] */
@@ -290,8 +290,8 @@ double GreenFuncN_real(const int n, int *rsi, int *rsj, const double  ip,
         rsj[m] = rsj[m+1];
       }
       return GreenFuncN_real(n-1,rsi,rsj,ip,eleIdx,eleCfg,eleNum,eleProjCnt,
-                             eleGPWKern, eleGPWDelta, eleGPWInSum,
-                             eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
+                             eleGPWKern, eleGPWInSum,
+                             eleGPWKernNew, eleGPWInSumNew,
                              buffer, bufferInt);
     }
     for(l=k+1;l<n;l++) {
@@ -305,8 +305,8 @@ double GreenFuncN_real(const int n, int *rsi, int *rsj, const double  ip,
           rsj[m] = rsj[m+1];
         }
         return (-1.0)*GreenFuncN_real(n-1,rsi,rsj,ip,eleIdx,eleCfg,eleNum,eleProjCnt,
-                                      eleGPWKern, eleGPWDelta, eleGPWInSum,
-                                      eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
+                                      eleGPWKern, eleGPWInSum,
+                                      eleGPWKernNew, eleGPWInSumNew,
                                       buffer, bufferInt);
       }
     }

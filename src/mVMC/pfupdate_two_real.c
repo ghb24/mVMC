@@ -14,10 +14,10 @@ the Free Software Foundation, either version 3 of the License, or
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details. 
+GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License 
-along with this program. If not, see http://www.gnu.org/licenses/. 
+You should have received a copy of the GNU General Public License
+along with this program. If not, see http://www.gnu.org/licenses/.
 */
 /*-------------------------------------------------------------
  * Variational Monte Carlo
@@ -40,7 +40,7 @@ void updateMAllTwo_child_real(const int ma, const int s, const int mb, const int
                          const int *eleIdx, const int qpStart, const int qpEnd, const int qpidx,
                          double *vecP, double *vecQ, double *vecS, double *vecT);
 
-/* Calculate new pfaffian. 
+/* Calculate new pfaffian.
    The ma-th electron with spin s hops
    and then the mb-th electron with spin t hops. */
 /* buffer size = 2*Nsize */
@@ -68,7 +68,7 @@ void CalculateNewPfMTwo_real(const int ma, const int s, const int mb, const int 
   return;
 }
 
-/* Calculate new pfaffian. 
+/* Calculate new pfaffian.
    The ma-th electron with spin s hops
    and then the mb-th electron with spin t hops. */
 /* thread parallel version of CalculateNewPfMTwo */
@@ -100,7 +100,7 @@ void CalculateNewPfMTwo2_real(const int ma, const int s, const int mb, const int
                                qpStart, qpEnd, qpidx, vec_a, vec_b);
     }
   }
-  
+
   ReleaseWorkSpaceThreadDouble();
   return;
 }
@@ -201,7 +201,7 @@ void UpdateMAllTwo_real(const int ma, const int s, const int mb, const int t,
     vec2 = GetWorkSpaceThreadDouble(Nsize);
     vec3 = GetWorkSpaceThreadDouble(Nsize);
     vec4 = GetWorkSpaceThreadDouble(Nsize);
-   
+
     #pragma omp for
     #pragma loop nounroll
     for(qpidx=0;qpidx<qpNum;qpidx++) {
@@ -227,7 +227,7 @@ void updateMAllTwo_child_real(const int ma, const int s, const int mb, const int
   const int rsbOld = raOld + t*Nsite;
   const int nsize = Nsize;
 
-  const double *sltE = SlaterElm_real + (qpidx+qpStart)*Nsite2*Nsite2;; //TBC
+  const double *sltE = SlaterElm_real + (qpidx+qpStart)*Nsite2*Nsite2; //TBC
   const double *sltE_a = sltE + rsa*Nsite2; /* update elements of msa-th row */
   const double *sltE_b = sltE + rsb*Nsite2; /* update elements of msb-th row */
   const double mOld_ab = sltE[rsaOld*Nsite2 + rsbOld];
@@ -298,7 +298,7 @@ void updateMAllTwo_child_real(const int ma, const int s, const int mb, const int
   for(msi=0;msi<nsize;msi++) {
     vecS[msi] = invDet * invM_a[msi];
     vecT[msi] = invDet * invM_b[msi];
-  }  
+  }
 
   /* Update InvM */
   #pragma loop noalias

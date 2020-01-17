@@ -505,7 +505,7 @@ void UpdateInSum(double *inSumNew, const double *inSumOld,
 void UpdateDelta(double *inSumNew, const int *cfgA, const int sizeA,
                  const int *cfgB, const int sizeB, const int siteA,
                  const int siteB) {
-  int i, a;
+  int a;
 
   for (a = 0; a < sizeB; a++) {
     if ((cfgA[siteA]==cfgB[a])&&
@@ -529,7 +529,7 @@ void UpdateDelta(double *inSumNew, const int *cfgA, const int sizeA,
 void UpdateDeltaFlipped(double *inSumNew, const int *cfgA, const int sizeA,
                         const int *cfgB, const int sizeB, const int siteA,
                         const int siteB) {
-  int i, a;
+  int a;
 
   for (a = 0; a < sizeB; a++) {
     if ((cfgA[siteA]==cfgB[a+sizeB])&&
@@ -711,7 +711,7 @@ double ComputeKernelN(const int *cfgA, const int *plaquetteAIdx, const int sizeA
   }
 
   else {
-    int i, a, k, j, b, plaquetteMatches;
+    int i, a, k, plaquetteMatches;
 
     int plaquetteSize = n-1;
 
@@ -960,17 +960,15 @@ double GPWKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
                  const int shift, const int startIdA, const int startIdB,
                  const int plaquetteSize, const int *distList,
                  double *workspaceDouble) {
-  int i, a, k, j, b;
-
-  double kernel = 0.0;
+  int i;
 
   double *innerSum = workspaceDouble;
   double *innerSumFlipped = innerSum + sizeA*sizeB;
 
   double norm = 0.0;
 
-  for (k = 0; k < plaquetteSize; k++) {
-    norm += 1.0/distList[k];
+  for (i = 0; i < plaquetteSize; i++) {
+    norm += 1.0/distList[i];
   }
 
   CalculatePairDelta(innerSum, cfgA, sizeA, cfgB, sizeB);

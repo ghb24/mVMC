@@ -25,7 +25,7 @@ double complex RBMHiddenLayerSum(const int f, const int i, const int *eleNum) {
 
 
 double complex RBMVal(const int *eleNum) {
-  int i, j, f;
+  int i, f;
   double complex result = 1.0;
   double complex sum = 0.0;
 

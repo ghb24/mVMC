@@ -186,7 +186,7 @@ int StochasticOpt(MPI_Comm comm) {
   /*** print zqp_SRinfo.dat ***/
   if(rank==0) {
     if(info!=0) fprintf(stderr, "StcOpt: DPOSV info=%d\n",info);
-    rmax = r[0]; simax=0;;
+    rmax = r[0]; simax=0;
     for(si=0;si<nSmat;si++) {
       if(fabs(rmax) < fabs(r[si])) {
         rmax = r[si]; simax=si;

@@ -31,12 +31,12 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 
 void CalculateGreenFunc(const double w, const double complex ip, int *eleIdx, int *eleCfg,
                         int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                        int *eleGPWDelta, double *eleGPWInSum) {
+                        double *eleGPWInSum) {
 
   int idx,idx0,idx1;
   int ri,rj,s,rk,rl,t;
   double complex tmp;
-  int *myEleIdx, *myEleNum, *myProjCntNew, *myGPWDeltaNew;
+  int *myEleIdx, *myEleNum, *myProjCntNew;
   double *myGPWKernNew, *myGPWInSumNew;
   double complex *myBuffer;
 
@@ -46,7 +46,7 @@ void CalculateGreenFunc(const double w, const double complex ip, int *eleIdx, in
   /* GreenFunc1: NQPFull, GreenFunc2: NQPFull+2*Nsize */
 
   #pragma omp parallel default(shared)		\
-  private(myEleIdx,myEleNum,myProjCntNew,myGPWKernNew,myGPWDeltaNew,myGPWInSumNew,myBuffer,idx)
+  private(myEleIdx,myEleNum,myProjCntNew,myGPWKernNew,myGPWInSumNew,myBuffer,idx)
   {
     myEleIdx = GetWorkSpaceThreadInt(Nsize);
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
@@ -69,8 +69,8 @@ void CalculateGreenFunc(const double w, const double complex ip, int *eleIdx, in
       rj = CisAjsIdx[idx][2];
       s  = CisAjsIdx[idx][3];
       tmp = GreenFunc1(ri,rj,s,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,
-                       myProjCntNew,eleGPWKern,eleGPWDelta,eleGPWInSum,myGPWKernNew,
-                       myGPWDeltaNew,myGPWInSumNew,myBuffer);
+                       myProjCntNew,eleGPWKern,eleGPWInSum,myGPWKernNew,
+                       myGPWInSumNew,myBuffer);
       LocalCisAjs[idx] = tmp;
     }
     #pragma omp master
@@ -86,8 +86,8 @@ void CalculateGreenFunc(const double w, const double complex ip, int *eleIdx, in
       t  = CisAjsCktAltDCIdx[idx][5];
 
       tmp = GreenFunc2(ri,rj,rk,rl,s,t,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,
-                       myProjCntNew,eleGPWKern,eleGPWDelta,eleGPWInSum,myGPWKernNew,
-                       myGPWDeltaNew,myGPWInSumNew,myBuffer);
+                       myProjCntNew,eleGPWKern,eleGPWInSum,myGPWKernNew,
+                       myGPWInSumNew,myBuffer);
       PhysCisAjsCktAltDC[idx] += w*tmp;
     }
 
@@ -131,7 +131,6 @@ void CalculateGreenFuncBF(const double w, const double ip, int *eleIdx, int *ele
   double complex* myBuffer;
 
   double *eleGPWKern, *myGPWKernNew, *eleGPWInSum, *myGPWInSumNew; // Dummy variables, backflow is not supported.
-  int *eleGPWDelta, *myGPWDeltaNew; // Dummy variables, backflow is not supported.
 
   RequestWorkSpaceThreadInt(Nsize+2*Nsite2+NProj+16*Nsite*Nrange);
   RequestWorkSpaceThreadComplex(NQPFull+2*Nsize+NQPFull*Nsite2*Nsite2);
@@ -180,7 +179,7 @@ void CalculateGreenFuncBF(const double w, const double ip, int *eleIdx, int *ele
       rl = CisAjsCktAltDCIdx[idx][6];
       t  = CisAjsCktAltDCIdx[idx][5];
       tmp = GreenFunc2(ri,rj,rk,rl,s,t,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,
-                       myProjCntNew,eleGPWKern,eleGPWDelta,eleGPWInSum,myGPWKernNew,myGPWDeltaNew,myGPWInSumNew,myBuffer);
+                       myProjCntNew,eleGPWKern,eleGPWInSum,myGPWKernNew,myGPWInSumNew,myBuffer);
       PhysCisAjsCktAltDC[idx] += w*tmp;
     }
 

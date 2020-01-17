@@ -59,9 +59,6 @@ inline double complex LogGPWRatio(const double *eleGPWKernNew, const double *ele
 }
 
 inline double complex GPWRatio(const double *eleGPWKernNew, const double *eleGPWKernOld) {
-  int idx;
-  double complex z=0.0+0.0*I;
-
   if (!GPWLinModFlag) {
     return cexp(LogGPWRatio(eleGPWKernNew, eleGPWKernOld));
   }
@@ -74,7 +71,6 @@ inline double complex GPWRatio(const double *eleGPWKernNew, const double *eleGPW
 void CalculateGPWKern(double *eleGPWKern, double *eleGPWInSum, const int *eleNum) {
   const int nGPWIdx=NGPWIdx;
   int i;
-  int outerThreadNum = omp_get_thread_num();
 
   #pragma omp parallel for default(shared) private(i)
   for(i=0;i<nGPWIdx;i++) {
@@ -136,7 +132,6 @@ void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew,
                    const double *eleGPWInSumOld, const int *eleNum) {
   const int nGPWIdx=NGPWIdx;
   int i;
-  int outerThreadNum = omp_get_thread_num();
   memcpy(eleGPWInSumNew, eleGPWInSumOld, sizeof(double)*GPWTrnCfgSz*Nsite);
 
   #pragma omp parallel for default(shared) private(i)
@@ -164,9 +159,6 @@ void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew,
       }
 
       if (GPWKernelFunc[latId] == 0) {
-        if (omp_get_thread_num() == 0) {
-            StartTimer(80);
-        }
         UpdateInSum(eleGPWInSumNew+offset, eleGPWInSumOld+offset,
                     GPWSysPlaquetteIdx[latId], Nsite, GPWTrnPlaquetteIdx[latId],
                     GPWTrnSize[latId], GPWPlaquetteSizes[latId],
@@ -182,18 +174,11 @@ void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew,
                       GPWSysPlaqHash[latId], GPWSysPlaqHashSz[latId],
                       ri, rj);
         }
-        if (omp_get_thread_num() == 0) {
-          StopTimer(80);
-          StartTimer(81);
-        }
         eleGPWKernNew[i] = ComputeKernel(Nsite, GPWTrnSize[latId],
                                          GPWPower[latId], GPWThetaVar[latId],
                                          GPWNorm[latId], GPWTRSym[latId],
                                          GPWShift[latId], 0, 0, eleGPWInSumNew+offset,
                                          eleGPWInSumNew+(GPWTrnCfgSz/2)*Nsite+offset);
-        if (omp_get_thread_num() == 0) {
-          StopTimer(81);
-        }
       }
 
       else {

@@ -43,7 +43,7 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 
 /* Calculate <psi|QQ|x>/<psi|x> */
 void LSLocalQ_real(const double h1, const double ip, int *eleIdx, int *eleCfg, int *eleNum,
-                   int *eleProjCnt, double *eleGPWKern, int *eleGPWDelta,
+                   int *eleProjCnt, double *eleGPWKern,
                    double *eleGPWInSum, double *_LSLQ_real)
 {
   double e0,h2;
@@ -52,9 +52,9 @@ void LSLocalQ_real(const double h1, const double ip, int *eleIdx, int *eleCfg, i
 
   h2 = h1*e0; /* HV = (V+K+W)V */
   h2 += calculateHK_real(h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt, eleGPWKern,
-                         eleGPWDelta, eleGPWInSum);
+                         eleGPWInSum);
   h2 += calculateHW_real(h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt, eleGPWKern,
-                         eleGPWDelta, eleGPWInSum);
+                         eleGPWInSum);
 
   /* calculate local Q (IQ) */
   _LSLQ_real[0] = 1.0; /* I */
@@ -78,7 +78,7 @@ void LSLocalQ_real(const double h1, const double ip, int *eleIdx, int *eleCfg, i
 /// \version 1.0
 double calculateHK_real(const double h1, const double ip, int *eleIdx, int *eleCfg,
                            int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                           int *eleGPWDelta, double *eleGPWInSum) {
+                           double *eleGPWInSum) {
   int idx,ri,rj,s;
   double val=0.0;
 
@@ -88,7 +88,7 @@ double calculateHK_real(const double h1, const double ip, int *eleIdx, int *eleC
     s  = Transfer[idx][3];
 
     val -= creal(ParaTransfer[idx]) * calHCA_real(ri,rj,s,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,
-                                                  eleGPWKern, eleGPWDelta, eleGPWInSum);
+                                                  eleGPWKern, eleGPWInSum);
     /* Caution: negative sign */
   }
 
@@ -110,7 +110,7 @@ double calculateHK_real(const double h1, const double ip, int *eleIdx, int *eleC
 double calHCA_real(const int ri, const int rj, const int s,
                       const double h1, const double ip, int *eleIdx, int *eleCfg,
                       int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                      int *eleGPWDelta, double *eleGPWInSum) {
+                      double *eleGPWInSum) {
   int rsi=ri+s*Nsite;
   int rsj=rj+s*Nsite;
   double val;
@@ -128,10 +128,10 @@ double calHCA_real(const int ri, const int rj, const int s,
   g = checkGF1_real(ri,rj,s,ip/creal(RBMVal(eleNum)),eleIdx,eleCfg,eleNum);
   if(fabs(g)>1.0e-12) {
     val = calHCA1_real(ri,rj,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt, eleGPWKern,
-                       eleGPWDelta, eleGPWInSum);
+                       eleGPWInSum);
   } else {
     val = calHCA2_real(ri,rj,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt, eleGPWKern,
-                       eleGPWDelta, eleGPWInSum);
+                       eleGPWInSum);
   }
 
   return val;
@@ -194,10 +194,10 @@ double checkGF1_real(const int ri, const int rj, const int s, const double ip,
 double calHCA1_real(const int ri, const int rj, const int s,
                const double ip, int *eleIdx, int *eleCfg,
                int *eleNum, int *eleProjCnt, double *eleGPWKern,
-               int *eleGPWDelta, double *eleGPWInSum) {
+               double *eleGPWInSum) {
   double *oldInvM; /* [NQPFull*Nsize*Nsize;] */
   double *oldPfM;  /* [NQPFull] */
-  int *projCntNew, *eleGPWDeltaNew;
+  int *projCntNew;
   double *eleGPWKernNew, *eleGPWInSumNew;
 
   int rsi=ri+s*Nsite;
@@ -205,12 +205,11 @@ double calHCA1_real(const int ri, const int rj, const int s,
   int mj;
   double ipNew,z,e;
 
-  RequestWorkSpaceInt(NProj+Nsite*GPWTrnCfgSz);
+  RequestWorkSpaceInt(NProj);
   RequestWorkSpaceDouble(NQPFull*(Nsize*Nsize+1)+NGPWIdx+GPWTrnCfgSz*Nsite);
 
   projCntNew = GetWorkSpaceInt(NProj);
   eleGPWKernNew = GetWorkSpaceDouble(NGPWIdx);
-  eleGPWDeltaNew = GetWorkSpaceInt(Nsite*GPWTrnCfgSz);
   eleGPWInSumNew = GetWorkSpaceDouble(GPWTrnCfgSz*Nsite);
   oldInvM = GetWorkSpaceDouble(NQPFull*Nsize*Nsize);
   oldPfM  = GetWorkSpaceDouble(NQPFull);
@@ -243,7 +242,7 @@ double calHCA1_real(const int ri, const int rj, const int s,
   ipNew *= RBMVal(eleNum);
 
   e = CalculateHamiltonian_real(ipNew,eleIdx,eleCfg,eleNum,projCntNew,
-                                eleGPWKernNew, eleGPWDeltaNew,
+                                eleGPWKernNew,
                                 eleGPWInSumNew);
 
   /* revert hopping */
@@ -266,7 +265,7 @@ double calHCA1_real(const int ri, const int rj, const int s,
 double calHCA2_real(const int ri, const int rj, const int s,
                        const double ip, int *eleIdx, int *eleCfg,
                        int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                       int *eleGPWDelta, double *eleGPWInSum) {
+                       double *eleGPWInSum) {
   const int nsize=Nsize;
   const int nsite2=Nsite2;
 
@@ -280,10 +279,10 @@ double calHCA2_real(const int ri, const int rj, const int s,
   double g;
 
   double *buffer;
-  int *bufferInt, *eleGPWDeltaNew;
+  int *bufferInt;
   double *eleGPWKernNew, *eleGPWInSumNew;
 
-  int *myEleIdx, *myEleNum, *myBufferInt, *myRsi, *myRsj, *myGPWDeltaNew;
+  int *myEleIdx, *myEleNum, *myBufferInt, *myRsi, *myRsj;
   double *myBuffer, *myGPWKernNew, *myGPWInSumNew;
   //    double complex myValue=0;
   //    double complex v=0.0;
@@ -304,8 +303,8 @@ double calHCA2_real(const int ri, const int rj, const int s,
   /* H0 term */
   /* <psi|H0 CA|x>/<psi|x> = H0(x') <psi|CA|x>/<psi|x> */
   g = GreenFunc1_real(ri,rj,s,ip,eleIdx,eleCfg,eleNum,eleProjCnt,bufferInt,
-                      eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew,
-                      eleGPWKern, eleGPWDelta, eleGPWInSum, buffer);
+                      eleGPWKernNew, eleGPWInSumNew,
+                      eleGPWKern, eleGPWInSum, buffer);
 
   /* hopping */
   eleNum[rsi] = 1;
@@ -320,7 +319,7 @@ double calHCA2_real(const int ri, const int rj, const int s,
   /* end of H0 term */
 
 #pragma omp parallel default(shared)\
-  private(myEleIdx,myEleNum,myBufferInt,myBuffer,myGPWKernNew,myGPWDeltaNew,myGPWInSumNew,myValue,myRsi,myRsj)  \
+  private(myEleIdx,myEleNum,myBufferInt,myBuffer,myGPWKernNew,myGPWInSumNew,myValue,myRsi,myRsj)  \
   reduction(+:v)
   {
     myEleIdx = GetWorkSpaceThreadInt(Nsize);
@@ -348,8 +347,8 @@ double calHCA2_real(const int ri, const int rj, const int s,
 
       myValue -= creal(ParaTransfer[idx])
                        * GreenFunc2_real(rk,rl,ri,rj,sk,s,ip,myEleIdx,eleCfg,myEleNum,
-                                         eleProjCnt, myBufferInt, eleGPWKern, eleGPWDelta,
-                                         eleGPWInSum, myGPWKernNew, myGPWDeltaNew,
+                                         eleProjCnt, myBufferInt, eleGPWKern,
+                                         eleGPWInSum, myGPWKernNew,
                                          myGPWInSumNew, myBuffer);
       /* Caution: negative sign */
     }
@@ -368,8 +367,8 @@ double calHCA2_real(const int ri, const int rj, const int s,
 
       myValue += ParaPairHopping[idx]
         * GreenFuncN_real(3,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,
-                         eleProjCnt, eleGPWKern, eleGPWDelta,
-                         eleGPWInSum, myGPWKernNew, myGPWDeltaNew,
+                         eleProjCnt, eleGPWKern,
+                         eleGPWInSum, myGPWKernNew,
                          myGPWInSumNew, myBuffer, myBufferInt);
     }
 
@@ -386,8 +385,8 @@ double calHCA2_real(const int ri, const int rj, const int s,
       myRsj[2] = rsj;
       myValue += ParaExchangeCoupling[idx]
         * GreenFuncN_real(3,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,
-                          eleProjCnt, eleGPWKern, eleGPWDelta,
-                          eleGPWInSum, myGPWKernNew, myGPWDeltaNew,
+                          eleProjCnt, eleGPWKern,
+                          eleGPWInSum, myGPWKernNew,
                           myGPWInSumNew, myBuffer, myBufferInt);
       myRsi[0] = rk+Nsite; /* s=1 */
       myRsj[0] = rl+Nsite; /* s=1 */
@@ -397,8 +396,8 @@ double calHCA2_real(const int ri, const int rj, const int s,
       myRsj[2] = rsj;
       myValue += ParaExchangeCoupling[idx]
         * GreenFuncN_real(3,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,
-                          eleProjCnt, eleGPWKern, eleGPWDelta,
-                          eleGPWInSum, myGPWKernNew, myGPWDeltaNew,
+                          eleProjCnt, eleGPWKern,
+                          eleGPWInSum, myGPWKernNew,
                           myGPWInSumNew, myBuffer, myBufferInt);    }
 
     /* Inter All */
@@ -412,8 +411,8 @@ double calHCA2_real(const int ri, const int rj, const int s,
       myRsj[2] = rsj;
       myValue += creal(ParaInterAll[idx])
         * GreenFuncN_real(3,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,
-                          eleProjCnt, eleGPWKern, eleGPWDelta,
-                          eleGPWInSum, myGPWKernNew, myGPWDeltaNew,
+                          eleProjCnt, eleGPWKern,
+                          eleGPWInSum, myGPWKernNew,
                           myGPWInSumNew, myBuffer, myBufferInt);    }
 
     v += myValue;
@@ -446,7 +445,7 @@ void copyMAll_real(double *invM_from, double *pfM_from, double *invM_to, double 
 
 double calculateHW_real(const double h1, const double ip, int *eleIdx, int *eleCfg,
                            int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                           int *eleGPWDelta, double *eleGPWInSum) {
+                           double *eleGPWInSum) {
   int idx,ri,rj,s,rk,rl,t;
   double val=0.0,tmp;
 
@@ -457,7 +456,7 @@ double calculateHW_real(const double h1, const double ip, int *eleIdx, int *eleC
 
     val += ParaPairHopping[idx]
       * calHCACA_real(ri,rj,ri,rj,0,1,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,
-                      eleGPWKern, eleGPWDelta, eleGPWInSum);
+                      eleGPWKern, eleGPWInSum);
   }
 
   /* Exchange Coupling */
@@ -466,9 +465,9 @@ double calculateHW_real(const double h1, const double ip, int *eleIdx, int *eleC
     rj = ExchangeCoupling[idx][1];
 
     tmp =  calHCACA_real(ri,rj,rj,ri,0,1,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,
-                         eleGPWKern, eleGPWDelta, eleGPWInSum);
+                         eleGPWKern, eleGPWInSum);
     tmp += calHCACA_real(ri,rj,rj,ri,1,0,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,
-                         eleGPWKern, eleGPWDelta, eleGPWInSum);
+                         eleGPWKern, eleGPWInSum);
     val += ParaExchangeCoupling[idx] * tmp;
   }
 
@@ -483,7 +482,7 @@ double calculateHW_real(const double h1, const double ip, int *eleIdx, int *eleC
 
     val += creal(ParaInterAll[idx])
       * calHCACA_real(ri,rj,rk,rl,s,t,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,
-                      eleGPWKern, eleGPWDelta, eleGPWInSum);
+                      eleGPWKern, eleGPWInSum);
   }
 
   return val;
@@ -494,7 +493,7 @@ double calHCACA_real(const int ri, const int rj, const int rk, const int rl,
                         const int si,const int sk,
                         const double h1, const double ip, int *eleIdx, int *eleCfg,
                         int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                        int *eleGPWDelta, double *eleGPWInSum) {
+                        double *eleGPWInSum) {
   int rsi=ri+si*Nsite;
   int rsj=rj+si*Nsite;
   int rsk=rk+sk*Nsite;
@@ -507,27 +506,27 @@ double calHCACA_real(const int ri, const int rj, const int rk, const int rl,
   if(rsk==rsl) {
     if(eleNum[rsk]==1) {
       return calHCA_real(ri,rj,si,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,
-                         eleGPWKern, eleGPWDelta, eleGPWInSum);
+                         eleGPWKern, eleGPWInSum);
     } else return 0;
   } else if(rsj==rsk) {
     if(eleNum[rsj]==1) return 0;
     else {
       return calHCA_real(ri,rl,si,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,
-                         eleGPWKern, eleGPWDelta, eleGPWInSum);
+                         eleGPWKern, eleGPWInSum);
     }
   } else if(rsj==rsl) {
     return 0;
   } else if(rsi==rsj) {
     if(eleNum[rsi]==1) {
       return calHCA_real(rk,rl,sk,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,
-                         eleGPWKern, eleGPWDelta, eleGPWInSum);
+                         eleGPWKern, eleGPWInSum);
     } else return 0;
   } else if(rsi==rsk) {
     return 0;
   } else if(rsi==rsl) {
     if(eleNum[rsi]==1) {
       return -calHCA_real(rk,rj,sk,h1,ip,eleIdx,eleCfg,eleNum,eleProjCnt,
-                          eleGPWKern, eleGPWDelta, eleGPWInSum);
+                          eleGPWKern, eleGPWInSum);
     } else return 0;
   } else {
     if(eleNum[rsl]==0) return 0.0;
@@ -539,10 +538,10 @@ double calHCACA_real(const int ri, const int rj, const int rk, const int rl,
   g = checkGF2_real(ri,rj,rk,rl,si,sk,ip/creal(RBMVal(eleNum)),eleIdx,eleCfg,eleNum);
   if(fabs(g)>1.0e-12) {
     val = calHCACA1_real(ri,rj,rk,rl,si,sk,ip,eleIdx,eleCfg,eleNum,eleProjCnt,
-                         eleGPWKern, eleGPWDelta, eleGPWInSum);
+                         eleGPWKern, eleGPWInSum);
   } else {
     val = calHCACA2_real(ri,rj,rk,rl,si,sk,ip,eleIdx,eleCfg,eleNum,eleProjCnt,
-                         eleGPWKern, eleGPWDelta, eleGPWInSum);
+                         eleGPWKern, eleGPWInSum);
   }
 
   return val;
@@ -605,10 +604,10 @@ double calHCACA1_real(const int ri, const int rj, const int rk, const int rl,
                  const int si,const int sk,
                  const double ip, int *eleIdx, int *eleCfg,
                  int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                 int *eleGPWDelta, double *eleGPWInSum) {
+                 double *eleGPWInSum) {
   double *oldInvM; /* [NQPFull*Nsize*Nsize;] */
   double *oldPfM;  /* [NQPFull] */
-  int *projCntNew, *eleGPWDeltaNew;
+  int *projCntNew;
   double *eleGPWKernNew, *eleGPWInSumNew;
 
   int rsi=ri+si*Nsite;
@@ -618,12 +617,11 @@ double calHCACA1_real(const int ri, const int rj, const int rk, const int rl,
   int mj,ml;
   double ipNew,z,e;
 
-  RequestWorkSpaceInt(NProj+Nsite*GPWTrnCfgSz);
+  RequestWorkSpaceInt(NProj);
   RequestWorkSpaceDouble(NQPFull*(Nsize*Nsize+1)+NGPWIdx+GPWTrnCfgSz*Nsite);
 
   projCntNew = GetWorkSpaceInt(NProj);
   eleGPWKernNew = GetWorkSpaceDouble(NGPWIdx);
-  eleGPWDeltaNew = GetWorkSpaceInt(Nsite*GPWTrnCfgSz);
   eleGPWInSumNew = GetWorkSpaceDouble(GPWTrnCfgSz*Nsite);
   oldInvM = GetWorkSpaceDouble(NQPFull*Nsize*Nsize);
   oldPfM  = GetWorkSpaceDouble(NQPFull);
@@ -666,7 +664,7 @@ double calHCACA1_real(const int ri, const int rj, const int rk, const int rl,
   ipNew *= RBMVal(eleNum);
 
   e = CalculateHamiltonian_real(ipNew,eleIdx,eleCfg,eleNum,projCntNew,
-                                eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew);
+                                eleGPWKernNew, eleGPWInSumNew);
 
   /* revert hopping */
   eleIdx[mj+si*Ne] = rj;
@@ -694,7 +692,7 @@ double calHCACA1_real(const int ri, const int rj, const int rk, const int rl,
 double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
                          const int si,const int sk,
                          const double ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
-                         double *eleGPWKern, int *eleGPWDelta, double *eleGPWInSum) {
+                         double *eleGPWKern, double *eleGPWInSum) {
   const int nsize=Nsize;
   const int nsite2=Nsite2;
 
@@ -709,9 +707,9 @@ double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
   double g;
 
   double *buffer, *eleGPWKernNew, *eleGPWInSumNew;
-  int *bufferInt, *eleGPWDeltaNew;
+  int *bufferInt;
 
-  int *myEleIdx, *myEleNum, *myBufferInt, *myRsi, *myRsj, *myGPWDeltaNew;
+  int *myEleIdx, *myEleNum, *myBufferInt, *myRsi, *myRsj;
   double *myBuffer, *myGPWKernNew, *myGPWInSumNew;
   double myValue=0.0;
   double v=0.0;
@@ -730,8 +728,8 @@ double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
   /* H0 term */
   /* <psi|H0 CACA|x>/<psi|x> = H0(x') <psi|CACA|x>/<psi|x> */
   g = GreenFunc2_real(ri,rj,rk,rl,si,sk,ip,
-      eleIdx,eleCfg,eleNum,eleProjCnt,bufferInt, eleGPWKern, eleGPWDelta,
-      eleGPWInSum, eleGPWKernNew, eleGPWDeltaNew, eleGPWInSumNew, buffer);
+      eleIdx,eleCfg,eleNum,eleProjCnt,bufferInt, eleGPWKern,
+      eleGPWInSum, eleGPWKernNew, eleGPWInSumNew, buffer);
 
   /* hopping */
   eleNum[rsi] = 1;
@@ -750,7 +748,7 @@ double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
   /* end of H0 term */
 
 #pragma omp parallel default(shared)\
-  private(myEleIdx,myEleNum,myBufferInt,myBuffer,myGPWKernNew,myGPWDeltaNew,myGPWInSumNew,myValue,myRsi,myRsj)  \
+  private(myEleIdx,myEleNum,myBufferInt,myBuffer,myGPWKernNew,myGPWInSumNew,myValue,myRsi,myRsj)  \
   reduction(+:v)
   {
     myEleIdx = GetWorkSpaceThreadInt(Nsize);
@@ -781,8 +779,8 @@ double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
 
       myValue -= creal(ParaTransfer[idx])
         * GreenFuncN_real(3,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,
-                          eleGPWKern, eleGPWDelta, eleGPWInSum, myGPWKernNew,
-                          myGPWDeltaNew, myGPWInSumNew, myBuffer,
+                          eleGPWKern, eleGPWInSum, myGPWKernNew,
+                          myGPWInSumNew, myBuffer,
                           myBufferInt);
       /* Caution: negative sign */
     }
@@ -803,8 +801,8 @@ double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
 
       myValue += ParaPairHopping[idx]
         * GreenFuncN_real(4,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,
-                          eleGPWKern, eleGPWDelta, eleGPWInSum, myGPWKernNew,
-                          myGPWDeltaNew, myGPWInSumNew, myBuffer,
+                          eleGPWKern, eleGPWInSum, myGPWKernNew,
+                          myGPWInSumNew, myBuffer,
                           myBufferInt);
 
     }
@@ -824,8 +822,8 @@ double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
       myRsj[3] = rsl;
       myValue += ParaExchangeCoupling[idx]
         * GreenFuncN_real(4,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,
-                          eleGPWKern, eleGPWDelta, eleGPWInSum, myGPWKernNew,
-                          myGPWDeltaNew, myGPWInSumNew, myBuffer,
+                          eleGPWKern, eleGPWInSum, myGPWKernNew,
+                          myGPWInSumNew, myBuffer,
                           myBufferInt);
 
 
@@ -839,8 +837,8 @@ double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
       myRsj[3] = rsl;
       myValue += ParaExchangeCoupling[idx]
         * GreenFuncN_real(4,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,
-                          eleGPWKern, eleGPWDelta, eleGPWInSum, myGPWKernNew,
-                          myGPWDeltaNew, myGPWInSumNew, myBuffer,
+                          eleGPWKern, eleGPWInSum, myGPWKernNew,
+                          myGPWInSumNew, myBuffer,
                           myBufferInt);
 
     }
@@ -858,8 +856,8 @@ double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
       myRsj[3] = rsl;
       myValue += creal(ParaInterAll[idx])
         * GreenFuncN_real(4,myRsi,myRsj,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,
-                          eleGPWKern, eleGPWDelta, eleGPWInSum, myGPWKernNew,
-                          myGPWDeltaNew, myGPWInSumNew, myBuffer,
+                          eleGPWKern, eleGPWInSum, myGPWKernNew,
+                          myGPWInSumNew, myBuffer,
                           myBufferInt);
 
     }
@@ -880,7 +878,7 @@ double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
 /* Calculate <psi|QCisAjs|x>/<psi|x> */
 void LSLocalCisAjs_real(const double h1, const double ip, int *eleIdx, int *eleCfg,
                         int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                        int *eleGPWDelta, double *eleGPWInSum) {
+                        double *eleGPWInSum) {
   const int nCisAjs=NCisAjs;
   double *lsLCisAjs_real = LSLCisAjs_real;
   double complex*localCisAjs = LocalCisAjs;
@@ -900,7 +898,7 @@ void LSLocalCisAjs_real(const double h1, const double ip, int *eleIdx, int *eleC
 
     /* calculate local HCisAjs */
     LSLCisAjs_real[idx+nCisAjs] = calHCA_real(ri,rj,s,h1,ip,eleIdx,eleCfg,eleNum,
-                                              eleProjCnt, eleGPWKern, eleGPWDelta,
+                                              eleProjCnt, eleGPWKern,
                                               eleGPWInSum);
   }
   return;

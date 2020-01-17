@@ -246,7 +246,6 @@ int *EleSpn;     /* EleIdx[sample][mi+si*Ne] */ //fsz
 int *EleProjBFCnt; /* EleProjCnt[sample][proj] */
 //[e] MERGE BY TM
 double *EleGPWKern; /* EleGPWKernel[sample][NGPWIdx], stores the kernel for the electron configuration */
-int **EleGPWDelta; /* EleGPWDelta[sample][Trncfgs*Nsite*Nsite*2+trncfg*Nsite*Nsite*2 + symId*Nsite*Nsite + nsiteA*Nsite + nsiteA], stores the calculated delta matrix for the kernel evaluation */
 double **EleGPWInSum; /* EleGPWInSum[sample][Trncfgs*Nsite*Nsite+trncfg*Nsite*Nsite + nsite*Nsite + nsite2], stores the calculated inner sum for the kernel evaluation */
 double *logSqPfFullSlater; /* logSqPfFullSlater[sample] */
 //double complex *SmpSltElmBF; /* logSqPfFullSlater[sample] */
@@ -264,7 +263,6 @@ int *TmpEleSpn;
 int *TmpEleProjBFCnt;
 //[e] MERGE BY TM
 double *TmpEleGPWKern;
-int *TmpEleGPWDelta;
 double *TmpEleGPWInSum;
 
 int *BurnEleIdx;
@@ -273,7 +271,6 @@ int *BurnEleNum;
 int *BurnEleProjCnt;
 int *BurnEleSpn;
 double *BurnEleGPWKern;
-int *BurnEleGPWDelta;
 double *BurnEleGPWInSum;
 int BurnFlag=0; /* 0: off, 1: on */
 

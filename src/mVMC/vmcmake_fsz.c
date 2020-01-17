@@ -14,10 +14,10 @@ the Free Software Foundation, either version 3 of the License, or
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details. 
+GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License 
-along with this program. If not, see http://www.gnu.org/licenses/. 
+You should have received a copy of the GNU General Public License
+along with this program. If not, see http://www.gnu.org/licenses/.
 */
 /*-------------------------------------------------------------
  * Variational Monte Carlo
@@ -28,15 +28,15 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 
 void VMCMakeSample_fsz(MPI_Comm comm);
 int makeInitialSample_fsz(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,int *eleSpn,
-                      double *eleGPWKern, int *eleGPWDelta, double *eleGPWInSum,
+                      double *eleGPWKern, double *eleGPWInSum,
                       const int qpStart, const int qpEnd, MPI_Comm comm);
 void copyFromBurnSample_fsz(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,int *eleSpn,
-                            double *eleGPWKern, int *eleGPWDelta, double *eleGPWInSum);
+                            double *eleGPWKern, double *eleGPWInSum);
 void copyToBurnSample_fsz(const int *eleIdx, const int *eleCfg, const int *eleNum, const int *eleProjCnt,
-                      const int *eleSpn, const double *eleGPWKern, int *eleGPWDelta, double *eleGPWInSum);
+                      const int *eleSpn, const double *eleGPWKern, double *eleGPWInSum);
 void saveEleConfig_fsz(const int sample, const double complex logIp, const double complex rbmVal,
                    const int *eleIdx, const int *eleCfg, const int *eleNum, const int *eleProjCnt,
-                   const int *eleSpn, const double *eleGPWKern, const int *eleGPWDelta, const double *eleGPWInSum);
+                   const int *eleSpn, const double *eleGPWKern, const double *eleGPWInSum);
 //void sortEleConfig(int *eleIdx, int *eleCfg, const int *eleNum);
 void makeCandidate_hopping_fsz(int *mi_, int *ri_, int *rj_, int *s_,int *t_, int *rejectFlag_,
                            const int *eleIdx, const int *eleCfg,const int *eleNum,const int *eleSpn);
@@ -69,7 +69,6 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
   double complex logIpOld,logIpNew; /* logarithm of inner product <phi|L|x> */ // is this ok ? TBC
   int projCntNew[NProj];
   double eleGPWKernNew[NGPWIdx];
-  int *eleGPWDeltaNew;
   double *eleGPWInSumNew;
   double complex rbmValOld, rbmValNew; /* value of the RBM projector */
   double complex pfMNew[NQPFull];
@@ -82,7 +81,6 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
   MPI_Comm_size(comm,&size);
   MPI_Comm_rank(comm,&rank);
 
-  eleGPWDeltaNew = (int*)malloc(Nsite*GPWTrnCfgSz*sizeof(int));
   eleGPWInSumNew = (double*)malloc(Nsite*GPWTrnCfgSz*sizeof(double));
 
   SplitLoop(&qpStart,&qpEnd,NQPFull,rank,size);
@@ -93,7 +91,7 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
     printf("DEBUG: make1: \n");
 #endif
     makeInitialSample_fsz(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleSpn,
-                      TmpEleGPWKern, TmpEleGPWDelta, TmpEleGPWInSum, qpStart,qpEnd,comm);
+                      TmpEleGPWKern, TmpEleGPWInSum, qpStart,qpEnd,comm);
 //DEBUG
     //int total_num;
     //CheckEleConfig_fsz(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleSpn,comm);
@@ -101,7 +99,7 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
     //printf("%d \n",total_num);
 //DEBUG
   } else {
-    copyFromBurnSample_fsz(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleSpn,TmpEleGPWKern,TmpEleGPWDelta,TmpEleGPWInSum) ;//fsz
+    copyFromBurnSample_fsz(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleSpn,TmpEleGPWKern,TmpEleGPWInSum) ;//fsz
   }
 
   if (UseOrbital) {
@@ -113,7 +111,7 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
     if( !isfinite(creal(logIpOld) + cimag(logIpOld)) ) {
       if(rank==0) fprintf(stderr,"waring: VMCMakeSample remakeSample logIpOld=%e\n",creal(logIpOld)); //TBC
       makeInitialSample_fsz(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleSpn,
-                        TmpEleGPWKern, TmpEleGPWDelta, TmpEleGPWInSum,qpStart,qpEnd,comm);
+                        TmpEleGPWKern, TmpEleGPWInSum,qpStart,qpEnd,comm);
       CalculateMAll_fsz(TmpEleIdx,TmpEleSpn,qpStart,qpEnd);
 #ifdef _DEBUG_DETAIL
       printf("DEBUG: maker2: PfM=%lf\n",creal(PfM[0]));
@@ -146,7 +144,7 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
       updateType = getUpdateType(NExUpdatePath);
 
       if(updateType==HOPPING) { /* hopping */
-        
+
         StartTimer(31);
         flag_hop = 0;
         if(TwoSz==-1){//total spin is not conserved
@@ -159,16 +157,16 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
             Counter[4]++;
             makeCandidate_LocalSpinFlip_conduction(&mi, &ri, &rj, &s,&t, &rejectFlag,
                               TmpEleIdx, TmpEleCfg,TmpEleNum,TmpEleSpn);
-          } 
+          }
         }else{ //csz : t=s
           flag_hop = 1;
           Counter[0]++;
           makeCandidate_hopping_csz(&mi, &ri, &rj, &s,&t, &rejectFlag,
                               TmpEleIdx, TmpEleCfg,TmpEleNum,TmpEleSpn);
-        } 
+        }
         StopTimer(31);
 
-        if(rejectFlag) continue; 
+        if(rejectFlag) continue;
 
         StartTimer(32);
         StartTimer(60);
@@ -311,7 +309,7 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
                               TmpEleIdx, TmpEleCfg,TmpEleNum,TmpEleSpn);
         StopTimer(31);
 
-        if(rejectFlag) continue; 
+        if(rejectFlag) continue;
 
         StartTimer(36);
         StartTimer(600);
@@ -395,8 +393,7 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
       fprintf(stdout, "Debug: save Electron Configuration.\n");
       #endif
       saveEleConfig_fsz(sample,logIpOld,rbmValOld,TmpEleIdx,TmpEleCfg,TmpEleNum,
-                        TmpEleProjCnt,TmpEleSpn,TmpEleGPWKern,TmpEleGPWDelta,
-                        TmpEleGPWInSum);
+                        TmpEleProjCnt,TmpEleSpn,TmpEleGPWKern,TmpEleGPWInSum);
     }
     StopTimer(35);
   } /* end of outstep */
@@ -408,7 +405,7 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
   fprintf(stdout, "Debug: copyToBurnSample_fsz\n");
 #endif
   copyToBurnSample_fsz(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleSpn,TmpEleGPWKern,
-                       TmpEleGPWDelta,TmpEleGPWInSum);
+                       TmpEleGPWInSum);
 #ifdef _DEBUG_DETAIL
   fprintf(stdout, "Debug: Finish copyToBurnSample_fsz\n");
 #endif
@@ -416,13 +413,12 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
   BurnFlag=1;
 
   free(eleGPWInSumNew);
-  free(eleGPWDeltaNew); 
 
   return;
 }
 
 int makeInitialSample_fsz(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,int *eleSpn,
-                          double *eleGPWKern, int *eleGPWDelta, double *eleGPWInSum,
+                          double *eleGPWKern, double *eleGPWInSum,
                           const int qpStart, const int qpEnd, MPI_Comm comm) {
   const int nsize = Nsize;
   const int nsite2 = Nsite2;
@@ -441,11 +437,11 @@ int makeInitialSample_fsz(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt
     for(msi=0;msi<nsize;msi++) eleSpn[msi] = -1;
     #pragma omp parallel for default(shared) private(rsi)
     for(rsi=0;rsi<nsite2;rsi++) eleCfg[rsi] = -1;
-    
+
     if(TwoSz==-1){
-      tmp_TwoSz = 0;  //note: Sz is not conserved quantity but initially we take Sz=0 
+      tmp_TwoSz = 0;  //note: Sz is not conserved quantity but initially we take Sz=0
     }else{
-      tmp_TwoSz = TwoSz/2; // if TwoSz is not even, mVMC does not work 
+      tmp_TwoSz = TwoSz/2; // if TwoSz is not even, mVMC does not work
     }
     //note:  2Sz=TwoSz X_mi=0-2*Ne=Nsize
     for(X_mi=0;X_mi<Nsize;X_mi++) {
@@ -454,7 +450,7 @@ int makeInitialSample_fsz(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt
       }else{
         eleSpn[X_mi]   = 1;
       }
-    }  
+    }
     /* local spin */
     for(ri=0;ri<Nsite;ri++) {
       if(LocSpn[ri]==1) {
@@ -469,7 +465,7 @@ int makeInitialSample_fsz(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt
       }
     }
     /* itinerant electron */
-    for(X_mi=0;X_mi<Nsize;X_mi++) { 
+    for(X_mi=0;X_mi<Nsize;X_mi++) {
       si = eleSpn[X_mi];
       if(eleIdx[X_mi]== -1) {
         do {
@@ -486,7 +482,7 @@ int makeInitialSample_fsz(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt
     for(rsi=0;rsi<nsite2;rsi++) {
       eleNum[rsi] = (eleCfg[rsi] < 0) ? 0 : 1;
     }
-    
+
     MakeProjCnt(eleProjCnt,eleNum); // this function does not change even for fsz
     CalculateGPWKern(eleGPWKern, eleGPWInSum, eleNum);
 
@@ -513,34 +509,30 @@ int makeInitialSample_fsz(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt
 }
 
 void copyFromBurnSample_fsz(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
-                            int *eleSpn, double *eleGPWKern, int *eleGPWDelta,
-                            double *eleGPWInSum) {
+                            int *eleSpn, double *eleGPWKern, double *eleGPWInSum) {
   int i,n;
   const int *burnEleIdx = BurnEleIdx;// BurnEleIdx is global
   const int nGPWIdx = NGPWIdx;
   const double *burnGPWKern = BurnEleGPWKern;
-  const int *burnGPWDelta = BurnEleGPWDelta;
   const double *burnGPWInSum = BurnEleGPWInSum;
 //  n = Nsize + 2*Nsite + 2*Nsite + NProj+Nsite;//fsz
   n = Nsize + 2*Nsite + 2*Nsite + NProj+Nsize;//fsz
   #pragma loop noalias
-  for(i=0;i<n;i++) eleIdx[i] = burnEleIdx[i]; 
-  
+  for(i=0;i<n;i++) eleIdx[i] = burnEleIdx[i];
+
   #pragma loop noalias
   for(i=0;i<nGPWIdx;i++) eleGPWKern[i] = burnGPWKern[i];
   memcpy(eleGPWInSum, burnGPWInSum, sizeof(double)*GPWTrnCfgSz*Nsite);
-  
+
   return;
 }
 
 void copyToBurnSample_fsz(const int *eleIdx, const int *eleCfg, const int *eleNum, const int *eleProjCnt,
-                      const int *eleSpn, const double *eleGPWKern,
-                      int *eleGPWDelta, double *eleGPWInSum) {
+                      const int *eleSpn, const double *eleGPWKern, double *eleGPWInSum) {
   int i,n;
   int *burnEleIdx = BurnEleIdx;
   const int nGPWIdx = NGPWIdx;
   double *burnGPWKern = BurnEleGPWKern;
-  int *burnGPWDelta = BurnEleGPWDelta;
   double *burnGPWInSum = BurnEleGPWInSum;
   //n = Nsize + 2*Nsite + 2*Nsite + NProj+Nsite;//fsz
   n = Nsize + 2*Nsite + 2*Nsite + NProj+Nsize;//fsz
@@ -549,13 +541,13 @@ void copyToBurnSample_fsz(const int *eleIdx, const int *eleCfg, const int *eleNu
   #pragma loop noalias
   for(i=0;i<nGPWIdx;i++) burnGPWKern[i] = eleGPWKern[i];
   memcpy(burnGPWInSum, eleGPWInSum, sizeof(double)*GPWTrnCfgSz*Nsite);
-  
+
   return;
 }
 
 void saveEleConfig_fsz(const int sample, const double complex logIp, const double complex rbmVal,
                    const int *eleIdx, const int *eleCfg, const int *eleNum, const int *eleProjCnt,
-                   const int *eleSpn, const double *eleGPWKern, const int *eleGPWDelta,
+                   const int *eleSpn, const double *eleGPWKern,
                    const double *eleGPWInSum) {
   int i,offset;
   double x;
@@ -632,7 +624,7 @@ void makeCandidate_hopping_fsz(int *mi_, int *ri_, int *rj_, int *s_,int *t_, in
   flag = 0; // FALSE
   do {
     mi = gen_rand32()%Nsize;
-    s  = eleSpn[mi] ; //fsz 
+    s  = eleSpn[mi] ; //fsz
     //t  = (genrand_real2()<0.5) ? s : 1-s; //fsz
     ri = eleIdx[mi];  //fsz
   } while (LocSpn[ri] == 1);
@@ -668,7 +660,7 @@ void makeCandidate_hopping_csz(int *mi_, int *ri_, int *rj_, int *s_,int *t_, in
   flag = 0; // FALSE
   do {
     mi = gen_rand32()%Nsize;
-    s  = eleSpn[mi] ; //fsz 
+    s  = eleSpn[mi] ; //fsz
     //t  = (genrand_real2()<0.5) ? s : 1-s; //fsz
     t  = s;//csz
     ri = eleIdx[mi];  //fsz
@@ -764,7 +756,7 @@ void makeCandidate_LocalSpinFlip_localspin(int *mi_, int *ri_, int *rj_, int *s_
   flag = 0; // FALSE
   do {
     mi = gen_rand32()%Nsize;
-    s  = eleSpn[mi] ; //fsz 
+    s  = eleSpn[mi] ; //fsz
     t  = 1-s;
     //t  = (genrand_real2()<0.5) ? s : 1-s; //fsz
     ri = eleIdx[mi];  //fsz
@@ -794,7 +786,7 @@ void makeCandidate_LocalSpinFlip_conduction(int *mi_, int *ri_, int *rj_, int *s
   flag = 0; // FALSE
   do {
     mi = gen_rand32()%Nsize;
-    s  = eleSpn[mi] ; //fsz 
+    s  = eleSpn[mi] ; //fsz
     t  = 1-s;
     //t  = (genrand_real2()<0.5) ? s : 1-s; //fsz
     ri = eleIdx[mi];  //fsz
@@ -825,8 +817,8 @@ void makeCandidate_LocalSpinFlip_conduction(int *mi_, int *ri_, int *rj_, int *s
 /* The mi-th electron with spin s hops to site rj and t */
 void updateEleConfig_fsz(int mi, int org_r, int dst_r, int org_spn,int dst_spn,
                      int *eleIdx, int *eleCfg, int *eleNum, int *eleSpn) {
-  eleIdx[mi]         = dst_r; 
-  eleSpn[mi]         = dst_spn;  //fsz 
+  eleIdx[mi]         = dst_r;
+  eleSpn[mi]         = dst_spn;  //fsz
 //
   eleCfg[org_r+org_spn*Nsite] = -1;
   eleCfg[dst_r+dst_spn*Nsite] = mi;
@@ -838,8 +830,8 @@ void updateEleConfig_fsz(int mi, int org_r, int dst_r, int org_spn,int dst_spn,
 
 void revertEleConfig_fsz(int mi, int org_r, int dst_r, int org_spn,int dst_spn,
                      int *eleIdx, int *eleCfg, int *eleNum,int *eleSpn) {
-  eleIdx[mi]         = org_r; 
-  eleSpn[mi]         = org_spn; //fsz 
+  eleIdx[mi]         = org_r;
+  eleSpn[mi]         = org_spn; //fsz
 //
   eleCfg[org_r+org_spn*Nsite] = mi;
   eleCfg[dst_r+dst_spn*Nsite] = -1;

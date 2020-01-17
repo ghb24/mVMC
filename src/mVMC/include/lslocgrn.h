@@ -4,10 +4,10 @@
 #include "global.h"
 
 void LSLocalQ(const double complex h1, const double complex ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
-              double *eleGPWKern, int *eleGPWDelta, double *eleGPWInSum, double complex *_LSLQ);
+              double *eleGPWKern, double *eleGPWInSum, double complex *_LSLQ);
 
 void LSLocalCisAjs(const double complex h1, const double complex ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
-                   double *eleGPWKern, int *eleGPWDelta, double *eleGPWInSum);
+                   double *eleGPWKern, double *eleGPWInSum);
 
 
 #endif

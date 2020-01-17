@@ -28,21 +28,21 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 
 double CalculateSz_fsz(const double complex ip, int *eleIdx, const int *eleCfg,
                              int *eleNum,const int *eleProjCnt, const double *eleGPWKern,
-                             int *eleGPWDelta, double *eleGPWInSum, int *eleSpn);
+                             double *eleGPWInSum, int *eleSpn);
 double complex CalculateHamiltonian_fsz(const double complex ip, int *eleIdx, const int *eleCfg,
                              int *eleNum,const int *eleProjCnt, const double *eleGPWKern,
-                             int *eleGPWDelta, double *eleGPWInSum, int *eleSpn);
+                             double *eleGPWInSum, int *eleSpn);
 double complex CalculateHamiltonian0_fsz(const int *eleNum);
 double complex CalculateHamiltonian1_fsz(const double complex ip, int *eleIdx, const int *eleCfg,
                              int *eleNum,const int *eleProjCnt, const double *eleGPWKern,
-                             int *eleGPWDelta, double *eleGPWInSum, int *eleSpn);
+                             double *eleGPWInSum, int *eleSpn);
 double complex CalculateHamiltonian2_fsz(const double complex ip, int *eleIdx, const int *eleCfg,
                              int *eleNum, const int *eleProjCnt, const double *eleGPWKern,
-                             int *eleGPWDelta, double *eleGPWInSum, int *eleSpn);
+                             double *eleGPWInSum, int *eleSpn);
 
 double CalculateSz_fsz(const double complex ip, int *eleIdx, const int *eleCfg,
                              int *eleNum, const int *eleProjCnt, const double *eleGPWKern,
-                             int *eleGPWDelta, double *eleGPWInSum, int *eleSpn) {
+                             double *eleGPWInSum, int *eleSpn) {
   const int *n0 = eleNum;
   const int *n1 = eleNum + Nsite;
   double  Sz=0.0;
@@ -60,13 +60,13 @@ double CalculateSz_fsz(const double complex ip, int *eleIdx, const int *eleCfg,
 
 double complex CalculateHamiltonian_fsz(const double complex ip, int *eleIdx, const int *eleCfg,
                              int *eleNum, const int *eleProjCnt, const double *eleGPWKern,
-                             int *eleGPWDelta, double *eleGPWInSum, int *eleSpn) {
+                             double *eleGPWInSum, int *eleSpn) {
   const int *n0 = eleNum;
   const int *n1 = eleNum + Nsite;
   double complex e=0.0, tmp;
   int idx;
   int ri,rj,s,rk,rl,t,u,v;
-  int *myEleIdx, *myEleNum, *myProjCntNew,*myEleSpn, *myGPWDeltaNew;
+  int *myEleIdx, *myEleNum, *myProjCntNew,*myEleSpn;
   double *myGPWKernNew, *myGPWInSumNew;
   double complex *myBuffer;
   double complex myEnergy;
@@ -82,13 +82,13 @@ double complex CalculateHamiltonian_fsz(const double complex ip, int *eleIdx, co
   reduction(+:e)
   */
 #pragma omp parallel default(none)                                      \
-  private(myEleIdx,myEleSpn,myEleNum,myProjCntNew,myGPWKernNew,myGPWDeltaNew, \
+  private(myEleIdx,myEleSpn,myEleNum,myProjCntNew,myGPWKernNew, \
           myGPWInSumNew,myBuffer,myEnergy, idx, ri, rj, rk, rl, s, t,u,v) \
-  firstprivate(ip, Nsize, Nsite, Nsite2, NProj, NGPWIdx, GPWTrnCfgSz, NQPFull, NCoulombIntra, CoulombIntra, ParaCoulombIntra, \
+  firstprivate(Nsize, Nsite, Nsite2, NProj, NGPWIdx, GPWTrnCfgSz, NQPFull, NCoulombIntra, CoulombIntra, ParaCoulombIntra, \
                NCoulombInter, CoulombInter, ParaCoulombInter, NHundCoupling, HundCoupling, ParaHundCoupling, \
                NTransfer, Transfer, ParaTransfer, NPairHopping, PairHopping, ParaPairHopping, \
                NExchangeCoupling, ExchangeCoupling, ParaExchangeCoupling, NInterAll, InterAll, ParaInterAll, n0, n1) \
-  shared(eleCfg, eleProjCnt, eleGPWKern, eleGPWDelta, eleGPWInSum, eleIdx, eleNum,eleSpn) reduction(+:e)
+  shared(eleCfg, eleProjCnt, eleGPWKern, eleGPWInSum, eleIdx, eleNum,eleSpn) reduction(+:e)
   {
     myEleIdx = GetWorkSpaceThreadInt(Nsize);
     myEleSpn = GetWorkSpaceThreadInt(Nsize);
@@ -148,14 +148,14 @@ double complex CalculateHamiltonian_fsz(const double complex ip, int *eleIdx, co
       if(s==t){
         myEnergy -= ParaTransfer[idx]
          * GreenFunc1_fsz(ri,rj,s,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,
-                          myEleSpn,myProjCntNew,eleGPWKern,eleGPWDelta,
-                          eleGPWInSum,myGPWKernNew,myGPWDeltaNew,myGPWInSumNew,
+                          myEleSpn,myProjCntNew,eleGPWKern,
+                          eleGPWInSum,myGPWKernNew,myGPWInSumNew,
                           myBuffer);
       }else{
         myEnergy -= ParaTransfer[idx]
         * GreenFunc1_fsz2(ri,rj,s,t,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,
-                          myEleSpn,myProjCntNew,eleGPWKern,eleGPWDelta,
-                          eleGPWInSum,myGPWKernNew,myGPWDeltaNew,myGPWInSumNew,
+                          myEleSpn,myProjCntNew,eleGPWKern,
+                          eleGPWInSum,myGPWKernNew,myGPWInSumNew,
                           myBuffer);
       }
       /* Caution: negative sign */
@@ -172,8 +172,8 @@ double complex CalculateHamiltonian_fsz(const double complex ip, int *eleIdx, co
 
       myEnergy += ParaPairHopping[idx]
         * GreenFunc2_fsz(ri,rj,ri,rj,0,1,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,
-                         myEleSpn,myProjCntNew,eleGPWKern,eleGPWDelta,
-                         eleGPWInSum,myGPWKernNew,myGPWDeltaNew,myGPWInSumNew,
+                         myEleSpn,myProjCntNew,eleGPWKern,
+                         eleGPWInSum,myGPWKernNew,myGPWInSumNew,
                          myBuffer);
     }
 
@@ -185,13 +185,11 @@ double complex CalculateHamiltonian_fsz(const double complex ip, int *eleIdx, co
 
       tmp =  GreenFunc2_fsz(ri,rj,rj,ri,0,1,ip,myEleIdx,eleCfg,myEleNum,
                             eleProjCnt,myEleSpn,myProjCntNew,eleGPWKern,
-                            eleGPWDelta,eleGPWInSum,myGPWKernNew,myGPWDeltaNew,
-                            myGPWInSumNew,myBuffer);
+                            eleGPWInSum,myGPWKernNew,myGPWInSumNew,myBuffer);
       //printf("idx=%d ri=%d rj=%d:  tmp=%lf \n",idx,ri,rj,creal(tmp));
       tmp += GreenFunc2_fsz(ri,rj,rj,ri,1,0,ip,myEleIdx,eleCfg,myEleNum,
                             eleProjCnt,myEleSpn,myProjCntNew,eleGPWKern,
-                            eleGPWDelta,eleGPWInSum,myGPWKernNew,
-                            myGPWDeltaNew,myGPWInSumNew,myBuffer);
+                            eleGPWInSum,myGPWKernNew,myGPWInSumNew,myBuffer);
       //tmp =  GreenFunc2_fsz2(ri,rj,rj,ri,0,0,1,1,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myEleSpn,myProjCntNew,myBuffer);
       //tmp += GreenFunc2_fsz2(ri,rj,rj,ri,1,1,0,0,ip,myEleIdx,eleCfg,myEleNum,eleProjCnt,myEleSpn,myProjCntNew,myBuffer);
       myEnergy += ParaExchangeCoupling[idx] * tmp;
@@ -213,14 +211,12 @@ double complex CalculateHamiltonian_fsz(const double complex ip, int *eleIdx, co
         myEnergy += ParaInterAll[idx]
           * GreenFunc2_fsz(ri,rj,rk,rl,s,u,ip,myEleIdx,eleCfg,myEleNum,
                            eleProjCnt,myEleSpn,myProjCntNew,eleGPWKern,
-                           eleGPWDelta,eleGPWInSum,myGPWKernNew,
-                           myGPWDeltaNew,myGPWInSumNew,myBuffer);
+                           eleGPWInSum,myGPWKernNew,myGPWInSumNew,myBuffer);
       }else{
         myEnergy += ParaInterAll[idx]
           * GreenFunc2_fsz2(ri,rj,rk,rl,s,t,u,v,ip,myEleIdx,eleCfg,myEleNum,
                             eleProjCnt,myEleSpn,myProjCntNew,eleGPWKern,
-                            eleGPWDelta,eleGPWInSum,myGPWKernNew,
-                            myGPWDeltaNew,myGPWInSumNew,myBuffer);
+                            eleGPWInSum,myGPWKernNew,myGPWInSumNew,myBuffer);
       }
     }
 
@@ -287,11 +283,11 @@ double complex CalculateHamiltonian0_fsz(const int *eleNum) {
 /* This function will be used in the Lanczos mode */
 double complex CalculateHamiltonian1_fsz(const double complex ip, int *eleIdx, const int *eleCfg,
                              int *eleNum, const int *eleProjCnt, const double *eleGPWKern,
-                             int *eleGPWDelta, double *eleGPWInSum, int *eleSpn) {
+                             double *eleGPWInSum, int *eleSpn) {
   double complex e=0.0;
   int idx;
   int ri,rj,s;
-  int *myEleIdx, *myEleNum, *myProjCntNew,*myEleSpn, *myGPWDeltaNew;
+  int *myEleIdx, *myEleNum, *myProjCntNew,*myEleSpn;
   double *myGPWKernNew, *myGPWInSumNew;
   double complex *myBuffer;
   double complex myEnergy;
@@ -302,7 +298,7 @@ double complex CalculateHamiltonian1_fsz(const double complex ip, int *eleIdx, c
   /* GreenFunc1: NQPFull */
 
 #pragma omp parallel default(shared)\
-  private(myEleIdx,myEleSpn,myEleNum,myProjCntNew,myGPWKernNew,myGPWDeltaNew,myGPWInSumNew,myBuffer,myEnergy,idx)  \
+  private(myEleIdx,myEleSpn,myEleNum,myProjCntNew,myGPWKernNew,myGPWInSumNew,myBuffer,myEnergy,idx)  \
   reduction(+:e)
   {
     myEleIdx = GetWorkSpaceThreadInt(Nsize);
@@ -332,8 +328,7 @@ double complex CalculateHamiltonian1_fsz(const double complex ip, int *eleIdx, c
       myEnergy -= ParaTransfer[idx]
         * GreenFunc1_fsz(ri,rj,s,ip,myEleIdx,eleCfg,myEleNum,
                            eleProjCnt,myEleSpn,myProjCntNew,eleGPWKern,
-                           eleGPWDelta,eleGPWInSum,myGPWKernNew,
-                           myGPWDeltaNew,myGPWInSumNew,myBuffer);      /* Caution: negative sign */
+                           eleGPWInSum,myGPWKernNew,myGPWInSumNew,myBuffer);      /* Caution: negative sign */
     }
 
     e += myEnergy;
@@ -350,11 +345,11 @@ double complex CalculateHamiltonian1_fsz(const double complex ip, int *eleIdx, c
 /* This function will be used in the Lanczos mode */
 double complex CalculateHamiltonian2_fsz(const double complex ip, int *eleIdx, const int *eleCfg,
                              int *eleNum, const int *eleProjCnt, const double *eleGPWKern,
-                             int *eleGPWDelta, double *eleGPWInSum, int *eleSpn) {
+                             double *eleGPWInSum, int *eleSpn) {
   double e=0.0, tmp;
   int idx;
   int ri,rj,s,rk,rl,t;
-  int *myEleIdx, *myEleNum, *myProjCntNew,*myEleSpn, *myGPWDeltaNew;
+  int *myEleIdx, *myEleNum, *myProjCntNew,*myEleSpn;
   double *myGPWKernNew, *myGPWInSumNew;
   double complex *myBuffer;
   double complex myEnergy;
@@ -365,7 +360,7 @@ double complex CalculateHamiltonian2_fsz(const double complex ip, int *eleIdx, c
   /* GreenFunc2: NQPFull+2*Nsize */
 
 #pragma omp parallel default(shared)\
-  private(myEleIdx,myEleSpn,myEleNum,myProjCntNew,myGPWKernNew,myGPWDeltaNew,myGPWInSumNew,myBuffer,myEnergy,idx)  \
+  private(myEleIdx,myEleSpn,myEleNum,myProjCntNew,myGPWKernNew,myGPWInSumNew,myBuffer,myEnergy,idx)  \
   reduction(+:e)
   {
     myEleIdx = GetWorkSpaceThreadInt(Nsize);
@@ -394,8 +389,7 @@ double complex CalculateHamiltonian2_fsz(const double complex ip, int *eleIdx, c
       myEnergy += ParaPairHopping[idx]
         * GreenFunc2_fsz(ri,rj,ri,rj,0,1,ip,myEleIdx,eleCfg,myEleNum,
                          eleProjCnt,myEleSpn,myProjCntNew,eleGPWKern,
-                         eleGPWDelta,eleGPWInSum,myGPWKernNew,
-                         myGPWDeltaNew,myGPWInSumNew,myBuffer);
+                         eleGPWInSum,myGPWKernNew,myGPWInSumNew,myBuffer);
     }
 
     /* Exchange Coupling */
@@ -406,12 +400,10 @@ double complex CalculateHamiltonian2_fsz(const double complex ip, int *eleIdx, c
 
       tmp =  GreenFunc2_fsz(ri,rj,rj,ri,0,1,ip,myEleIdx,eleCfg,myEleNum,
                             eleProjCnt,myEleSpn,myProjCntNew,eleGPWKern,
-                            eleGPWDelta,eleGPWInSum,myGPWKernNew,
-                            myGPWDeltaNew,myGPWInSumNew,myBuffer);
+                            eleGPWInSum,myGPWKernNew,myGPWInSumNew,myBuffer);
       tmp += GreenFunc2_fsz(ri,rj,rj,ri,1,0,ip,myEleIdx,eleCfg,myEleNum,
                             eleProjCnt,myEleSpn,myProjCntNew,eleGPWKern,
-                            eleGPWDelta,eleGPWInSum,myGPWKernNew,
-                            myGPWDeltaNew,myGPWInSumNew,myBuffer);
+                            eleGPWInSum,myGPWKernNew,myGPWInSumNew,myBuffer);
       myEnergy += ParaExchangeCoupling[idx] * tmp;
     }
 
@@ -428,8 +420,7 @@ double complex CalculateHamiltonian2_fsz(const double complex ip, int *eleIdx, c
       myEnergy += ParaInterAll[idx]
         * GreenFunc2_fsz(ri,rj,rk,rl,s,t,ip,myEleIdx,eleCfg,myEleNum,
                          eleProjCnt,myEleSpn,myProjCntNew,eleGPWKern,
-                         eleGPWDelta,eleGPWInSum,myGPWKernNew,
-                         myGPWDeltaNew,myGPWInSumNew,myBuffer);
+                         eleGPWInSum,myGPWKernNew,myGPWInSumNew,myBuffer);
     }
 
     e += myEnergy;

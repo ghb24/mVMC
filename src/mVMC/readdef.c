@@ -2263,7 +2263,6 @@ int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int
 }
 
 int GetInfoTopology(FILE *fp, int *sysNeighbours, char *defname) {
-  char ctmp[D_CharTmpReadDef];
   int i,j,ind,ind2;
   int info = 0;
 

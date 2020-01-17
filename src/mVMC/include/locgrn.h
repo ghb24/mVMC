@@ -5,21 +5,21 @@
 
 double complex GreenFunc1(const int ri, const int rj, const int s, const double complex ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,
-                  int *projCntNew, const double *eleGPWKern, const int *eleGPWDelta,
-                  const double *eleGPWInSum, double *eleGPWKernNew, int *eleGPWDeltaNew,
+                  int *projCntNew, const double *eleGPWKern,
+                  const double *eleGPWInSum, double *eleGPWKernNew,
                   double *eleGPWInSumNew, double complex *buffer);
 
 double complex GreenFunc2(const int ri, const int rj, const int rk, const int rl,
                   const int s, const int t, const double complex ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,
-                  int *projCntNew, const double *eleGPWKern, const int *eleGPWDelta,
-                  const double *eleGPWInSum, double *eleGPWKernNew, int *eleGPWDeltaNew,
+                  int *projCntNew, const double *eleGPWKern,
+                  const double *eleGPWInSum, double *eleGPWKernNew,
                   double *eleGPWInSumNew, double complex *buffer);
 
 double complex GreenFuncN(const int n, int *rsi, int *rsj, const double complex ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,
-                  const double *eleGPWKern, const int *eleGPWDelta,
-                  const double *eleGPWInSum, double *eleGPWKernNew, int *eleGPWDeltaNew,
+                  const double *eleGPWKern,
+                  const double *eleGPWInSum, double *eleGPWKernNew,
                   double *eleGPWInSumNew, double complex *buffer, int *bufferInt);
 
 double complex GreenFunc1BF(const int ri, const int rj, const int s, const double complex ip, double complex* bufM,

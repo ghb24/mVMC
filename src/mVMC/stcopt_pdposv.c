@@ -14,10 +14,10 @@ the Free Software Foundation, either version 3 of the License, or
 This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details. 
+GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License 
-along with this program. If not, see http://www.gnu.org/licenses/. 
+You should have received a copy of the GNU General Public License
+along with this program. If not, see http://www.gnu.org/licenses/.
 */
 /*-------------------------------------------------------------
  * Variational Monte Carlo
@@ -160,7 +160,7 @@ int stcOptMain(double *r, const int nSmat, const int *smatToParaIdx, MPI_Comm co
     #pragma loop norecurrence irToParaIdx
     for(ir=0;ir<vlocr;ir++) {
       pi = irToParaIdx[ir]; /* Para index (global) */
-      
+
       /* energy gradient = 2.0*( xHO[i+1] - xHO[0] * xOO[0][i+1]) */
       /* g[i] = -dt * (energy gradient) */
       g[ir] = -dSROptStepDt*2.0*(creal(srOptHO[pi+2]) - srOptHO_0 * creal(srOptOO[pi+2]));
@@ -189,7 +189,7 @@ int stcOptMain(double *r, const int nSmat, const int *smatToParaIdx, MPI_Comm co
 
   /***** solve the linear equation S*r=g by PDPOSV *****/
   uplo='U'; n=nSmat; nrhs=1; is=1; js=1; ig=1; jg=1;
-  M_PDPOSV(&uplo, &n, &nrhs, s, &is, &js, descs, 
+  M_PDPOSV(&uplo, &n, &nrhs, s, &is, &js, descs,
            g, &ig, &jg, descg, &info); /* g is overwritten with the solution. */
   /* error handle */
   if(info!=0) {
@@ -202,7 +202,7 @@ int stcOptMain(double *r, const int nSmat, const int *smatToParaIdx, MPI_Comm co
   StartTimer(58);
 
   /* create a communicator whose process has the same value of mypcol */
-  MPI_Comm_split(comm,mypcol,myprow,&comm_col); 
+  MPI_Comm_split(comm,mypcol,myprow,&comm_col);
 
   /* clear workspace */
   for(si=0;si<nSmat;si++) w[si] = 0.0;
@@ -378,7 +378,7 @@ int stcOptMainDiag(double *const r, int const nSmat, int *const smatToParaIdx,
   const double srOptHO_0=creal(SROptHO[0]);
   double complex *srOptOO=SROptOO;
   double complex *srOptHO=SROptHO;
-  
+
   int si,pi,pj,idx;//sj
   int ir,ic;
 
@@ -432,7 +432,7 @@ int stcOptMainDiag(double *const r, int const nSmat, int *const smatToParaIdx,
   irToSmatIdx = GetWorkSpaceInt(mlocr);
   irToParaIdx = GetWorkSpaceInt(mlocr);
   icToParaIdx = GetWorkSpaceInt(mlocc);
-  
+
   #pragma omp parallel for default(shared) private(ir,si)
   for(ir=0;ir<mlocr;ir++) {
     si = (ir/mb)*nprow*mb + myprow*mb + (ir%mb);
@@ -474,7 +474,7 @@ int stcOptMainDiag(double *const r, int const nSmat, int *const smatToParaIdx,
     #pragma loop norecurrence irToParaIdx
     for(ir=0;ir<vlocr;ir++) {
       pi = irToParaIdx[ir]; /* Para index (global) */
-      
+
       /* energy gradient = 2.0*( xHO[i+1] - xHO[0] * xOO[0][i+1]) */
       /* g[i] = (energy gradient) */
       g[ir] = 2.0*(creal(srOptHO[pi+2]) - srOptHO_0 * creal(srOptOO[pi+2]));
@@ -493,7 +493,7 @@ int stcOptMainDiag(double *const r, int const nSmat, int *const smatToParaIdx,
             work, &lwork, iwork, &liwork, &info);
   lwork=(int)work[0]; liwork=iwork[0];
   /* allocate memory for workspace */
-  
+
   work  = (double*)malloc(sizeof(double)*lwork);
   iwork = (int*)malloc(sizeof(int)*liwork);
   /* diagonalization */
@@ -531,7 +531,7 @@ int stcOptMainDiag(double *const r, int const nSmat, int *const smatToParaIdx,
   M_PDGEMV(&trans, &m, &n, &alpha, z, &iz, &jz, descz,
            g, &ig, &jg, descg, &incg, &beta,
            x, &ix, &jx, descx, &incx);
-  
+
   /***** multiply the inverse of eigenvalues by the vector x *****/
   /* x = (Lambda^(-1))*(U^T)*g */
   #pragma omp parallel for default(shared) private(ir,si)
@@ -555,7 +555,7 @@ int stcOptMainDiag(double *const r, int const nSmat, int *const smatToParaIdx,
   /***** copy distributed vector g to global vector r *****/
 
   /* create a communicator whose process has the same value of mypcol */
-  MPI_Comm_split(comm,mypcol,myprow,&comm_col); 
+  MPI_Comm_split(comm,mypcol,myprow,&comm_col);
 
   /* clear workspace */
   for(si=0;si<nSmat;si++) w[si] = 0.0;
@@ -573,10 +573,10 @@ int stcOptMainDiag(double *const r, int const nSmat, int *const smatToParaIdx,
     /* gather the solution to r on rank=0 process */
     SafeMpiReduce(w,r,nSmat,comm_col);
   }
-  
+
   /*** print zqp_SRinfo.dat ***/
   if(rank==0) {
-    rmax = r[0]; imax=0;;
+    rmax = r[0]; imax=0;
     for(si=0;si<nSmat;si++) {
       if(fabs(rmax) < fabs(r[si])) {
         rmax = r[si]; imax=si;
@@ -600,7 +600,7 @@ int stcOptMainDiag(double *const r, int const nSmat, int *const smatToParaIdx,
   ReleaseWorkSpaceDouble();
   MPI_Comm_free(&comm_col);
   Cblacs_gridexit(ictxt);
-  
+
   return info;
 }
 #endif

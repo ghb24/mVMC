@@ -49,7 +49,6 @@ void VMCMakeSample(MPI_Comm comm) {
   double complex logIpOld,logIpNew; /* logarithm of inner product <phi|L|x> */ // is this ok ? TBC
   int projCntNew[NProj];
   double eleGPWKernNew[NGPWIdx];
-  int *eleGPWDeltaNew;
   double *eleGPWInSumNew;
   double complex rbmValOld, rbmValNew; /* value of the RBM projector */
   double complex pfMNew[NQPFull];
@@ -62,7 +61,6 @@ void VMCMakeSample(MPI_Comm comm) {
   MPI_Comm_size(comm,&size);
   MPI_Comm_rank(comm,&rank);
 
-  eleGPWDeltaNew = (int*)malloc(Nsite*GPWTrnCfgSz*sizeof(int));
   eleGPWInSumNew = (double*)malloc(Nsite*GPWTrnCfgSz*sizeof(double));
 
   SplitLoop(&qpStart,&qpEnd,NQPFull,rank,size);
@@ -70,9 +68,9 @@ void VMCMakeSample(MPI_Comm comm) {
   StartTimer(30);
   if(BurnFlag==0) {
     makeInitialSample(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleGPWKern,
-                      TmpEleGPWDelta, TmpEleGPWInSum, qpStart,qpEnd,comm);
+                      TmpEleGPWInSum, qpStart,qpEnd,comm);
   } else {
-    copyFromBurnSample(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleGPWKern,TmpEleGPWDelta,TmpEleGPWInSum);
+    copyFromBurnSample(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleGPWKern,TmpEleGPWInSum);
   }
 
   if (UseOrbital) {
@@ -82,7 +80,7 @@ void VMCMakeSample(MPI_Comm comm) {
     if( !isfinite(creal(logIpOld) + cimag(logIpOld)) ) {
       if(rank==0) fprintf(stderr,"waring: VMCMakeSample remakeSample logIpOld=%e\n",creal(logIpOld)); //TBC
       makeInitialSample(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleGPWKern,
-                        TmpEleGPWDelta, TmpEleGPWInSum, qpStart,qpEnd,comm);
+                        TmpEleGPWInSum, qpStart,qpEnd,comm);
       CalculateMAll_fcmp(TmpEleIdx,qpStart,qpEnd);
       //printf("DEBUG: maker2: PfM=%lf\n",creal(PfM[0]));
       logIpOld = CalculateLogIP_fcmp(PfM,qpStart,qpEnd,comm);
@@ -264,25 +262,23 @@ void VMCMakeSample(MPI_Comm comm) {
     if(outStep >= nOutStep-NVMCSample) {
       sample = outStep-(nOutStep-NVMCSample);
       saveEleConfig(sample,logIpOld,rbmValOld,TmpEleIdx,TmpEleCfg,TmpEleNum,
-                    TmpEleProjCnt,TmpEleGPWKern,TmpEleGPWDelta,TmpEleGPWInSum);
+                    TmpEleProjCnt,TmpEleGPWKern,TmpEleGPWInSum);
     }
     StopTimer(35);
 
   } /* end of outstep */
 
   copyToBurnSample(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleGPWKern,
-                   TmpEleGPWDelta,TmpEleGPWInSum);
+                   TmpEleGPWInSum);
   BurnFlag=1;
 
   free(eleGPWInSumNew);
-  free(eleGPWDeltaNew);
 
   return;
 }
 
 int makeInitialSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                      int *eleGPWDelta, double *eleGPWInSum, const int qpStart, const int qpEnd,
-                      MPI_Comm comm) {
+                      double *eleGPWInSum, const int qpStart, const int qpEnd, MPI_Comm comm) {
   const int nsize = Nsize;
   const int nsite2 = Nsite2;
   int flag=1,flagRdc,loop=0;
@@ -357,12 +353,11 @@ int makeInitialSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, do
 }
 
 void copyFromBurnSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
-                        double *eleGPWKern, int *eleGPWDelta, double *eleGPWInSum) {
+                        double *eleGPWKern, double *eleGPWInSum) {
   int i,n;
   const int *burnEleIdx = BurnEleIdx;
   const int nGPWIdx = NGPWIdx;
   const double *burnGPWKern = BurnEleGPWKern;
-  const int *burnGPWDelta = BurnEleGPWDelta;
   const double *burnGPWInSum = BurnEleGPWInSum;
 
   n = Nsize + 2*Nsite + 2*Nsite + NProj;
@@ -376,12 +371,11 @@ void copyFromBurnSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
 
 void copyToBurnSample(const int *eleIdx, const int *eleCfg, const int *eleNum,
                       const int *eleProjCnt, const double *eleGPWKern,
-                      int *eleGPWDelta, double *eleGPWInSum) {
+                      double *eleGPWInSum) {
   int i,n;
   int *burnEleIdx = BurnEleIdx;
   const int nGPWIdx = NGPWIdx;
   double *burnGPWKern = BurnEleGPWKern;
-  int *burnGPWDelta = BurnEleGPWDelta;
   double *burnGPWInSum = BurnEleGPWInSum;
 
   n = Nsize + 2*Nsite + 2*Nsite + NProj;
@@ -396,7 +390,7 @@ void copyToBurnSample(const int *eleIdx, const int *eleCfg, const int *eleNum,
 
 void saveEleConfig(const int sample, const double complex logIp, const double complex rbmVal, const int *eleIdx,
                    const int *eleCfg, const int *eleNum, const int *eleProjCnt,
-                   const double *eleGPWKern, const int *eleGPWDelta, const double *eleGPWInSum) {
+                   const double *eleGPWKern, const double *eleGPWInSum) {
   int i,offset;
   double complex x;
   const int nsize=Nsize;

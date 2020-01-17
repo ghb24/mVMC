@@ -4,7 +4,7 @@
 
 void CalculateGreenFunc(const double w, const double complex ip, int *eleIdx, int *eleCfg,
                          int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                         int *eleGPWDelta, double *eleGPWInSum);
+                         double *eleGPWInSum);
 
 void CalculateGreenFuncBF(const double w, const double ip, int *eleIdx, int *eleCfg,
                           int *eleNum, int *eleProjCnt, const int *eleProjBFCnt);

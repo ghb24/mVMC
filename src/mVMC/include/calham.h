@@ -4,7 +4,7 @@
 
 double complex CalculateHamiltonian(const double complex ip, int *eleIdx,
 		                    const int *eleCfg, int *eleNum, const int *eleProjCnt,
-				                const double *eleGPWKern, int *eleGPWDelta,
+				                const double *eleGPWKern,
 				                double *eleGPWInSum);
 
 double complex CalculateHamiltonian0(const int *eleNum);

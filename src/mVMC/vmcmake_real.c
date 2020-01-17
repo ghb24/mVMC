@@ -14,10 +14,10 @@ which follows "The BSD 3-Clause License".
   This program is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-  GNU General Public License for more details. 
+  GNU General Public License for more details.
 
-  You should have received a copy of the GNU General Public License 
-  along with this program. If not, see http://www.gnu.org/licenses/. 
+  You should have received a copy of the GNU General Public License
+  along with this program. If not, see http://www.gnu.org/licenses/.
 */
 /*-------------------------------------------------------------
  * Variational Monte Carlo
@@ -48,7 +48,6 @@ void VMCMakeSample_real(MPI_Comm comm) {
   double logIpOld, logIpNew; /* logarithm of inner product <phi|L|x> */ // is this ok ? TBC
   int projCntNew[NProj];
   double eleGPWKernNew[NGPWIdx];
-  int *eleGPWDeltaNew;
   double *eleGPWInSumNew;
   double complex rbmValOld, rbmValNew; /* value of the RBM projector */
   double pfMNew_real[NQPFull];
@@ -60,7 +59,6 @@ void VMCMakeSample_real(MPI_Comm comm) {
   MPI_Comm_size(comm, &size);
   MPI_Comm_rank(comm, &rank);
 
-  eleGPWDeltaNew = (int*)malloc(Nsite*GPWTrnCfgSz*sizeof(int));
   eleGPWInSumNew = (double*)malloc(Nsite*GPWTrnCfgSz*sizeof(double));
 
   SplitLoop(&qpStart, &qpEnd, NQPFull, rank, size);
@@ -68,9 +66,9 @@ void VMCMakeSample_real(MPI_Comm comm) {
   StartTimer(30);
   if (BurnFlag == 0) {
     makeInitialSample(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt,
-                      TmpEleGPWKern, TmpEleGPWDelta, TmpEleGPWInSum, qpStart, qpEnd, comm);
+                      TmpEleGPWKern, TmpEleGPWInSum, qpStart, qpEnd, comm);
   } else {
-    copyFromBurnSample(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, TmpEleGPWKern, TmpEleGPWDelta, TmpEleGPWInSum);
+    copyFromBurnSample(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, TmpEleGPWKern, TmpEleGPWInSum);
   }
 
   if (UseOrbital) {
@@ -80,8 +78,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
     if (!isfinite(logIpOld)) {
       if (rank == 0) fprintf(stderr, "warning: VMCMakeSample remakeSample logIpOld=%e\n", creal(logIpOld)); //TBC
       makeInitialSample(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt,
-                        TmpEleGPWKern, TmpEleGPWDelta, TmpEleGPWInSum,
-                        qpStart, qpEnd, comm);
+                        TmpEleGPWKern, TmpEleGPWInSum, qpStart, qpEnd, comm);
       CalculateMAll_real(TmpEleIdx, qpStart, qpEnd);
       //printf("DEBUG: maker2: PfM=%lf\n",creal(PfM[0]));
       logIpOld = CalculateLogIP_real(PfM_real, qpStart, qpEnd, comm);
@@ -263,24 +260,23 @@ void VMCMakeSample_real(MPI_Comm comm) {
     if (outStep >= nOutStep - NVMCSample) {
       sample = outStep - (nOutStep - NVMCSample);
       saveEleConfig(sample, logIpOld, rbmValOld, TmpEleIdx, TmpEleCfg, TmpEleNum,
-                    TmpEleProjCnt, TmpEleGPWKern, TmpEleGPWDelta, TmpEleGPWInSum);
+                    TmpEleProjCnt, TmpEleGPWKern, TmpEleGPWInSum);
     }
     StopTimer(35);
 
   } /* end of outstep */
 
   copyToBurnSample(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, TmpEleGPWKern,
-                   TmpEleGPWDelta, TmpEleGPWInSum);
+                   TmpEleGPWInSum);
   BurnFlag = 1;
 
   free(eleGPWInSumNew);
-  free(eleGPWDeltaNew); 
 
   return;
 }
 
 int makeInitialSample_real(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                           int *eleGPWDelta, double *eleGPWInSum, const int qpStart, const int qpEnd,
+                           double *eleGPWInSum, const int qpStart, const int qpEnd,
                            MPI_Comm comm) {
   const int nsize = Nsize;
   const int nsite2 = Nsite2;

@@ -111,17 +111,19 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
   clearPhysQuantity();
   StopTimer(24);
 
-  GPWAmpNorm = creal(LogGPWVal(EleGPWKern));
-  for(sample = 0; sample < NVMCSample; sample++) {
-    eleGPWKern = EleGPWKern + sample*NGPWIdx;
-    if (creal(LogGPWVal(eleGPWKern)) > GPWAmpNorm) {
-      GPWAmpNorm = creal(LogGPWVal(eleGPWKern));
+  if(NVMCCalMode==1) {
+    GPWAmpNorm = creal(LogGPWVal(EleGPWKern));
+    for(sample = 0; sample < NVMCSample; sample++) {
+      eleGPWKern = EleGPWKern + sample*NGPWIdx;
+      if (creal(LogGPWVal(eleGPWKern)) > GPWAmpNorm) {
+        GPWAmpNorm = creal(LogGPWVal(eleGPWKern));
+      }
     }
-  }
 
-  // set up samples file
-  sprintf(fileNameSamples, "%s_Samples_%d.dat", CDataFileHead, rankSampler);
-  fp = fopen(fileNameSamples, "w");
+    // set up samples file
+    sprintf(fileNameSamples, "%s_Samples_%d.dat", CDataFileHead, rankSampler);
+    fp = fopen(fileNameSamples, "w");
+  }
 
   for(sample=sampleStart;sample<sampleEnd;sample++) {
 
@@ -204,25 +206,6 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
       fprintf(stderr,"warning: VMCMainCal rank:%d sample:%d e=%e\n",rank,sample,creal(e)); //TBC
       continue;
     }
-
-    // print out samples into file
-    cfgUp = 0;
-    cfgDown = 0;
-
-    for (i = 0; i < Nsite; i++) {
-      if (eleNum[i]) {
-        cfgUp |= (((unsigned long) 1) << i);
-      }
-
-      if (eleNum[i+Nsite]) {
-        cfgDown |= (((unsigned long) 1) << i);
-      }
-    }
-    amp = cexp(LogProjVal(eleProjCnt)+LogGPWVal(eleGPWKern)-GPWAmpNorm)*ip;
-
-    fprintf(fp,"%lu  %lu  %.10e  %.10e  %.10e  %.10e  %.10e  %.10e\n", cfgUp, cfgDown,
-            creal(amp), cimag(amp), creal(ip/RBMVal(eleNum)),
-            cimag(ip/RBMVal(eleNum)), creal(e), cimag(e));
 
     Wc += w;
     Etot  += w * e;
@@ -392,6 +375,25 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
       StopTimer(43);
 
     } else if(NVMCCalMode==1) {
+      // print out samples into file
+      cfgUp = 0;
+      cfgDown = 0;
+
+      for (i = 0; i < Nsite; i++) {
+        if (eleNum[i]) {
+          cfgUp |= (((unsigned long) 1) << i);
+        }
+
+        if (eleNum[i+Nsite]) {
+          cfgDown |= (((unsigned long) 1) << i);
+        }
+      }
+      amp = cexp(LogProjVal(eleProjCnt)+LogGPWVal(eleGPWKern)-GPWAmpNorm)*ip;
+
+      fprintf(fp,"%lu  %lu  %.10e  %.10e  %.10e  %.10e  %.10e  %.10e\n", cfgUp, cfgDown,
+              creal(amp), cimag(amp), creal(ip/RBMVal(eleNum)),
+              cimag(ip/RBMVal(eleNum)), creal(e), cimag(e));
+
       StartTimer(42);
       /* Calculate Green Function */
 #ifdef _DEBUG_VMCCAL
@@ -439,7 +441,9 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
       }
     }
   } /* end of for(sample) */
-  fclose(fp);
+  if (NVMCCalMode == 1) {
+    fclose(fp);
+  }
 
 // calculate OO and HO at NVMCCalMode==0
   if(NVMCCalMode==0){

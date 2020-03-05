@@ -92,8 +92,6 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
   double complex *srOptO = SROptO;
   double         *srOptO_real = SROptO_real;
 
-  double GPWAmpNorm;
-
   int rank,size,int_i,rankSampler;
   char fileNameSamples[D_FileNameMax];
   FILE *fp;
@@ -112,14 +110,6 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
   StopTimer(24);
 
   if(NVMCCalMode==1) {
-    GPWAmpNorm = creal(LogGPWVal(EleGPWKern));
-    for(sample = 0; sample < NVMCSample; sample++) {
-      eleGPWKern = EleGPWKern + sample*NGPWIdx;
-      if (creal(LogGPWVal(eleGPWKern)) > GPWAmpNorm) {
-        GPWAmpNorm = creal(LogGPWVal(eleGPWKern));
-      }
-    }
-
     // set up samples file
     sprintf(fileNameSamples, "%s_Samples_%d.dat", CDataFileHead, rankSampler);
     fp = fopen(fileNameSamples, "w");
@@ -388,7 +378,7 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
           cfgDown |= (((unsigned long) 1) << i);
         }
       }
-      amp = cexp(LogProjVal(eleProjCnt)+LogGPWVal(eleGPWKern)-GPWAmpNorm)*ip;
+      amp = cexp(LogProjVal(eleProjCnt)+LogGPWVal(eleGPWKern))*ip;
 
       fprintf(fp,"%lu  %lu  %.10e  %.10e  %.10e  %.10e  %.10e  %.10e\n", cfgUp, cfgDown,
               creal(amp), cimag(amp), creal(ip/RBMVal(eleNum)),

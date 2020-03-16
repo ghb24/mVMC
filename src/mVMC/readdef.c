@@ -714,7 +714,7 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
 
   if (rank == 0) {
     AllComplexFlag = iComplexFlgGutzwiller + iComplexFlgJastrow + iComplexFlgDH2; //TBC
-    AllComplexFlag += iComplexFlgDH4 + iComplexFlgGPW + iComplexFlgOrbital;//TBC
+    AllComplexFlag += iComplexFlgDH4 + iComplexFlgGPW +iComplexFlgRBM + iComplexFlgOrbital;//TBC
     //AllComplexFlag  = 1;//DEBUG
     // AllComplexFlag= 0 -> All real, !=0 -> complex
     if(AllComplexFlag == 0 && iFlgOrbitalGeneral == 1){

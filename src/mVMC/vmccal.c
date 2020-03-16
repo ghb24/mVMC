@@ -273,7 +273,7 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
       for(f = 0; f < nRBMHidden; f++) {
         derivative = 0;
         #pragma omp parallel for default(shared) private(i, innerSum) reduction(+:derivative)
-        for(i = 0; i < Nsite; i++) {
+        for(i = 0; i < NQPTrans; i++) {
           innerSum = RBMHiddenLayerSum(f, i, eleNum);
           derivative += (cexp(innerSum) - cexp(-innerSum))/(cexp(innerSum) + cexp(-innerSum));
         }
@@ -287,8 +287,8 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
           derivative = 0;
 
           #pragma omp parallel for default(shared) private(i, targetBasis, innerSum) reduction(+:derivative)
-          for(i = 0; i < Nsite; i++) {
-            targetBasis = (j + i) % Nsite;
+          for(i = 0; i < NQPTrans; i++) {
+            targetBasis = QPTrans[i][j];
             innerSum = RBMHiddenLayerSum(f, i, eleNum);
             derivative += (eleNum[targetBasis]*2-1)*(cexp(innerSum) - cexp(-innerSum))/(cexp(innerSum) + cexp(-innerSum));
           }
@@ -299,8 +299,8 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
 
 
           #pragma omp parallel for default(shared) private(i, targetBasis, innerSum) reduction(+:derivative)
-          for(i = 0; i < Nsite; i++) {
-            targetBasis = (j + i) % Nsite + Nsite;
+          for(i = 0; i < NQPTrans; i++) {
+            targetBasis = QPTrans[i][j] + Nsite;
             innerSum = RBMHiddenLayerSum(f, i, eleNum);
             derivative += (eleNum[targetBasis]*2-1)*(cexp(innerSum) - cexp(-innerSum))/(cexp(innerSum) + cexp(-innerSum));
           }

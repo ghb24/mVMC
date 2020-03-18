@@ -15,9 +15,11 @@ double complex RBMHiddenLayerSum(const int f, const int i, const int *eleNum) {
     idx = RBMWeightMatrIdx[j][f];
     sum += RBMVar[RBMNVisibleIdx+RBMNHiddenIdx+idx] * (2*eleNum[targetBasis]-1);
 
-    targetBasis = QPTrans[i][j] + Nsite;
-    idx = RBMWeightMatrIdx[j+Nsite][f];
-    sum += RBMVar[RBMNVisibleIdx+RBMNHiddenIdx+idx] * (2*eleNum[targetBasis]-1);
+    if (LocSpn[targetBasis] != 1) {
+      targetBasis = QPTrans[i][j] + Nsite;
+      idx = RBMWeightMatrIdx[j+Nsite][f];
+      sum += RBMVar[RBMNVisibleIdx+RBMNHiddenIdx+idx] * (2*eleNum[targetBasis]-1);
+    }
   }
 
   return sum;
@@ -31,8 +33,11 @@ double complex RBMVal(const int *eleNum) {
 
   #pragma omp parallel for default(shared) private(f,i) reduction(+:sum)
   for(f = 0; f < RBMNVisibleIdx; f++) {
-    for(i = 0; i < Nsite2; i++) {
-      sum += RBMVar[f]*(2*eleNum[i]-1)*Nsite;
+    for(i = 0; i < Nsite; i++) {
+      sum += RBMVar[f]*(2*eleNum[i]-1)*NQPTrans;
+      if (LocSpn[i] != 1) {
+        sum += RBMVar[f]*(2*eleNum[i+Nsite]-1)*NQPTrans;
+      }
     }
   }
   result = cexp(sum);

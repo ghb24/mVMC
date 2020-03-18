@@ -263,9 +263,13 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
       for(f = 0; f < nRBMVis; f++) {
         srOptO[(offset+f)*2]     = 0.0;    // even real
         srOptO[(offset+f)*2+1]   = 0.0;  // odd
-        for(i = 0; i < Nsite2; i++) {
-          srOptO[(offset+f)*2]     += (eleNum[i]*2-1)*Nsite;    // even real
-          srOptO[(offset+f)*2+1]   += (eleNum[i]*2-1)*Nsite*I;  // odd
+        for(i = 0; i < Nsite; i++) {
+          srOptO[(offset+f)*2]     += (eleNum[i]*2-1)*NQPTrans;    // even real
+          srOptO[(offset+f)*2+1]   += (eleNum[i]*2-1)*NQPTrans*I;  // odd
+          if (LocSpn[i] != 1) {
+            srOptO[(offset+f)*2]     += (eleNum[i+Nsite]*2-1)*NQPTrans;    // even real
+            srOptO[(offset+f)*2+1]   += (eleNum[i+Nsite]*2-1)*NQPTrans*I;  // odd
+          }
         }
       }
       offset += nRBMVis;
@@ -296,17 +300,17 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
           srOptO[(offset+nRBMHidden+idx)*2]     = derivative;    // even real
           srOptO[(offset+nRBMHidden+idx)*2+1]   = derivative*I;  // odd  comp
 
-
-
-          #pragma omp parallel for default(shared) private(i, targetBasis, innerSum) reduction(+:derivative)
-          for(i = 0; i < NQPTrans; i++) {
-            targetBasis = QPTrans[i][j] + Nsite;
-            innerSum = RBMHiddenLayerSum(f, i, eleNum);
-            derivative += (eleNum[targetBasis]*2-1)*(cexp(innerSum) - cexp(-innerSum))/(cexp(innerSum) + cexp(-innerSum));
+          if (LocSpn[j] != 1) {
+            #pragma omp parallel for default(shared) private(i, targetBasis, innerSum) reduction(+:derivative)
+            for(i = 0; i < NQPTrans; i++) {
+              targetBasis = QPTrans[i][j] + Nsite;
+              innerSum = RBMHiddenLayerSum(f, i, eleNum);
+              derivative += (eleNum[targetBasis]*2-1)*(cexp(innerSum) - cexp(-innerSum))/(cexp(innerSum) + cexp(-innerSum));
+            }
+            idx = RBMWeightMatrIdx[j+Nsite][f];
+            srOptO[(offset+nRBMHidden+idx)*2]     = derivative;    // even real
+            srOptO[(offset+nRBMHidden+idx)*2+1]   = derivative*I;  // odd  comp
           }
-          idx = RBMWeightMatrIdx[j+Nsite][f];
-          srOptO[(offset+nRBMHidden+idx)*2]     = derivative;    // even real
-          srOptO[(offset+nRBMHidden+idx)*2+1]   = derivative*I;  // odd  comp
         }
       }
       offset += nsite2*nRBMHidden+nRBMHidden;

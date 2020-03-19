@@ -339,8 +339,7 @@ void SetFlagShift() {
   }
 
   /* GPW */
-  // if(NGPWIdx>1) {
-  if(0) {
+  if(NGPWIdx>1 && GPWShiftFlag) {
     start = end;
     end   = start + NGPWIdx;
     FlagShiftGPW=1;

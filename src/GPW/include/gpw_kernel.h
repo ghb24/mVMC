@@ -51,14 +51,16 @@ void FreeMemPlaquetteHash(const int sysSize, int **plaqHash, int *plaqHashSz);
 // Computes the inner sum for the full kernel
 void ComputeInSum(double *inSum, const int *plaquetteAIdx,
                   const int sizeA, const int *plaquetteBIdx, const int sizeB,
-                  const int plaquetteSize, const int *distList);
+                  const int plaquetteSize, const int *distList,
+                  const int distWeightFlag);
 
 // Updates the inner sum for the full kernel
 void UpdateInSum(double *inSumNew, const double *inSumOld,
                  const int *plaquetteAIdx, const int sizeA,
                  const int *plaquetteBIdx, const int sizeB,
                  const int plaquetteSize, const int *distList,
-                 int **plaqHash, int *plaqHashSz, const int siteA,
+                 const int distWeightFlag, int **plaqHash,
+                 int *plaqHashSz, const int siteA,
                  const int siteB);
 
 // Updates the delta list
@@ -121,9 +123,9 @@ void GPWKernelNVec(const unsigned long *configsAUp, const unsigned long *configs
 // Computes the full kernel in place
 double GPWKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
                  const int *cfgB, const int *plaquetteBIdx, const int sizeB,
-                 const int power, const double theta0, const int tRSym,
-                 const int shift, const int startIdA, const int startIdB,
-                 const int plaquetteSize, const int *distList,
+                 const int power, const double theta0, const double thetaC,
+                 const int tRSym, const int shift, const int startIdA,
+                 const int startIdB, const int plaquetteSize, const int *distList,
                  double *workspace);
 
 /* computes the kernel matrix (complete kernel) for two lists of configurations

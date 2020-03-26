@@ -930,6 +930,8 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
 
   int iNOneBodyG;
 
+  int distWeightFlag;
+
   MPI_Comm_rank(comm, &rank);
 
   if (rank == 0) {
@@ -1234,11 +1236,22 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
     SetupPlaquetteHash(Nsite, GPWPlaquetteSizes[i], GPWSysPlaquetteIdx[i],
                        &(GPWSysPlaqHash[i]), &(GPWSysPlaqHashSz[i]));
 
+    if (GPWThetaC[i] > 0.0) {
+      distWeightFlag = 1;
+    }
+    else {
+      distWeightFlag = 0;
+    }
     GPWNorm[i] = 0.0;
     for (j = 0; j < GPWPlaquetteSizes[i]; j++) {
-      GPWNorm[i] += 1.0/GPWDistList[i][j];
+      if (distWeightFlag) {
+        GPWNorm[i] += 1.0/GPWDistList[i][j];
+      }
+      else {
+        GPWNorm[i] += 1.0;
+      }
     }
-   }
+  }
 
   return 0;
 }

@@ -445,20 +445,37 @@ void FreeMemPlaquetteHash(const int sysSize, int **plaqHash, int *plaqHashSz) {
 
 void ComputeInSum(double *inSum, const int *plaquetteAIdx,
                   const int sizeA, const int *plaquetteBIdx, const int sizeB,
-                  const int plaquetteSize, const int *distList) {
+                  const int plaquetteSize, const int *distList,
+                  const int distWeightFlag) {
   int i, a, k;
   double innerSum;
 
-  for (i = 0; i < sizeA; i++) {
-    for (a = 0; a < sizeB; a++) {
-      innerSum = 0.0;
-      for (k = 0; k < plaquetteSize; k++) {
-        if (signbit(inSum[plaquetteAIdx[i*plaquetteSize+k]*sizeB +
-                          plaquetteBIdx[a*plaquetteSize+k]])) {
-          innerSum += 1.0/distList[k];
+  if (distWeightFlag) {
+    for (i = 0; i < sizeA; i++) {
+      for (a = 0; a < sizeB; a++) {
+        innerSum = 0.0;
+        for (k = 0; k < plaquetteSize; k++) {
+          if (signbit(inSum[plaquetteAIdx[i*plaquetteSize+k]*sizeB +
+                            plaquetteBIdx[a*plaquetteSize+k]])) {
+            innerSum += 1.0/distList[k];
+          }
         }
+        inSum[i*sizeB + a] = copysign(innerSum, inSum[i*sizeB + a]);
       }
-      inSum[i*sizeB + a] = copysign(innerSum, inSum[i*sizeB + a]);
+    }
+  }
+  else {
+    for (i = 0; i < sizeA; i++) {
+      for (a = 0; a < sizeB; a++) {
+        innerSum = 0.0;
+        for (k = 0; k < plaquetteSize; k++) {
+          if (signbit(inSum[plaquetteAIdx[i*plaquetteSize+k]*sizeB +
+                            plaquetteBIdx[a*plaquetteSize+k]])) {
+            innerSum += 1.0;
+          }
+        }
+        inSum[i*sizeB + a] = copysign(innerSum, inSum[i*sizeB + a]);
+      }
     }
   }
 }
@@ -467,34 +484,65 @@ void UpdateInSum(double *inSumNew, const double *inSumOld,
                  const int *plaquetteAIdx, const int sizeA,
                  const int *plaquetteBIdx, const int sizeB,
                  const int plaquetteSize, const int *distList,
-                 int **plaqHash, int *plaqHashSz, const int siteA,
-                 const int siteB) {
+                 const int distWeightFlag, int **plaqHash,
+                 int *plaqHashSz, const int siteA, const int siteB) {
   int i, a, k, countA, countB, id;
   const int *hashListA, *hashListB;
 
-  for (i = 0; i < sizeA; i++) {
-    countA = plaqHashSz[sizeA*i + siteA];
-    countB = plaqHashSz[sizeA*i + siteB];
-    hashListA = plaqHash[sizeA*i + siteA];
-    hashListB = plaqHash[sizeA*i + siteB];
+  if (distWeightFlag) {
+    for (i = 0; i < sizeA; i++) {
+      countA = plaqHashSz[sizeA*i + siteA];
+      countB = plaqHashSz[sizeA*i + siteB];
+      hashListA = plaqHash[sizeA*i + siteA];
+      hashListB = plaqHash[sizeA*i + siteB];
 
-    for (a = 0; a < sizeB; a++) {
-      for (k = 0; k < countA; k++) {
-        id = hashListA[k];
-        if (signbit(inSumNew[siteA*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
-          inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) + 1.0/distList[id], inSumNew[i*sizeB + a]);
+      for (a = 0; a < sizeB; a++) {
+        for (k = 0; k < countA; k++) {
+          id = hashListA[k];
+          if (signbit(inSumNew[siteA*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
+            inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) + 1.0/distList[id], inSumNew[i*sizeB + a]);
+          }
+          if (signbit(inSumOld[siteA*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
+            inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) - 1.0/distList[id], inSumNew[i*sizeB + a]);
+          }
         }
-        if (signbit(inSumOld[siteA*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
-          inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a])-1.0/distList[id], inSumNew[i*sizeB + a]);
+        for (k = 0; k < countB; k++) {
+          id = hashListB[k];
+          if (signbit(inSumNew[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
+            inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) + 1.0/distList[id], inSumNew[i*sizeB + a]);
+          }
+          if (signbit(inSumOld[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
+            inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) - 1.0/distList[id], inSumNew[i*sizeB + a]);
+          }
         }
       }
-      for (k = 0; k < countB; k++) {
-        id = hashListB[k];
-        if (signbit(inSumNew[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
-          inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) + 1.0/distList[id], inSumNew[i*sizeB + a]);
+    }
+  }
+  else {
+    for (i = 0; i < sizeA; i++) {
+      countA = plaqHashSz[sizeA*i + siteA];
+      countB = plaqHashSz[sizeA*i + siteB];
+      hashListA = plaqHash[sizeA*i + siteA];
+      hashListB = plaqHash[sizeA*i + siteB];
+
+      for (a = 0; a < sizeB; a++) {
+        for (k = 0; k < countA; k++) {
+          id = hashListA[k];
+          if (signbit(inSumNew[siteA*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
+            inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) + 1.0, inSumNew[i*sizeB + a]);
+          }
+          if (signbit(inSumOld[siteA*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
+            inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) - 1.0, inSumNew[i*sizeB + a]);
+          }
         }
-        if (signbit(inSumOld[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
-          inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) - 1.0/distList[id], inSumNew[i*sizeB + a]);
+        for (k = 0; k < countB; k++) {
+          id = hashListB[k];
+          if (signbit(inSumNew[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
+            inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) + 1.0, inSumNew[i*sizeB + a]);
+          }
+          if (signbit(inSumOld[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
+            inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) - 1.0, inSumNew[i*sizeB + a]);
+          }
         }
       }
     }
@@ -956,29 +1004,42 @@ void GPWKernelNVec(const unsigned long *configsAUp, const unsigned long *configs
 
 double GPWKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
                  const int *cfgB, const int *plaquetteBIdx, const int sizeB,
-                 const int power, const double theta0, const int tRSym,
-                 const int shift, const int startIdA, const int startIdB,
-                 const int plaquetteSize, const int *distList,
+                 const int power, const double theta0, const double thetaC,
+                 const int tRSym, const int shift, const int startIdA,
+                 const int startIdB, const int plaquetteSize, const int *distList,
                  double *workspaceDouble) {
-  int i;
+  int i, distWeightFlag;
 
   double *innerSum = workspaceDouble;
   double *innerSumFlipped = innerSum + sizeA*sizeB;
 
   double norm = 0.0;
 
+  if (thetaC > 0.0) {
+    distWeightFlag = 1;
+  }
+  else {
+    distWeightFlag = 0;
+  }
+
+
   for (i = 0; i < plaquetteSize; i++) {
-    norm += 1.0/distList[i];
+    if (distWeightFlag) {
+      norm += 1.0/distList[i];
+    }
+    else {
+      norm += 1.0;
+    }
   }
 
   CalculatePairDelta(innerSum, cfgA, sizeA, cfgB, sizeB);
   ComputeInSum(innerSum, plaquetteAIdx, sizeA, plaquetteBIdx,
-               sizeB, plaquetteSize, distList);
+               sizeB, plaquetteSize, distList, distWeightFlag);
 
   if (tRSym) {
     CalculatePairDeltaFlipped(innerSumFlipped, cfgA, sizeA, cfgB, sizeB);
     ComputeInSum(innerSumFlipped, plaquetteAIdx, sizeA,
-                 plaquetteBIdx, sizeB, plaquetteSize, distList);
+                 plaquetteBIdx, sizeB, plaquetteSize, distList, distWeightFlag);
   }
 
   return ComputeKernel(sizeA, sizeB, power, theta0, norm, tRSym, shift,
@@ -1036,7 +1097,7 @@ void GPWKernelMat(const unsigned long *configsAUp,
         for (j = 0; j < numB; j++) {
           kernelMatr[i*numB + j] = GPWKernel(cfgsA[i], plaquetteAIdx, sizeA,
                                              cfgsB[j], plaquetteBIdx, sizeB,
-                                             power, theta0, tRSym, shift,
+                                             power, theta0, thetaC, tRSym, shift,
                                              startIdA, startIdB, plaquetteSize,
                                              distList, workspace);
         }
@@ -1060,7 +1121,7 @@ void GPWKernelMat(const unsigned long *configsAUp,
         for (j = 0; j <= i; j++) {
           kernelMatr[i*numA + j] = GPWKernel(cfgsA[i], plaquetteAIdx, sizeA,
                                              cfgsA[j], plaquetteAIdx, sizeA,
-                                             power, theta0, tRSym, shift,
+                                             power, theta0, thetaC, tRSym, shift,
                                              startIdA, startIdB,
                                              plaquetteSize, distList,
                                              workspace);
@@ -1113,7 +1174,7 @@ void GPWKernelVec(const unsigned long *configsAUp,
     #pragma omp for
     for (i = 0; i < numA; i++) {
       kernelVec[i] = GPWKernel(cfgsA[i], plaquetteAIdx, sizeA, configRef,
-                               plaquetteBIdx, sizeRef, power, theta0, tRSym,
+                               plaquetteBIdx, sizeRef, power, theta0, thetaC, tRSym,
                                shift, startIdA, startIdB, plaquetteSize,
                                distList, workspace);
     }

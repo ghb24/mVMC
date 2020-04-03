@@ -41,7 +41,7 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
   const int qpStart=0;
   const int qpEnd=NQPFull;
   int sample,sampleStart,sampleEnd,sampleSize;
-  int i,info,j,offset,idx,f,targetBasis,k,l;
+  int i,info,j,offset,idx,f,targetBasis,k,l,opt;
 
   /* optimazation for Kei */
   const int nProj=NProj;
@@ -202,7 +202,14 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
         offset++;
       }
 
-      if (nGPWDistWeights > 0) {
+      opt = 0;
+      for (i = 0; i < nGPWDistWeights; i++) {
+        if (OptFlag[2*(NProj + NGPWIdx + NGPWTrnLat)]) {
+          opt = 1;
+          break;
+        }
+      }
+      if (nGPWDistWeights > 0 && opt) {
         #pragma omp parallel for default(shared) private(i)
         for (i = 0; i < nGPWDistWeights; i++) {
           srOptO[(offset+i)*2]     = 0.0;    // even real

@@ -249,6 +249,10 @@ void SetMemoryDef() {
     GPWShift[i] = 3;
   }
 
+  GPWDistWeightIdx = (int**)malloc(sizeof(int*)*NGPWIdx);
+  GPWDistWeightIdx[0] = pInt;
+  pInt += GPWDistWeightIdxSz;
+
   // RBM data
   RBMWeightMatrIdx = (int**)malloc(sizeof(int*)*Nsite2);
   for(i=0;i<Nsite2;i++) {
@@ -362,9 +366,10 @@ void SetMemory() {
   ProjBF   = Para + NProj;
   GPWVar   = Para + NProj + NProjBF;
   GPWThetaVar = Para + NProj + NProjBF + NGPWIdx;
-  RBMVar   = Para + NProj + NProjBF + NGPWIdx + NGPWTrnLat;
-  Slater   = Para + NProj + NProjBF + NGPWIdx + NGPWTrnLat + NRBMTotal;
-  OptTrans = Para + NProj + NProjBF + NGPWIdx + NGPWTrnLat + NRBMTotal + NSlater;
+  GPWDistWeights = Para + NProj + NProjBF + NGPWIdx + NGPWTrnLat;
+  RBMVar   = Para + NProj + NProjBF + NGPWIdx + NGPWTrnLat + NGPWDistWeights;
+  Slater   = Para + NProj + NProjBF + NGPWIdx + NGPWTrnLat + NGPWDistWeights + NRBMTotal;
+  OptTrans = Para + NProj + NProjBF + NGPWIdx + NGPWTrnLat + NGPWDistWeights + NRBMTotal + NSlater;
 
   /***** Electron Configuration ******/
   EleIdx            = (int*)malloc(sizeof(int)*( NVMCSample*2*Ne ));

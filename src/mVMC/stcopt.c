@@ -166,7 +166,6 @@ int StochasticOpt(MPI_Comm comm) {
   }
 
 
-
 #ifdef _DEBUG_STCOPT
   printf("DEBUG in %s (%d): diagCutThreshold = %lg\n", __FILE__, __LINE__, diagCutThreshold);
   printf("DEBUG in %s (%d): optNum, cutNum, nSmat, 2*nPara == %d, %d, %d, %d\n", __FILE__, __LINE__, optNum, cutNum, nSmat, 2*nPara);
@@ -179,6 +178,16 @@ int StochasticOpt(MPI_Comm comm) {
   //printf("DEBUG: nSmat=%d \n",nSmat);
   /* calculate r[i]: global vector [nSmat] */
   info = stcOptMain(r, nSmat, smatToParaIdx, comm);
+
+  if (NGPWDistWeights > 0 && rank == 0) {
+    FileThetaOpt = fopen("output/dist_weight_opt.dat", "a+");
+    for (i = 0; i < NGPWDistWeights; i++) {
+      //fprintf(FileThetaOpt, "%e %e %e    ", creal(GPWDistWeights[i]), creal(r[2*(NProj+NGPWIdx+NGPWTrnLat+i)]), creal(SROptOO[2*(NProj+NGPWIdx+NGPWTrnLat+i+1)]));
+      fprintf(FileThetaOpt, "%e    ", creal(GPWDistWeights[i]));
+    }
+    fprintf(FileThetaOpt, "\n");
+    fclose(FileThetaOpt);
+  }
 
   StopTimer(51);
   StartTimer(52);

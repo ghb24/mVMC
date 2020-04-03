@@ -8,8 +8,7 @@ endif(${CMAKE_PROJECT_NAME} STREQUAL "Project")
 include_directories(include)
 include_directories(../mVMC/include)
 
-set(SOURCES_GPW_KERN gpw_kernel.c)
-set(SOURCES_GPW_TRN gpw_training.c)
+set(SOURCES_GPW_KERN gpw_kernel.c gpw_exp_kernel.c)
 
 add_library(gpw_kernel SHARED ${SOURCES_GPW_KERN})
 

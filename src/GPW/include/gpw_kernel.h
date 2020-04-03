@@ -34,7 +34,7 @@ void CalculatePairDeltaFlipped(double *inSum, const int *cfgA, const int sizeA,
 int SetupPlaquetteIdx(const int rC, const int *neighboursA,
                       const int sizeA, const int *neighboursB,
                       const int sizeB, const int dim, int **plaquetteAIdx,
-                      int **plaquetteBIdx, int **distList);
+                      int **plaquetteBIdx, int **distList, int includeCentre);
 
 // Frees the memory allocated in SetupPlaquetteIdx
 void FreeMemPlaquetteIdx(int *plaquetteAIdx, int *plaquetteBIdx,
@@ -151,5 +151,4 @@ void GPWKernelVec(const unsigned long *configsAUp,
                   const int power, const int rC, const double theta0,
                   const double thetaC, const int tRSym, const int shift,
                   const int startIdA, const int startIdB, double *kernelVec);
-
 #endif // _GPW_KERN_INCLUDE_FILES

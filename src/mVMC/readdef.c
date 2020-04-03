@@ -145,7 +145,8 @@ char *ReadBuffIntCmpFlg(FILE *fp, int *iNbuf, int *iComplexFlag) {
 }
 
 char *ReadBuffGPWInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, int *iLatNbSzBuf,
-                      int *iTrnCfgSzBuf, int *iLinModFlag, int *iGPWShiftFlag) {
+                      int *iTrnCfgSzBuf, int *iDistWeightsSzBuf, int *iLinModFlag, int *iGPWShiftFlag,
+                      int *iNGPWDistWeights) {
   char *cerr;
   char ctmp[D_FileNameMax];
   char ctmp2[D_FileNameMax];
@@ -156,12 +157,14 @@ char *ReadBuffGPWInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, in
   int read = 1;
   double dtmp;
 
-  int *latSz, *mapping;
+  int *latSz, *mapping, *latType;
 
   *iLatNbSzBuf = 0;
   *iTrnCfgSzBuf = 0;
+  *iDistWeightsSzBuf = 0;
   *iLinModFlag = 0;
   *iGPWShiftFlag = 0;
+  *iNGPWDistWeights = 0;
 
   cerr = ReadBuffIntCmpFlg(fp, iNbuf, iComplexFlag);
 
@@ -172,9 +175,10 @@ char *ReadBuffGPWInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, in
   }
 
   // array to temporarily store the sizes of the training lattices
-  latSz = (int*)malloc(sizeof(int)*(*iNLatBuf*2));
+  latSz = (int*)malloc(sizeof(int)*(*iNLatBuf*3));
   // mapping between specified lattice reference and internal lattice index
   mapping = latSz + *iNLatBuf;
+  latType = mapping + *iNLatBuf;
 
   IgnoreAddLineGPWDef = 0;
   read = 1;
@@ -192,6 +196,12 @@ char *ReadBuffGPWInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, in
       *iGPWShiftFlag = readVal;
       IgnoreAddLineGPWDef++;
     }
+
+    else if (CheckWords(ctmp2, "NGPWDistWeights") == 0) {
+      *iNGPWDistWeights = readVal;
+      IgnoreAddLineGPWDef++;
+    }
+
     else {
       read = 0;
     }
@@ -209,13 +219,17 @@ char *ReadBuffGPWInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, in
 
     *iLatNbSzBuf += trnSz;
     latSz[i] = trnSz;
+    latType[i] = 0;
 
     read = 1;
 
     while (cerr != NULL && read) {
       cerr = fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
       sscanf(ctmp, "%s %lf\n", ctmp2, &dtmp);
-      if (CheckWords(ctmp2, "KernelFunc") != 0  && CheckWords(ctmp2, "Power") != 0 &&
+      if (CheckWords(ctmp2, "KernelFunc") == 0) {
+        latType[i] = (int)(dtmp);
+      }
+      else if (CheckWords(ctmp2, "KernelFunc") != 0  && CheckWords(ctmp2, "Power") != 0 &&
           CheckWords(ctmp2, "CutRad") != 0 && CheckWords(ctmp2, "Theta0") != 0 &&
           CheckWords(ctmp2, "OptTheta") != 0 && CheckWords(ctmp2, "ThetaC") != 0 &&
           CheckWords(ctmp2, "TRSym") != 0 && CheckWords(ctmp2, "Shift") != 0) {
@@ -247,6 +261,9 @@ char *ReadBuffGPWInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, in
     }
 
     *iTrnCfgSzBuf += latSz[latIdIntern];
+    if (latType[latIdIntern] < 0) {
+      *iDistWeightsSzBuf += latSz[latIdIntern]*latSz[latIdIntern];
+    }
   }
 
   free(latSz);
@@ -553,7 +570,8 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
           case KWGPW:
             cerr = ReadBuffGPWInfo(fp, &bufInt[IdxNGPW], &iComplexFlgGPW, &bufInt[IdxNGPWTrnLat],
                                    &bufInt[IdxTrnLatNbSz], &bufInt[IdxTrnCfgSz],
-                                   &bufInt[IdxLinModFlag], &bufInt[IdxGPWShiftFlag]);
+                                   &bufInt[IdxDistWeightsSz], &bufInt[IdxLinModFlag],
+                                   &bufInt[IdxGPWShiftFlag], &bufInt[IdxNGPWDistWeights]);
             break;
 
           case KWTopology:
@@ -789,8 +807,10 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
   NGPWTrnLat = bufInt[IdxNGPWTrnLat];
   GPWTrnLatNeighboursSz = 2 * Dim * bufInt[IdxTrnLatNbSz];
   GPWTrnCfgSz = 2 * bufInt[IdxTrnCfgSz];
+  GPWDistWeightIdxSz = bufInt[IdxDistWeightsSz];
   GPWLinModFlag = bufInt[IdxLinModFlag];
   GPWShiftFlag = bufInt[IdxGPWShiftFlag];
+  NGPWDistWeights = bufInt[IdxNGPWDistWeights];
   RBMNVisibleIdx = bufInt[IdxNRBMVisible];
   RBMNHiddenIdx = bufInt[IdxNRBMHidden];
   UseOrbital = bufInt[IdxUseOrb];
@@ -848,7 +868,7 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
   }
   /* [e] For BackFlow */
 
-  NPara = NProj + NGPWIdx + NGPWTrnLat + NRBMTotal + NSlater + NOptTrans + NProjBF;
+  NPara = NProj + NGPWIdx + NGPWTrnLat + NGPWDistWeights + NRBMTotal + NSlater + NOptTrans + NProjBF;
   NQPFix = NSPGaussLeg * NMPTrans;
   NQPFull = NQPFix * NQPOptTrans;
   SROptSize = NPara + 1;
@@ -885,6 +905,7 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
                  + NGPWTrnLat /* GPWTRSym */
                  + NGPWTrnLat /* GPWShift */
                  + NGPWTrnLat /* GPWPlaquetteSizes */
+                 + GPWDistWeightIdxSz /* GPWDistWeightIdx */
                  + Nsite2 * RBMNHiddenIdx; /* RBMWeightMatrIdx */
 
   //Orbitalidx
@@ -1224,13 +1245,17 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
   }
 
   for (i = 0; i < NGPWTrnLat; i++) {
-    if (GPWKernelFunc[i] != 0) {
+    if (GPWKernelFunc[i] > 0) {
       GPWPlaquetteSizes[i] = SetupPlaquetteIdx(-(GPWKernelFunc[i]), SysNeighbours, Nsite, GPWTrnNeighbours[i], GPWTrnSize[i], Dim,
-                                               &(GPWSysPlaquetteIdx[i]), &(GPWTrnPlaquetteIdx[i]), &(GPWDistList[i]));
+                                               &(GPWSysPlaquetteIdx[i]), &(GPWTrnPlaquetteIdx[i]), &(GPWDistList[i]), 0);
+    }
+    else if (GPWKernelFunc[i] < 0) {
+      GPWPlaquetteSizes[i] = SetupPlaquetteIdx(-GPWTrnSize[i], SysNeighbours, Nsite, GPWTrnNeighbours[i], GPWTrnSize[i], Dim,
+                                               &(GPWSysPlaquetteIdx[i]), &(GPWTrnPlaquetteIdx[i]), &(GPWDistList[i]), 1);
     }
     else {
       GPWPlaquetteSizes[i] = SetupPlaquetteIdx(GPWCutRad[i], SysNeighbours, Nsite, GPWTrnNeighbours[i], GPWTrnSize[i], Dim,
-                                               &(GPWSysPlaquetteIdx[i]), &(GPWTrnPlaquetteIdx[i]), &(GPWDistList[i]));
+                                               &(GPWSysPlaquetteIdx[i]), &(GPWTrnPlaquetteIdx[i]), &(GPWDistList[i]), 0);
     }
 
     SetupPlaquetteHash(Nsite, GPWPlaquetteSizes[i], GPWSysPlaquetteIdx[i],
@@ -1354,8 +1379,20 @@ int ReadInputParameters(char *xNameListFile, MPI_Comm comm) {
             continue;
           }
           for (i = 0; i < NGPWIdx; i++) {
-            fscanf(fp, "%d %lf %lf ", &idx, &tmp_real, &tmp_comp);
-            GPWVar[i] = tmp_real + I * tmp_comp;
+            fscanf(fp, "%d %lf %lf \n", &idx, &tmp_real, &tmp_comp);
+            GPWVar[idx] = tmp_real + I * tmp_comp;
+          }
+          break;
+
+        case KWInGPWDistWeights:
+          fprintf(stdout, "Read InGPWDistWeights File. \n");
+          if (idx != NGPWDistWeights) {
+            info = 1;
+            continue;
+          }
+          for (i = 0; i < NGPWDistWeights; i++) {
+            fscanf(fp, "%d %lf %lf \n", &idx, &tmp_real, &tmp_comp);
+            GPWDistWeights[idx] = tmp_real + I * tmp_comp;
           }
           break;
 
@@ -2184,12 +2221,13 @@ int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int
                int *tRSym, int *shift, int *ArrayOpt, int iComplxFlag, int *iOptCount,
                int _fidx, char *defname) {
   char ctmp[D_CharTmpReadDef], ctmp2[D_CharTmpReadDef];
-  int trnSz, i, j, k, tmp, ind, ind2, mappingFound, latIdFile, latIdIntern, read;
+  int trnSz, i, j, k, d, l, tmp, ind, ind2, mappingFound, latIdFile, latIdIntern, read;
   int idx0 = 0, idx1 = 0, info = 0, storeId = 0;
   unsigned long trnCfgUp = 0, trnCfgDown = 0;
   int fidx = _fidx;
   double dtmp;
   int *optTheta = ArrayOpt + 2*(fidx + NGPWIdx);
+  int *optDistWeights = optTheta + 2 * NGPWTrnLat;
 
   // TODO: sanity checks!!
   int *mapping = (int*)malloc(sizeof(int)*NGPWTrnLat);
@@ -2276,8 +2314,24 @@ int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int
       }
       storeId += 2*trnSz;
 
+      if (kernFunc[latIdIntern] < 0) {
+        for (k = 0; k < trnSz * abs(cutRad[latIdIntern]); k++) {
+          fscanf(fp, "%d %d %d\n", &i, &d, &l);
+          GPWDistWeightIdx[idx0][d * trnSz + i] = l;
+        }
+        if (idx0 < NGPWIdx-1) {
+          GPWDistWeightIdx[idx0+1] = GPWDistWeightIdx[idx0] + trnSz * abs(cutRad[latIdIntern]);
+        }
+      }
+
       idx0++;
       if (idx0 == NGPWIdx) break;
+    }
+
+    for (k = 0; k < NGPWDistWeights; k++) {
+      fscanf(fp, "%d ", &i);
+      fscanf(fp, "%d\n", &(optDistWeights[2 * i]));
+      (*iOptCount)++;
     }
 
     idx1 = GetInfoOpt(fp, ArrayOpt, iComplxFlag, iOptCount, fidx);

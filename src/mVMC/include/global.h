@@ -135,8 +135,10 @@ int NDoublonHolon2siteIdx, **DoublonHolon2siteIdx; /* DoublonHolon2siteIdx[idx][
 int NDoublonHolon4siteIdx, **DoublonHolon4siteIdx; /* DoublonHolon4siteIdx[idx][4*Nsite] */
 int NGPWIdx; /* NGPWIdx = total number of training configurations */
 int NGPWTrnLat; /* NGPWTrnLat = total number of different training lattices */
+int NGPWDistWeights; /* NGPWDistWeights = total number of distance weights for exponential kernel */
 int GPWTrnLatNeighboursSz; /* total size of the training lattice neighbours array (sum_(all training lattices) 2*Dim*latSize) */
 int GPWTrnCfgSz; /* total size of the training configurations array (sum_(all training configs) 2*latSize) */
+int GPWDistWeightIdxSz; /* total size of the GPWDistWeightIdx array (sum_(all training configs) latSize^2) */
 int GPWLinModFlag; /* 1: linear model, 0: correction to log */
 int *GPWTrnSize; /* [NGPWTrnLat] Lattice sizes of training configurations*/
 int *GPWTrnLat; /* [NGPWIdx] Training lattice reference for each training configuration */
@@ -163,6 +165,7 @@ int ***GPWSysPlaqHash; /* hash table to store the indices inside the plaquette w
 int **GPWSysPlaqHashSz; /* number of elements in each hash table */
 int **GPWDistList; /* associated distances with the site ids */
 int GPWShiftFlag; /* 1: zero mean weights, 0: no constraints */
+int **GPWDistWeightIdx; /* indices for exponential kernel */
 int RBMNVisibleIdx; /* Number of different variational parameters associated with the visible layer in the RBM */
 int RBMNHiddenIdx; /* Number of neurons in the hidden layer */
 int NRBMTotal; /* Total number of of RBM variational parameters (NRBMTotal = RBMNVisibleIdx + RBMNHiddenIdx + Nsite2*RBMNHiddenIdx) */
@@ -226,7 +229,8 @@ double complex *Proj;   /* correlation factor (Proj    =Para) */
 double complex *ProjBF; /* Back flow correlation factor (Proj    =Para) */
 double complex *GPWVar;   /* Variational parameters of the GPW training sets (GPWVar = Proj+NProj) */
 double complex *GPWThetaVar;   /* Theta values of the kernel (variational parameters, GPWThetaVar = GPWVar+NGPWIdx) */
-double complex *RBMVar; /* Variational parameters of the RBM projector (RBMVar = GPWThetaVar+NGPWTrnLat)*/
+double complex *GPWDistWeights;   /* Distance weights of the exponential kernel (variational parameters, GPWDistWeights = GPWVar+NGPWIdx+NGPWTrnLat) */
+double complex *RBMVar; /* Variational parameters of the RBM projector (RBMVar = GPWThetaVar+NGPWTrnLat+NGPWDistWeights)*/
 double complex *Slater; /* pair orbital       (Slater  =Para+NProj+NGPWIdx+RBMNVisibleIdx + RBMNHiddenIdx + RBMNHiddenIdx * Nsite2) */
 double complex *OptTrans; /* weights          (OptTrans=Para+NProj+NGPWIdx+RBMNVisibleIdx + RBMNHiddenIdx + RBMNHiddenIdx * Nsite2 + NSlater) */
 double complex **eta;   /* Back Flow correlation factor (eta = 1.0 or ProjBF[0])*/

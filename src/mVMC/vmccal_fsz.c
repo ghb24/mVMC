@@ -41,12 +41,13 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
   const int qpStart=0;
   const int qpEnd=NQPFull;
   int sample,sampleStart,sampleEnd,sampleSize;
-  int i,info,j,offset,idx,f,targetBasis,k;
+  int i,info,j,offset,idx,f,targetBasis,k,l;
 
   /* optimazation for Kei */
   const int nProj=NProj;
   const int nGPWIdx=NGPWIdx;
   const int nGPWTrnLat=NGPWTrnLat;
+  const int nGPWDistWeights=NGPWDistWeights;
   const int nRBMVis=RBMNVisibleIdx;
   const int nRBMHidden=RBMNHiddenIdx;
   const int nsite2=Nsite2;
@@ -199,6 +200,80 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
           srOptO[(offset+i)*2+1] = srOptO[(offset+i)*2+1]/GPWVal(eleGPWKern);    // odd comp
         }
         offset++;
+      }
+
+      if (nGPWDistWeights > 0) {
+        #pragma omp parallel for default(shared) private(i)
+        for (i = 0; i < nGPWDistWeights; i++) {
+          srOptO[(offset+i)*2]     = 0.0;    // even real
+          srOptO[(offset+i)*2+1]   = 0.0*I;  // odd  comp
+        }
+
+        //TODO: Clean this up, fast update?
+        for (i = 0; i < nGPWIdx; i++) {
+          int matOffset, latId, trnSize, plaqSize, id;
+          int shiftSys, shiftTrn, translationSys, translationTrn;
+          double *inSum, *inSumFlipped;
+          double sumTargetLat;
+
+          latId = GPWTrnLat[i];
+          trnSize = GPWTrnSize[latId];
+          plaqSize = GPWPlaquetteSizes[latId];
+
+          shiftSys = 1;
+          shiftTrn = 1;
+          translationSys = 1;
+          translationTrn = 1;
+
+          if (abs(GPWShift[latId]) & 1) {
+            shiftSys = Nsite;
+            if (GPWShift[latId] < 0) {
+              translationSys = trnSize;
+            }
+          }
+          if ((abs(GPWShift[latId]) & 2) >> 1) {
+            shiftTrn = trnSize;
+
+            if (GPWShift[latId] < 0) {
+              translationTrn = Nsite;
+            }
+          }
+          matOffset = 0;
+          for (k = 0; k < i; k++) {
+            matOffset += Nsite*GPWTrnSize[GPWTrnLat[k]];
+          }
+
+          inSum = eleGPWInSum+matOffset;
+          inSumFlipped = eleGPWInSum+(GPWTrnCfgSz/2)*Nsite+matOffset;
+
+          for (j = 0; j < shiftTrn; j+=translationSys) {
+            for (k = 0; k < plaqSize; k++) {
+              sumTargetLat = 0.0;
+              #pragma omp parallel for default(shared) private(l, id) reduction(+:sumTargetLat)
+              for (l = 0; l < shiftSys; l+=translationSys) {
+                id = GPWSysPlaquetteIdx[latId][l*plaqSize+k]*trnSize +
+                     GPWTrnPlaquetteIdx[latId][j*plaqSize+k];
+                if (!signbit(inSum[id])) {
+                  sumTargetLat += exp(-fabs(inSum[l*trnSize+j]));
+                }
+              }
+              if (GPWTRSym[latId]) {
+                #pragma omp parallel for default(shared) private(l, id) reduction(+:sumTargetLat)
+                for (l = 0; l < shiftSys; l+=translationSys) {
+                  id = GPWSysPlaquetteIdx[latId][l*plaqSize+k]*trnSize +
+                       GPWTrnPlaquetteIdx[latId][j*plaqSize+k];
+                  if (!signbit(inSumFlipped[id])) {
+                    sumTargetLat += exp(-fabs(inSumFlipped[l*trnSize+j]));
+                  }
+                }
+                sumTargetLat /= 2.0;
+              }
+              srOptO[(offset+GPWDistWeightIdx[i][trnSize*k + j])*2] -= GPWVar[i] * sumTargetLat * 2.0 * GPWDistWeights[GPWDistWeightIdx[i][trnSize*k + j]];
+              srOptO[(offset+GPWDistWeightIdx[i][trnSize*k + j])*2 + 1] -= GPWVar[i] * sumTargetLat * I * 2.0 * GPWDistWeights[GPWDistWeightIdx[i][trnSize*k + j]];
+            }
+          }
+        }
+        offset += nGPWDistWeights;
       }
 
       #pragma omp parallel for default(shared) private(f, i)

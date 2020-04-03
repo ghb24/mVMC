@@ -154,11 +154,20 @@ void OutputOptData() {
 		  NGPWIdx, NGPWIdx,
 		  count_i, n);
     count_i += NGPWIdx;
+
     sprintf(fileName, "%s_gpw_hyp_opt_int_id.dat", CParaFileHead);
     Child_OutputOptData(fp, fileName, "NGPWTrnLat",
 		  NGPWTrnLat, NGPWTrnLat,
 		  count_i, n);
     count_i += NGPWTrnLat;
+
+    if (NGPWDistWeights > 0) {
+      sprintf(fileName, "%s_gpw_dist_weights_opt.dat", CParaFileHead);
+      Child_OutputOptData(fp, fileName, "NGPWDistWeights",
+                    NGPWDistWeights, NGPWDistWeights,
+                    count_i, n);
+      count_i += NGPWDistWeights;
+    }
   }
 
   if(NRBMTotal != 0){

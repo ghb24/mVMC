@@ -195,7 +195,7 @@ void CalculatePairDeltaFlipped(double *inSum, const int *cfgA, const int sizeA,
 int SetupPlaquetteIdx(const int rC, const int *neighboursA, const int sizeA,
                       const int *neighboursB, const int sizeB,
                       const int dim, int **plaquetteAIdx, int **plaquetteBIdx,
-                      int **distList) {
+                      int **distList, int includeCentre) {
   int i, a, j, b, k, l, dist, count, tmpCount, d;
 
   int plaquetteSize, plaquetteCount, doubleCounting;
@@ -251,6 +251,10 @@ int SetupPlaquetteIdx(const int rC, const int *neighboursA, const int sizeA,
     doubleCounting = 1;
   }
 
+  if (includeCentre) {
+    maxShellSize++;
+    plaquetteSize++;
+  }
 
   *plaquetteAIdx = (int*)malloc((plaquetteSize*sizeA)*sizeof(int));
   *plaquetteBIdx = (int*)malloc((plaquetteSize*sizeB)*sizeof(int));
@@ -291,6 +295,13 @@ int SetupPlaquetteIdx(const int rC, const int *neighboursA, const int sizeA,
         directions[d] = 0;
       }
 
+      if (includeCentre) {
+        (*plaquetteAIdx)[i*plaquetteSize+plaquetteCount] = j;
+        (*plaquetteBIdx)[a*plaquetteSize+plaquetteCount] = b;
+        (*distList)[plaquetteCount] = dist;
+        plaquetteCount++;
+      }
+
       while (dist < abs(rC) || plaquetteCount < plaquetteSize) {
         if (plaquetteCount >= plaquetteSize) {
           break;
@@ -322,12 +333,12 @@ int SetupPlaquetteIdx(const int rC, const int *neighboursA, const int sizeA,
               }
 
               tmpDirections[dim*tmpCount+d] += (dir==0?1:-1);
-              tmpCount ++;
+              tmpCount++;
 
               (*plaquetteAIdx)[i*plaquetteSize+plaquetteCount] = j;
               (*plaquetteBIdx)[a*plaquetteSize+plaquetteCount] = b;
               (*distList)[plaquetteCount] = dist;
-              plaquetteCount += 1;
+              plaquetteCount++;
             }
 
             if (plaquetteCount >= plaquetteSize) {
@@ -882,7 +893,7 @@ void GPWKernelNMat(const unsigned long *configsAUp,
   int *plaquetteAIdx, *plaquetteBIdx, *distList;
 
   SetupPlaquetteIdx(-n, neighboursA, sizeA, neighboursB, sizeB, dim,
-                    &plaquetteAIdx, &plaquetteBIdx, &distList);
+                    &plaquetteAIdx, &plaquetteBIdx, &distList, 0);
 
 
   cfgsA = (int**) malloc(sizeof(int*) * numA);
@@ -966,7 +977,7 @@ void GPWKernelNVec(const unsigned long *configsAUp, const unsigned long *configs
   int *plaquetteAIdx, *plaquetteBIdx, *distList;
 
   SetupPlaquetteIdx(-n, neighboursA, sizeA, neighboursRef, sizeRef, dim,
-                    &plaquetteAIdx, &plaquetteBIdx, &distList);
+                    &plaquetteAIdx, &plaquetteBIdx, &distList, 0);
 
   cfgsA = (int**) malloc(sizeof(int*) * numA);
 
@@ -1007,10 +1018,10 @@ double GPWKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
                  const int power, const double theta0, const double thetaC,
                  const int tRSym, const int shift, const int startIdA,
                  const int startIdB, const int plaquetteSize, const int *distList,
-                 double *workspaceDouble) {
+                 double *workspace) {
   int i, distWeightFlag;
 
-  double *innerSum = workspaceDouble;
+  double *innerSum = workspace;
   double *innerSumFlipped = innerSum + sizeA*sizeB;
 
   double norm = 0.0;
@@ -1064,7 +1075,7 @@ void GPWKernelMat(const unsigned long *configsAUp,
 
   plaquetteSize = SetupPlaquetteIdx(rC, neighboursA, sizeA, neighboursB,
                                     sizeB, dim, &plaquetteAIdx,
-                                    &plaquetteBIdx, &distList);
+                                    &plaquetteBIdx, &distList, 0);
 
 
   cfgsA = (int**) malloc(sizeof(int*) * numA);
@@ -1155,7 +1166,7 @@ void GPWKernelVec(const unsigned long *configsAUp,
 
   plaquetteSize = SetupPlaquetteIdx(rC, neighboursA, sizeA, neighboursRef,
                                     sizeRef, dim, &plaquetteAIdx,
-                                    &plaquetteBIdx, &distList);
+                                    &plaquetteBIdx, &distList, 0);
   cfgsA = (int**) malloc(sizeof(int*) * numA);
 
   for (i = 0; i < numA; i++) {

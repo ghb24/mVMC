@@ -52,7 +52,7 @@ void UpdateInSumExp(double *inSumNew, const double *inSumOld,
 
   innerId = 0;
   countAId = siteA;
-  countBId = siteA;
+  countBId = siteB;
 
   for (i = 0; i < sizeA; i++) {
     countA = plaqHashSz[countAId];

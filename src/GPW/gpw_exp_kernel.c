@@ -64,24 +64,24 @@ void UpdateInSumExp(double *inSumNew, const double *inSumOld,
     for (a = 0; a < sizeB; a++) {
       for (k = 0; k < countA; k++) {
         id = hashListA[k];
-        element = creal(distWeights[distWeightIdx[sizeB*id + a]]);
-        element = element * element;
-        if (!signbit(inSumNew[plaqIdA + plaquetteBIdx[aPlaqSize+id]])) {
-          inSumNew[innerId] = copysign(fabs(inSumNew[innerId]) + element, inSumNew[innerId]);
+        if (signbit(inSumNew[plaqIdA + plaquetteBIdx[aPlaqSize+id]])) {
+          element = creal(distWeights[distWeightIdx[sizeB*id + a]]);
+          inSumNew[innerId] = copysign(fabs(inSumNew[innerId]) - element*element, inSumNew[innerId]);
         }
-        if (!signbit(inSumOld[plaqIdA + plaquetteBIdx[aPlaqSize+id]])) {
-          inSumNew[innerId] = copysign(fabs(inSumNew[innerId]) - element, inSumNew[innerId]);
+        if (signbit(inSumOld[plaqIdA + plaquetteBIdx[aPlaqSize+id]])) {
+          element = creal(distWeights[distWeightIdx[sizeB*id + a]]);
+          inSumNew[innerId] = copysign(fabs(inSumNew[innerId]) + element*element, inSumNew[innerId]);
         }
       }
       for (k = 0; k < countB; k++) {
         id = hashListB[k];
-        element = creal(distWeights[distWeightIdx[sizeB*id + a]]);
-        element = element * element;
-        if (!signbit(inSumNew[plaqIdB + plaquetteBIdx[aPlaqSize+id]])) {
-          inSumNew[innerId] = copysign(fabs(inSumNew[innerId]) + element, inSumNew[innerId]);
+        if (signbit(inSumNew[plaqIdB + plaquetteBIdx[aPlaqSize+id]])) {
+          element = creal(distWeights[distWeightIdx[sizeB*id + a]]);
+          inSumNew[innerId] = copysign(fabs(inSumNew[innerId]) - element*element, inSumNew[innerId]);
         }
-        if (!signbit(inSumOld[plaqIdB + plaquetteBIdx[aPlaqSize+id]])) {
-          inSumNew[innerId] = copysign(fabs(inSumNew[innerId]) - element, inSumNew[innerId]);
+        if (signbit(inSumOld[plaqIdB + plaquetteBIdx[aPlaqSize+id]])) {
+          element = creal(distWeights[distWeightIdx[sizeB*id + a]]);
+          inSumNew[innerId] = copysign(fabs(inSumNew[innerId]) + element*element, inSumNew[innerId]);
         }
       }
       aPlaqSize += plaquetteSize;

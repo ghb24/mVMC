@@ -209,6 +209,7 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
           break;
         }
       }
+
       if (nGPWDistWeights > 0 && opt) {
         for (i = 0; i < nGPWDistWeights; i++) {
           srOptO[(offset+i)*2] = 0.0;
@@ -217,13 +218,12 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
 
         #pragma omp parallel default(shared) private(i, j, k, l)
         {
-          int matOffset, latId, trnSize, plaqSize, id, plaqId, kernFunc;
+          int matOffset, latId, trnSize, plaqSize, kernFunc, plaqId;
           int shiftSys, shiftTrn, translationSys, translationTrn;
           double *inSum, *inSumFlipped;
           double sumTargetLat;
           int *sysPlaquetteIdx, *trnPlaquetteIdx;
           double *distWeightDeriv = (double*)calloc(nGPWDistWeights, sizeof(double));
-          matOffset = 0;
 
           #pragma omp for
           for (i = 0; i < nGPWIdx; i++) {
@@ -252,6 +252,10 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
                 translationTrn = Nsite;
               }
             }
+            matOffset = 0;
+            for (k = 0; k < i; k++) {
+              matOffset += Nsite*GPWTrnSize[GPWTrnLat[k]];
+            }
 
             inSum = eleGPWInSum+matOffset;
             inSumFlipped = eleGPWInSum+(GPWTrnCfgSz/2)*Nsite+matOffset;
@@ -261,7 +265,6 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
                 plaqId = trnPlaquetteIdx[j*plaqSize+k];
                 sumTargetLat = 0.0;
                 for (l = 0; l < shiftSys; l+=translationSys) {
-                  id = sysPlaquetteIdx[l*plaqSize+k]*trnSize + plaqId;
                   if ((!signbit(inSum[sysPlaquetteIdx[l*plaqSize+k]*trnSize + plaqId])) && ((kernFunc == -1) || signbit(inSum[l*trnSize+j]))) {
                     sumTargetLat += exp(-fabs(inSum[l*trnSize+j]));
                   }
@@ -277,8 +280,6 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
                 distWeightDeriv[GPWDistWeightIdx[i][trnSize*k + j]] -= GPWVar[i] * sumTargetLat ;
               }
             }
-
-            matOffset += Nsite*GPWTrnSize[latId];
           }
 
           #pragma omp critical

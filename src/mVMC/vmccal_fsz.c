@@ -268,7 +268,7 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
                 }
                 if (GPWTRSym[latId]) {
                   for (l = 0; l < shiftSys; l+=translationSys) {
-                    if ((!signbit(inSumFlipped[sysPlaquetteIdx[l*plaqSize+k]*trnSize + plaqId])) && ((kernFunc == -1) || signbit(inSum[l*trnSize+j]))) {
+                    if ((!signbit(inSumFlipped[sysPlaquetteIdx[l*plaqSize+k]*trnSize + plaqId])) && ((kernFunc == -1) || signbit(inSumFlipped[l*trnSize+j]))) {
                       sumTargetLat += exp(-fabs(inSumFlipped[l*trnSize+j]));
                     }
                   }

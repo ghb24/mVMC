@@ -117,10 +117,23 @@ void CalculateGPWKern(double *eleGPWKern, double *eleGPWInSum, const int *eleNum
                           GPWPlaquetteSizes[latId], GPWDistWeights,
                           GPWDistWeightIdx[i]);
         }
-        eleGPWKern[i] = ComputeExpKernel(Nsite, GPWTrnSize[latId],
-                                         GPWTRSym[latId], GPWShift[latId], 0, 0,
-                                         eleGPWInSum+offset,
-                                         eleGPWInSum+(GPWTrnCfgSz/2)*Nsite+offset);
+        if (GPWKernelFunc[latId] == -1) {
+          eleGPWKern[i] = ComputeExpKernel(Nsite, GPWTrnSize[latId],
+                                           GPWTRSym[latId], GPWShift[latId], 0, 0,
+                                           eleGPWInSum+offset,
+                                           eleGPWInSum+(GPWTrnCfgSz/2)*Nsite+offset,
+                                           0);
+        }
+        else if (GPWKernelFunc[latId] == -2) {
+          eleGPWKern[i] = ComputeExpKernel(Nsite, GPWTrnSize[latId],
+                                           GPWTRSym[latId], GPWShift[latId], 0, 0,
+                                           eleGPWInSum+offset,
+                                           eleGPWInSum+(GPWTrnCfgSz/2)*Nsite+offset,
+                                           1);
+        }
+        else {
+          printf("Error, bad kernel type\n");
+        }
       }
 
       else if (GPWKernelFunc[latId] == 0) {
@@ -209,10 +222,23 @@ void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew,
                          GPWDistWeightIdx[i], GPWSysPlaqHash[latId],
                          GPWSysPlaqHashSz[latId], ri, rj);
         }
-        eleGPWKernNew[i] = ComputeExpKernel(Nsite, GPWTrnSize[latId],
+        if (GPWKernelFunc[latId] == -1) {
+          eleGPWKernNew[i] = ComputeExpKernel(Nsite, GPWTrnSize[latId],
                                             GPWTRSym[latId], GPWShift[latId],
                                             0, 0, eleGPWInSumNew+offset,
-                                            eleGPWInSumNew+(GPWTrnCfgSz/2)*Nsite+offset);
+                                            eleGPWInSumNew+(GPWTrnCfgSz/2)*Nsite+offset,
+                                            0);
+        }
+        else if (GPWKernelFunc[latId] == -2) {
+          eleGPWKernNew[i] = ComputeExpKernel(Nsite, GPWTrnSize[latId],
+                                            GPWTRSym[latId], GPWShift[latId],
+                                            0, 0, eleGPWInSumNew+offset,
+                                            eleGPWInSumNew+(GPWTrnCfgSz/2)*Nsite+offset,
+                                            1);
+        }
+        else {
+          printf("Error, bad kernel type\n");
+        }
       }
       else if (GPWKernelFunc[latId] == 0) {
         UpdateInSum(eleGPWInSumNew+offset, eleGPWInSumOld+offset,

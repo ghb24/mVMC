@@ -24,7 +24,8 @@ void UpdateInSumExp(double *inSumNew, const double *inSumOld,
 // Computes the exponential kernel
 double ComputeExpKernel(const int sizeA, const int sizeB, const int tRSym,
                         const int shift, const int startIdA, const int startIdB,
-                        const double *inSum, const double *inSumFlipped);
+                        const double *inSum, const double *inSumFlipped,
+                        const int centralDelta);
 
 // Computes the exponential kernel in place
 double GPWExpKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
@@ -32,7 +33,8 @@ double GPWExpKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
                     const int tRSym, const int shift, const int startIdA,
                     const int startIdB, const int plaquetteSize,
                     const double *distWeights, const int numDistWeights,
-                    const int *distWeightIdx, double *workspace);
+                    const int *distWeightIdx, const int centralDelta,
+                    double *workspace);
 
 /* computes the kernel matrix (exponential kernel) for two lists of configurations
 (in bitstring representation) */
@@ -45,7 +47,8 @@ void GPWExpKernelMat(const unsigned long *configsAUp,
                      const double *distWeights, const int numDistWeights,
                      const int **distWeightIdx, const int dim, const int rC,
                      const int tRSym, const int shift, const int startIdA,
-                     const int startIdB, const int symmetric, double *kernelMatr);
+                     const int startIdB, const int centralDelta,
+                     const int symmetric, double *kernelMatr);
 
 /* computes the kernel vector (exponential kernel) for one reference configuration
 and a list of confgurations in bitstring representation) */
@@ -56,5 +59,6 @@ void GPWExpKernelVec(const unsigned long *configsAUp,
                      const double *distWeights, const int numDistWeights,
                      const int *distWeightIdx, const int dim, const int rC,
                      const int tRSym, const int shift, const int startIdA,
-                     const int startIdB, double *kernelVec);
+                     const int startIdB, const int centralDelta,
+                     double *kernelVec);
 #endif // _GPW_EXP_KERN_INCLUDE_FILES

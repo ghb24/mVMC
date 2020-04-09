@@ -217,17 +217,19 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
 
         #pragma omp parallel default(shared) private(i, j, k, l)
         {
-          int matOffset, latId, trnSize, plaqSize, id, plaqId;
+          int matOffset, latId, trnSize, plaqSize, id, plaqId, kernFunc;
           int shiftSys, shiftTrn, translationSys, translationTrn;
           double *inSum, *inSumFlipped;
           double sumTargetLat;
           int *sysPlaquetteIdx, *trnPlaquetteIdx;
           double *distWeightDeriv = (double*)calloc(nGPWDistWeights, sizeof(double));
+          matOffset = 0;
 
           #pragma omp for
           for (i = 0; i < nGPWIdx; i++) {
             latId = GPWTrnLat[i];
             trnSize = GPWTrnSize[latId];
+            kernFunc = GPWKernelFunc[latId];
             plaqSize = GPWPlaquetteSizes[latId];
             sysPlaquetteIdx = GPWSysPlaquetteIdx[latId];
             trnPlaquetteIdx = GPWTrnPlaquetteIdx[latId];
@@ -250,10 +252,6 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
                 translationTrn = Nsite;
               }
             }
-            matOffset = 0;
-            for (k = 0; k < i; k++) {
-              matOffset += Nsite*GPWTrnSize[GPWTrnLat[k]];
-            }
 
             inSum = eleGPWInSum+matOffset;
             inSumFlipped = eleGPWInSum+(GPWTrnCfgSz/2)*Nsite+matOffset;
@@ -264,14 +262,13 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
                 sumTargetLat = 0.0;
                 for (l = 0; l < shiftSys; l+=translationSys) {
                   id = sysPlaquetteIdx[l*plaqSize+k]*trnSize + plaqId;
-                  if (!signbit(inSum[id])) {
+                  if ((!signbit(inSum[sysPlaquetteIdx[l*plaqSize+k]*trnSize + plaqId])) && ((kernFunc == -1) || signbit(inSum[l*trnSize+j]))) {
                     sumTargetLat += exp(-fabs(inSum[l*trnSize+j]));
                   }
                 }
                 if (GPWTRSym[latId]) {
                   for (l = 0; l < shiftSys; l+=translationSys) {
-                    id = sysPlaquetteIdx[l*plaqSize+k]*trnSize + plaqId;
-                    if (!signbit(inSumFlipped[id])) {
+                    if ((!signbit(inSumFlipped[sysPlaquetteIdx[l*plaqSize+k]*trnSize + plaqId])) && ((kernFunc == -1) || signbit(inSum[l*trnSize+j]))) {
                       sumTargetLat += exp(-fabs(inSumFlipped[l*trnSize+j]));
                     }
                   }
@@ -280,6 +277,8 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
                 distWeightDeriv[GPWDistWeightIdx[i][trnSize*k + j]] -= GPWVar[i] * sumTargetLat ;
               }
             }
+
+            matOffset += Nsite*GPWTrnSize[latId];
           }
 
           #pragma omp critical

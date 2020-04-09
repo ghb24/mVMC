@@ -150,7 +150,7 @@ char *ReadBuffGPWInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, in
   char *cerr;
   char ctmp[D_FileNameMax];
   char ctmp2[D_FileNameMax];
-  int i, j, k, l, trnSz, latIdIntern, latIdFile, mappingFound;
+  int i, j, k, l, trnSz, latIdIntern, latIdFile, mappingFound, numDist;
 
   int readVal;
 
@@ -267,8 +267,17 @@ char *ReadBuffGPWInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, in
 
     *iTrnCfgSzBuf += latSz[latIdIntern];
     if (latType[latIdIntern] < 0) {
-      *iDistWeightsSzBuf += latSz[latIdIntern]*latSz[latIdIntern];
-      for (k = 0; k < trnSz * abs(cutRad[latIdIntern]); k++) {
+      if (latType[latIdIntern] == -1) {
+        numDist = abs(cutRad[latIdIntern]);
+      }
+      else if (latType[latIdIntern] == -2) {
+        numDist = abs(cutRad[latIdIntern])-1;
+      }
+      else {
+        printf("Error Kernel type not known! \n");
+      }
+      *iDistWeightsSzBuf += numDist*latSz[latIdIntern];
+      for (k = 0; k < latSz[latIdIntern] * numDist; k++) {
         cerr = fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
       }
     }
@@ -1247,7 +1256,15 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
     j += 2*GPWTrnSize[GPWTrnLat[i]];
     if (GPWKernelFunc[GPWTrnLat[i]] < 0) {
       GPWDistWeightIdx[i] = GPWDistWeightIdx[0] + k;
-      k += GPWTrnSize[GPWTrnLat[i]]*abs(GPWCutRad[GPWTrnLat[i]]);
+      if (GPWKernelFunc[GPWTrnLat[i]] == -1) {
+        k += GPWTrnSize[GPWTrnLat[i]]*abs(GPWCutRad[GPWTrnLat[i]]);
+      }
+      else if (GPWKernelFunc[GPWTrnLat[i]] == -2) {
+        k += GPWTrnSize[GPWTrnLat[i]]*(abs(GPWCutRad[GPWTrnLat[i]])-1);
+      }
+      else {
+        printf("Error. Kernel type not known!\n");
+      }
     }
   }
 
@@ -1262,13 +1279,16 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
       GPWPlaquetteSizes[i] = SetupPlaquetteIdx(-(GPWKernelFunc[i]), SysNeighbours, Nsite, GPWTrnNeighbours[i], GPWTrnSize[i], Dim,
                                                &(GPWSysPlaquetteIdx[i]), &(GPWTrnPlaquetteIdx[i]), &(GPWDistList[i]), 0);
     }
-    else if (GPWKernelFunc[i] < 0) {
-      GPWPlaquetteSizes[i] = SetupPlaquetteIdx(-GPWTrnSize[i], SysNeighbours, Nsite, GPWTrnNeighbours[i], GPWTrnSize[i], Dim,
+    else if (GPWKernelFunc[i] == -1) {
+      GPWPlaquetteSizes[i] = SetupPlaquetteIdx(GPWCutRad[i], SysNeighbours, Nsite, GPWTrnNeighbours[i], GPWTrnSize[i], Dim,
                                                &(GPWSysPlaquetteIdx[i]), &(GPWTrnPlaquetteIdx[i]), &(GPWDistList[i]), 1);
     }
-    else {
+    else if ((GPWKernelFunc[i] == -2) || (GPWKernelFunc[i] == 0)) {
       GPWPlaquetteSizes[i] = SetupPlaquetteIdx(GPWCutRad[i], SysNeighbours, Nsite, GPWTrnNeighbours[i], GPWTrnSize[i], Dim,
                                                &(GPWSysPlaquetteIdx[i]), &(GPWTrnPlaquetteIdx[i]), &(GPWDistList[i]), 0);
+    }
+    else {
+      printf("Error: Unknown kernel type!\n");
     }
 
     SetupPlaquetteHash(Nsite, GPWPlaquetteSizes[i], GPWSysPlaquetteIdx[i],
@@ -2234,7 +2254,7 @@ int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int
                int *tRSym, int *shift, int *ArrayOpt, int iComplxFlag, int *iOptCount,
                int _fidx, char *defname) {
   char ctmp[D_CharTmpReadDef], ctmp2[D_CharTmpReadDef];
-  int trnSz, i, j, k, d, l, tmp, ind, ind2, mappingFound, latIdFile, latIdIntern, read;
+  int trnSz, i, j, k, d, l, tmp, ind, ind2, mappingFound, latIdFile, latIdIntern, read, numDist;
   int idx0 = 0, idx1 = 0, info = 0, storeId = 0;
   unsigned long trnCfgUp = 0, trnCfgDown = 0;
   int fidx = _fidx;
@@ -2328,12 +2348,21 @@ int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int
       storeId += 2*trnSz;
 
       if (kernFunc[latIdIntern] < 0) {
-        for (k = 0; k < trnSz * abs(cutRad[latIdIntern]); k++) {
+        if (kernFunc[latIdIntern] == -1) {
+          numDist = abs(cutRad[latIdIntern]);
+        }
+        else if (kernFunc[latIdIntern] == -2) {
+          numDist = abs(cutRad[latIdIntern])-1;
+        }
+        else {
+          printf("Error Kernel type not known! \n");
+        }
+        for (k = 0; k < trnSz * numDist; k++) {
           fscanf(fp, "%d %d %d\n", &i, &d, &l);
           GPWDistWeightIdx[idx0][d * trnSz + i] = l;
         }
         if (idx0 < NGPWIdx-1) {
-          GPWDistWeightIdx[idx0+1] = GPWDistWeightIdx[idx0] + trnSz * abs(cutRad[latIdIntern]);
+          GPWDistWeightIdx[idx0+1] = GPWDistWeightIdx[idx0] + trnSz * numDist;
         }
       }
 

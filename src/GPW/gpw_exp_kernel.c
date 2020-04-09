@@ -92,10 +92,10 @@ void UpdateInSumExp(double *inSumNew, const double *inSumOld,
   }
 }
 
-
 double ComputeExpKernel(const int sizeA, const int sizeB, const int tRSym,
                         const int shift, const int startIdA, const int startIdB,
-                        const double *inSum, const double *inSumFlipped) {
+                        const double *inSum, const double *inSumFlipped,
+                        const int centralDelta) {
   int i, a;
   int shiftSys = 1 + startIdA;
   int shiftTrn = 1 + startIdB;
@@ -117,15 +117,37 @@ double ComputeExpKernel(const int sizeA, const int sizeB, const int tRSym,
     }
   }
 
-  for (i = startIdA; i < shiftSys; i+=translationSys) {
-    for (a = startIdB; a < shiftTrn; a+=translationTrn) {
-      kernel += exp(-fabs(inSum[i*sizeB+a]));
+  if (centralDelta) {
+    for (i = startIdA; i < shiftSys; i+=translationSys) {
+      for (a = startIdB; a < shiftTrn; a+=translationTrn) {
+        if (signbit(inSum[i*sizeB+a])) {
+          kernel += exp(-fabs(inSum[i*sizeB+a]));
+        }
+      }
+    }
+  }
+  else {
+    for (i = startIdA; i < shiftSys; i+=translationSys) {
+      for (a = startIdB; a < shiftTrn; a+=translationTrn) {
+        kernel += exp(-fabs(inSum[i*sizeB+a]));
+      }
     }
   }
   if (tRSym) {
-    for (i = startIdA; i < shiftSys; i+=translationSys) {
-      for (a = startIdB; a < shiftTrn; a+=translationTrn) {
-        kernel += exp(-fabs(inSumFlipped[i*sizeB+a]));
+    if (centralDelta) {
+      for (i = startIdA; i < shiftSys; i+=translationSys) {
+        for (a = startIdB; a < shiftTrn; a+=translationTrn) {
+          if (signbit(inSumFlipped[i*sizeB+a])) {
+            kernel += exp(-fabs(inSumFlipped[i*sizeB+a]));
+          }
+        }
+      }
+    }
+    else {
+      for (i = startIdA; i < shiftSys; i+=translationSys) {
+        for (a = startIdB; a < shiftTrn; a+=translationTrn) {
+          kernel += exp(-fabs(inSumFlipped[i*sizeB+a]));
+        }
       }
     }
     kernel /= 2.0;
@@ -138,7 +160,8 @@ double GPWExpKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
                     const int tRSym, const int shift, const int startIdA,
                     const int startIdB, const int plaquetteSize,
                     const double *distWeights, const int numDistWeights,
-                    const int *distWeightIdx, double *workspace) {
+                    const int *distWeightIdx, const int centralDelta,
+                    double *workspace) {
   int i;
 
   double *innerSum = workspace;
@@ -163,7 +186,7 @@ double GPWExpKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
   free(distWeightsCompl);
 
   return ComputeExpKernel(sizeA, sizeB, tRSym, shift, startIdA, startIdB,
-                          innerSum, innerSumFlipped);
+                          innerSum, innerSumFlipped, centralDelta);
 }
 
 void GPWExpKernelMat(const unsigned long *configsAUp,
@@ -175,16 +198,23 @@ void GPWExpKernelMat(const unsigned long *configsAUp,
                      const double *distWeights, const int numDistWeights,
                      const int **distWeightIdx, const int dim, const int rC,
                      const int tRSym, const int shift, const int startIdA,
-                     const int startIdB, const int symmetric, double *kernelMatr) {
+                     const int startIdB, const int centralDelta,
+                     const int symmetric, double *kernelMatr) {
   int i, j;
   int **cfgsA, **cfgsB;
   int plaquetteSize;
   int *plaquetteAIdx, *plaquetteBIdx, *distList;
 
-  plaquetteSize = SetupPlaquetteIdx(rC, neighboursA, sizeA, neighboursB,
-                                    sizeB, dim, &plaquetteAIdx,
-                                    &plaquetteBIdx, &distList, 1);
-
+  if (centralDelta) {
+    plaquetteSize = SetupPlaquetteIdx(rC, neighboursA, sizeA, neighboursB,
+                                      sizeB, dim, &plaquetteAIdx,
+                                      &plaquetteBIdx, &distList, 0);
+  }
+  else {
+    plaquetteSize = SetupPlaquetteIdx(rC, neighboursA, sizeA, neighboursB,
+                                      sizeB, dim, &plaquetteAIdx,
+                                      &plaquetteBIdx, &distList, 1);
+  }
 
   cfgsA = (int**) malloc(sizeof(int*) * numA);
 
@@ -219,7 +249,7 @@ void GPWExpKernelMat(const unsigned long *configsAUp,
                                                 tRSym, shift, startIdA, startIdB,
                                                 plaquetteSize, distWeights,
                                                 numDistWeights, distWeightIdx[j],
-                                                workspace);
+                                                centralDelta, workspace);
         }
       }
       free(workspace);
@@ -244,7 +274,7 @@ void GPWExpKernelMat(const unsigned long *configsAUp,
                                                 tRSym, shift, startIdA, startIdB,
                                                 plaquetteSize, distWeights,
                                                 numDistWeights, distWeightIdx[j],
-                                                workspace);
+                                                centralDelta, workspace);
         }
       }
       free(workspace);
@@ -266,16 +296,25 @@ void GPWExpKernelVec(const unsigned long *configsAUp, const unsigned long *confi
                      const double *distWeights, const int numDistWeights,
                      const int *distWeightIdx, const int dim, const int rC,
                      const int tRSym, const int shift, const int startIdA,
-                     const int startIdB, double *kernelVec) {
+                     const int startIdB, const int centralDelta,
+                     double *kernelVec) {
   int i, j;
   int **cfgsA;
 
   int plaquetteSize;
   int *plaquetteAIdx, *plaquetteBIdx, *distList;
 
-  plaquetteSize = SetupPlaquetteIdx(rC, neighboursA, sizeA, neighboursRef,
-                                    sizeRef, dim, &plaquetteAIdx,
-                                    &plaquetteBIdx, &distList, 1);
+  if (centralDelta) {
+    plaquetteSize = SetupPlaquetteIdx(rC, neighboursA, sizeA, neighboursRef,
+                                      sizeRef, dim, &plaquetteAIdx,
+                                      &plaquetteBIdx, &distList, 0);
+  }
+  else {
+    plaquetteSize = SetupPlaquetteIdx(rC, neighboursA, sizeA, neighboursRef,
+                                      sizeRef, dim, &plaquetteAIdx,
+                                      &plaquetteBIdx, &distList, 1);
+  }
+
   cfgsA = (int**) malloc(sizeof(int*) * numA);
 
   for (i = 0; i < numA; i++) {
@@ -296,7 +335,8 @@ void GPWExpKernelVec(const unsigned long *configsAUp, const unsigned long *confi
       kernelVec[i] = GPWExpKernel(cfgsA[i], plaquetteAIdx, sizeA, configRef,
                                   plaquetteBIdx, sizeRef, tRSym, shift,
                                   startIdA, startIdB, plaquetteSize, distWeights,
-                                  numDistWeights, distWeightIdx, workspace);
+                                  numDistWeights, distWeightIdx, centralDelta,
+                                  workspace);
     }
     free(workspace);
   }

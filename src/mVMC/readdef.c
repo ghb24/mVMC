@@ -1420,7 +1420,9 @@ int ReadInputParameters(char *xNameListFile, MPI_Comm comm) {
         case KWInGPWDistWeights:
           fprintf(stdout, "Read InGPWDistWeights File. \n");
           if (idx != NGPWDistWeights) {
-            info = 1;
+            if (NGPWIdx != 0) {
+              info = 1;
+            }
             continue;
           }
           for (i = 0; i < NGPWDistWeights; i++) {
@@ -1437,7 +1439,7 @@ int ReadInputParameters(char *xNameListFile, MPI_Comm comm) {
           }
           for (i = 0; i < NRBMTotal; i++) {
             fscanf(fp, "%d %lf %lf ", &idx, &tmp_real, &tmp_comp);
-            GPWVar[i] = tmp_real + I * tmp_comp;
+            RBMVar[i] = tmp_real + I * tmp_comp;
           }
           break;
 

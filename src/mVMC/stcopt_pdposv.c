@@ -27,12 +27,13 @@ along with this program. If not, see http://www.gnu.org/licenses/.
  *-------------------------------------------------------------*/
 
 #include "stcopt_pdposv.h"
+#include "assert.h"
 #ifndef _SRC_STCOPT_PDPOSV
 #define _SRC_STCOPT_PDPOSV
 
 /* calculate the parameter change r[nSmat] from SOpt.
    The result is gathered in rank 0. */
-int stcOptMain(double *r, const int nSmat, const int *smatToParaIdx, MPI_Comm comm) {
+int stcOptMain(double *r, const int nSmat, const int *smatToParaIdx, MPI_Comm comm, FILE *fp) {
   /* global vector */
   double *w; /* workspace */
   /* distributed matrix (row x col) */
@@ -78,6 +79,8 @@ int stcOptMain(double *r, const int nSmat, const int *smatToParaIdx, MPI_Comm co
  // const double complex srOptHO_0 = SROptHO[0];
   double complex *srOptOO=SROptOO;
   double complex *srOptHO=SROptHO;
+
+  assert(!RedCutMode);
 
   StartTimer(55);
 

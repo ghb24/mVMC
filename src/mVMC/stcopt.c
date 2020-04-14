@@ -136,7 +136,7 @@ int StochasticOpt(MPI_Comm comm) {
     }
 // s:this part will be skipped if OptFlag[pi]!=1
     sDiag = r[pi];
-    if(sDiag < diagCutThreshold) { /* fixed by diagCut */
+    if(sDiag < diagCutThreshold && !RedCutMode) { /* fixed by diagCut */
       cutNum++;
     } else { /* optimized */
       smatToParaIdx[si] = pi; // si -> restricted parameters , pi -> full paramer 0 <-> 2*NPara
@@ -177,12 +177,11 @@ int StochasticOpt(MPI_Comm comm) {
 
   //printf("DEBUG: nSmat=%d \n",nSmat);
   /* calculate r[i]: global vector [nSmat] */
-  info = stcOptMain(r, nSmat, smatToParaIdx, comm);
+  info = stcOptMain(r, nSmat, smatToParaIdx, comm, FileSRinfo);
 
   if (NGPWDistWeights > 0 && rank == 0) {
     FileThetaOpt = fopen("output/dist_weight_opt.dat", "a+");
     for (i = 0; i < NGPWDistWeights; i++) {
-      //fprintf(FileThetaOpt, "%e %e %e    ", creal(GPWDistWeights[i]), creal(r[2*(NProj+NGPWIdx+NGPWTrnLat+i)]), creal(SROptOO[2*(NProj+NGPWIdx+NGPWTrnLat+i+1)]));
       fprintf(FileThetaOpt, "%e    ", creal(GPWDistWeights[i]));
     }
     fprintf(FileThetaOpt, "\n");

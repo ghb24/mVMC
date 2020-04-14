@@ -311,6 +311,7 @@ struct StdIntList {
   int NSPStot;/**<@brief */
   int NStore;/**<@brief */
   int NSRCG;/**<@brief */
+  int RedCutMode;/**<@brief */
   int ComplexType;/**<@brief */
   /*
    Sub-lattice

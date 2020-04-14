@@ -40,6 +40,7 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 #define M_ZGETRF zgetrf_
 #define M_ZGETRI zgetri_
 #define M_ZPOSV  zposv_
+#define M_DSYEV  dsyev_
 
 // pfaPACK
 #define M_DSKPFA dskpfa_
@@ -94,6 +95,9 @@ extern void M_ZGETRF(const int* m, const int* n, double complex* a,
 extern void M_ZGETRI(const int* n, double complex* a, const int* lda,
                      const int* ipiv, double complex* work, const int* lwork,
                      int* info );
+extern void M_DSYEV(const char* jobz, const char* uplo, const int* n, double* a,
+                    const int* lda, double* w, double* work, const int* lwork,
+                    int* info);
 
 // pfapack
 extern int M_DSKPFA(const char *uplo, const char *mthd, const int *n,

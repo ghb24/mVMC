@@ -28,6 +28,7 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 /* #include "fjcoll.h" */
 #include "vmcmain.h"
 #include "physcal_lanczos.h"
+#include "assert.h"
 
 // #define _DEBUG
 // #define _DEBUG_DUMP_SROPTO_STORE
@@ -478,6 +479,7 @@ int VMCParaOpt(MPI_Comm comm_parent, MPI_Comm comm_child1, MPI_Comm comm_child2)
 
     StartTimer(5);
     if(NSRCG!=0){
+      assert(!RedCutMode);
       info = StochasticOptCG(comm_parent);
     }else{
       info = StochasticOpt(comm_parent);

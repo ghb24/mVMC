@@ -30,23 +30,76 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 #define _SRC_STCOPT_DPOSV
 
 /* calculate the parameter change r[nSmat] from SOpt.*/
-int stcOptMain(double *g, const int nSmat, const int * const smatToParaIdx, MPI_Comm comm)
+int stcOptMain(double *g, const int nSmat, const int * const smatToParaIdx, MPI_Comm comm, FILE *fp)
 {
   /* for DPOSV */
-  char uplo;
-  int n,nrhs,lds,ldg,info;
-  double *S;
+  char uplo, jobz;
+  int n,lds,lwork,info,cutIdx,ldg,nrhs,i,j,k;
+  double *S, sum, *eigVals, *eigVecs, workSize, *work, *alpha, diagCutThreshold, tmp;
+  int rank;
+
+  MPI_Comm_rank(comm,&rank);
+
   StartTimer(53);
 
   S = (double*)calloc(nSmat*nSmat, sizeof(double));
   stcOptInit(S, g, nSmat, smatToParaIdx);
 
-  uplo='U'; n=nSmat; nrhs=1; lds=n; ldg=n;
-  M_DPOSV(&uplo, &n, &nrhs, S, &lds, g, &ldg, &info);
+  if (RedCutMode) {
+    eigVals = (double*) malloc(sizeof(double) * nSmat * 2);
+    alpha = eigVals + nSmat;
+
+    for(i = 0; i < nSmat; i++) {
+      alpha[i] = g[i];
+    }
+
+    jobz='V'; uplo='U'; n=nSmat; lds=n;
+
+    // get workspace size
+    lwork = -1;
+    M_DSYEV(&jobz, &uplo, &n, S, &lds, eigVals, &workSize, &lwork, &info);
+
+    // diagonalise S
+    lwork = (int) workSize;
+    work = (double*) malloc(sizeof(double) * lwork);
+    M_DSYEV(&jobz, &uplo, &n, S, &lds, eigVals, work, &lwork, &info);
+
+    diagCutThreshold = DSROptRedCut * eigVals[nSmat-1];
+
+    cutIdx = 0;
+    while (eigVals[cutIdx] < diagCutThreshold) {
+      cutIdx++;
+    }
+
+
+    for(k = 0; k < nSmat; k++) {
+      g[k] = 0.0;
+      for (i = cutIdx; i < nSmat; i++) {
+        for (j = 0; j < nSmat; j++) {
+          g[k] +=  S[i * nSmat + k] * S[i * nSmat + j] * alpha[j] / eigVals[i];
+        }
+      }
+    }
+
+    if (rank == 0) {
+      fprintf(fp, "%e, %e, %d \n", eigVals[nSmat-1], eigVals[0], cutIdx);
+    }
+
+    free(work);
+    free(eigVals);
+  }
+  else {
+    uplo='U'; n=nSmat; nrhs=1; lds=n; ldg=n;
+    M_DPOSV(&uplo, &n, &nrhs, S, &lds, g, &ldg, &info);
+  }
+
 
   free(S);
   StopTimer(53);
+
+
   return info;
+
 }
 
 /* calculate and store S and g in the equation to be solved, Sx=g */

@@ -49,6 +49,7 @@ int NLanczosMode; /* mode of the single Lanczos step
 
 int NStoreO; /* choice of store O: 0-> normal other-> store  */
 int NSRCG; /* choice of solver for Sx=g: 0-> (Sca)LAPACK other-> CG  */
+int RedCutMode; /* cutting mode for redundant directions: 0 -> diagonal of S, 1 -> eigenvalues of S */
 
 int NDataIdxStart; /* starting value of the file index */
 int NDataQtySmp; /* the number of output files */

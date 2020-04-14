@@ -90,6 +90,7 @@ enum ParamIdxInt{
   IdxNTwoBodyGEx, IdxNInterAll, IdxNQPOptTrans,
   IdxSROptCGMaxIter,
   IdxNBF,IdxNrange, IdxNNz, Idx2Sz, IdxNCond,
+  IdxRedCutMode,
   ParamIdxInt_End
 };
 

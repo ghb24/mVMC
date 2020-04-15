@@ -34,6 +34,8 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 #include "lslocgrn_real.c"
 #include "lslocgrn.c"
 #include "calgrn.c"
+#include "gpw_projection.h"
+#include "rbm_projection.h"
 #include <math.h>
 
 //#define _DEBUG_VMCCAL
@@ -337,7 +339,7 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
                   }
                   sumTargetLat /= 2.0;
                 }
-                distWeightDeriv[GPWDistWeightIdx[i][trnSize*k + j]] -= GPWVar[i] * sumTargetLat ;
+                distWeightDeriv[GPWDistWeightIdx[i][trnSize*k + j]] -= GPWVar[i] * sumTargetLat;
               }
             }
           }
@@ -351,6 +353,9 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
 
         for (i = 0; i < nGPWDistWeights; i++) {
           srOptO[(offset+i)*2]     *= 2.0 * creal(GPWDistWeights[i]);
+          if (GPWLinModFlag) {
+            srOptO[(offset+i)*2] /= GPWVal(eleGPWKern);
+          }
         }
       }
       offset += nGPWDistWeights;

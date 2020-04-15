@@ -285,6 +285,9 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
           #pragma omp critical
           for (i = 0; i < nGPWDistWeights; i++) {
             srOptO[(offset+i)*2] += distWeightDeriv[i];
+            if (GPWLinModFlag) {
+              srOptO[(offset+i)*2] /= GPWVal(eleGPWKern);
+            }
           }
           free(distWeightDeriv);
         }

@@ -73,15 +73,17 @@ void UpdateInSumExp(double *inSumNew, const double *inSumOld,
           inSumNew[innerId] = copysign(fabs(inSumNew[innerId]) + element*element, inSumNew[innerId]);
         }
       }
-      for (k = 0; k < countB; k++) {
-        id = hashListB[k];
-        if (signbit(inSumNew[plaqIdB + plaquetteBIdx[aPlaqSize+id]])) {
-          element = creal(distWeights[distWeightIdx[sizeB*id + a]]);
-          inSumNew[innerId] = copysign(fabs(inSumNew[innerId]) - element*element, inSumNew[innerId]);
-        }
-        if (signbit(inSumOld[plaqIdB + plaquetteBIdx[aPlaqSize+id]])) {
-          element = creal(distWeights[distWeightIdx[sizeB*id + a]]);
-          inSumNew[innerId] = copysign(fabs(inSumNew[innerId]) + element*element, inSumNew[innerId]);
+      if (siteA != siteB) {
+        for (k = 0; k < countB; k++) {
+          id = hashListB[k];
+          if (signbit(inSumNew[plaqIdB + plaquetteBIdx[aPlaqSize+id]])) {
+            element = creal(distWeights[distWeightIdx[sizeB*id + a]]);
+            inSumNew[innerId] = copysign(fabs(inSumNew[innerId]) - element*element, inSumNew[innerId]);
+          }
+          if (signbit(inSumOld[plaqIdB + plaquetteBIdx[aPlaqSize+id]])) {
+            element = creal(distWeights[distWeightIdx[sizeB*id + a]]);
+            inSumNew[innerId] = copysign(fabs(inSumNew[innerId]) + element*element, inSumNew[innerId]);
+          }
         }
       }
       aPlaqSize += plaquetteSize;
@@ -347,4 +349,89 @@ void GPWExpKernelVec(const unsigned long *configsAUp, const unsigned long *confi
   free(cfgsA);
 
   FreeMemPlaquetteIdx(plaquetteAIdx, plaquetteBIdx, distList);
+}
+
+
+void ComputeInSumExpBasisOpt(double *inSum, const int *plaquetteAIdx, const int sizeA,
+                             const int plaquetteSize, const double complex *distWeights,
+                             const int *eleNum, const int flipped) {
+  int i, k, occupationId, id;
+  double innerSum, element;
+
+  const int iPlaqSize = sizeA*plaquetteSize;
+
+  for (i = 0; i < sizeA; i++) {
+    if (flipped) {
+      inSum[sizeA*2+i] = (1-eleNum[i]) + 2 * (1-eleNum[i+sizeA]);
+    }
+    else {
+      inSum[sizeA+i] = eleNum[i] + 2 * eleNum[i+sizeA];
+    }
+  }
+
+  for (i = 0; i < sizeA; i++) {
+    innerSum = 0.0;
+    for (k = 0; k < plaquetteSize; k++) {
+      id = (int)inSum[sizeA*(flipped+1)+plaquetteAIdx[iPlaqSize+k]];
+      element = creal(distWeights[k*4+id]);
+      innerSum += element * element;
+    }
+    inSum[i] = innerSum;
+  }
+}
+
+void UpdateInSumExpBasisOpt(double *inSumNew, const double *inSumOld, const int *plaquetteAIdx,
+                            const int sizeA, const int plaquetteSize,
+                            const double complex *distWeights,
+                            const int **plaqHash, const int ri, const int rj,
+                            const int *eleNum, const int flipped) {
+  int i, a, k, occupationIdOld, occupationIdNew;
+  double elementOld, elementNew;
+
+  if (flipped) {
+    inSumNew[sizeA*2+ri] = (1-eleNum[ri]) + 2 * (1-eleNum[ri+sizeA]);
+    inSumNew[sizeA*2+rj] = (1-eleNum[rj]) + 2 * (1-eleNum[rj+sizeA]);
+  }
+  else {
+    inSumNew[sizeA+ri] = eleNum[ri] + 2 * eleNum[ri+sizeA];
+    inSumNew[sizeA+rj] = eleNum[rj] + 2 * eleNum[rj+sizeA];
+  }
+
+  for (i = 0; i < sizeA; i++) {
+    k = plaqHash[ri + i *sizeA][0];
+    occupationIdOld = (int)inSumOld[sizeA*(flipped+1)+ri];
+    occupationIdNew = (int)inSumNew[sizeA*(flipped+1)+ri];
+    elementOld = creal(distWeights[k*4+occupationIdOld]);
+    elementNew = creal(distWeights[k*4+occupationIdNew]);
+    inSumNew[i] -= elementOld*elementOld;
+    inSumNew[i] += elementNew*elementNew;
+  }
+  if (ri != rj) {
+    for (i = 0; i < sizeA; i++) {
+      k = plaqHash[rj + i *sizeA][0];
+      occupationIdOld = (int)inSumOld[sizeA*(flipped+1)+rj];
+      occupationIdNew = (int)inSumNew[sizeA*(flipped+1)+rj];
+      elementOld = creal(distWeights[k*4+occupationIdOld]);
+      elementNew = creal(distWeights[k*4+occupationIdNew]);
+      inSumNew[i] -= elementOld*elementOld;
+      inSumNew[i] += elementNew*elementNew;
+    }
+  }
+}
+
+double ComputeExpKernelBasisOpt(const int size, const int tRSym,
+                                const double *inSum, const double *inSumFlipped) {
+  int i;
+  double kernel = 0.0;
+
+  for (i = 0; i < size; i++) {
+    kernel += exp(-fabs(inSum[i]));
+  }
+  if (tRSym) {
+    for (i = 0; i < size; i++) {
+      kernel += exp(-fabs(inSumFlipped[i]));
+    }
+    kernel /= 2.0;
+  }
+  return kernel;
 }

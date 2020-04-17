@@ -517,13 +517,15 @@ void UpdateInSum(double *inSumNew, const double *inSumOld,
             inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) - 1.0/distList[id], inSumNew[i*sizeB + a]);
           }
         }
-        for (k = 0; k < countB; k++) {
-          id = hashListB[k];
-          if (signbit(inSumNew[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
-            inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) + 1.0/distList[id], inSumNew[i*sizeB + a]);
-          }
-          if (signbit(inSumOld[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
-            inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) - 1.0/distList[id], inSumNew[i*sizeB + a]);
+        if (siteA != siteB) {
+          for (k = 0; k < countB; k++) {
+            id = hashListB[k];
+            if (signbit(inSumNew[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
+              inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) + 1.0/distList[id], inSumNew[i*sizeB + a]);
+            }
+            if (signbit(inSumOld[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
+              inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) - 1.0/distList[id], inSumNew[i*sizeB + a]);
+            }
           }
         }
       }
@@ -546,13 +548,15 @@ void UpdateInSum(double *inSumNew, const double *inSumOld,
             inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) - 1.0, inSumNew[i*sizeB + a]);
           }
         }
-        for (k = 0; k < countB; k++) {
-          id = hashListB[k];
-          if (signbit(inSumNew[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
-            inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) + 1.0, inSumNew[i*sizeB + a]);
-          }
-          if (signbit(inSumOld[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
-            inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) - 1.0, inSumNew[i*sizeB + a]);
+        if (siteA != siteB) {
+          for (k = 0; k < countB; k++) {
+            id = hashListB[k];
+            if (signbit(inSumNew[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
+              inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) + 1.0, inSumNew[i*sizeB + a]);
+            }
+            if (signbit(inSumOld[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
+              inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) - 1.0, inSumNew[i*sizeB + a]);
+            }
           }
         }
       }

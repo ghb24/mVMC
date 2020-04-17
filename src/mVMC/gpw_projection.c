@@ -78,6 +78,7 @@ void CalculateGPWKern(double *eleGPWKern, double *eleGPWInSum, const int *eleNum
   for(i=0;i<nGPWIdx;i++) {
     int latId = GPWTrnLat[i];
     int offset = 0;
+    int offsetDistWeights = 0;
     int j, distWeightFlag;
 
     if (GPWThetaC[latId] > 0.0) {
@@ -89,13 +90,27 @@ void CalculateGPWKern(double *eleGPWKern, double *eleGPWInSum, const int *eleNum
 
     for (j = 0; j < i; j++) {
       offset += Nsite*GPWTrnSize[GPWTrnLat[j]];
+      offsetDistWeights += 4*GPWPlaquetteSizes[GPWTrnLat[j]];
     }
 
     if (GPWKernelFunc[latId] == 1) {
       eleGPWKern[i] = GPWKernel1(eleNum, Nsite, GPWTrnCfg[i], GPWTrnSize[latId],
                                  GPWTRSym[latId], GPWShift[latId], 0, 0);
     }
-
+    if (GPWKernelFunc[latId] == -3) {
+      ComputeInSumExpBasisOpt(eleGPWInSum+offset, GPWSysPlaquetteIdx[latId],
+                              Nsite, GPWPlaquetteSizes[latId],
+                              GPWDistWeights + offsetDistWeights, eleNum, 0);
+      if (GPWTRSym[latId]) {
+        ComputeInSumExpBasisOpt(eleGPWInSum+(GPWTrnCfgSz/2)*Nsite+offset,
+                                GPWSysPlaquetteIdx[latId],
+                                Nsite, GPWPlaquetteSizes[latId],
+                                GPWDistWeights + offsetDistWeights, eleNum, 1);
+      }
+      eleGPWKern[i] = ComputeExpKernelBasisOpt(Nsite, GPWTRSym[latId],
+                                               eleGPWInSum+offset,
+                                               eleGPWInSum+(GPWTrnCfgSz/2)*Nsite+offset);
+    }
     else {
       CalculatePairDelta(eleGPWInSum+offset, eleNum, Nsite, GPWTrnCfg[i],
                          GPWTrnSize[latId]);
@@ -179,6 +194,7 @@ void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew,
   for(i=0;i<nGPWIdx;i++) {
     int latId = GPWTrnLat[i];
     int offset = 0;
+    int offsetDistWeights = 0;
     int j, distWeightFlag;
 
     if (GPWThetaC[latId] > 0.0) {
@@ -190,11 +206,30 @@ void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew,
 
     for (j = 0; j < i; j++) {
       offset += Nsite*GPWTrnSize[GPWTrnLat[j]];
+      offsetDistWeights += 4*GPWPlaquetteSizes[GPWTrnLat[j]];
     }
 
     if (GPWKernelFunc[latId] == 1) {
       eleGPWKernNew[i] = GPWKernel1(eleNum, Nsite, GPWTrnCfg[i], GPWTrnSize[latId],
                                     GPWTRSym[latId], GPWShift[latId], 0, 0);
+    }
+    if (GPWKernelFunc[latId] == -3) {
+      UpdateInSumExpBasisOpt(eleGPWInSumNew+offset, eleGPWInSumOld+offset,
+                             GPWSysPlaquetteIdx[latId],
+                             Nsite, GPWPlaquetteSizes[latId],
+                             GPWDistWeights + offsetDistWeights,
+                             GPWSysPlaqHash[latId], ri, rj, eleNum, 0);
+      if (GPWTRSym[latId]) {
+        UpdateInSumExpBasisOpt(eleGPWInSumNew+(GPWTrnCfgSz/2)*Nsite+offset,
+                               eleGPWInSumOld+(GPWTrnCfgSz/2)*Nsite+offset,
+                               GPWSysPlaquetteIdx[latId],
+                               Nsite, GPWPlaquetteSizes[latId],
+                               GPWDistWeights + offsetDistWeights,
+                               GPWSysPlaqHash[latId], ri, rj, eleNum, 1);
+      }
+      eleGPWKernNew[i] = ComputeExpKernelBasisOpt(Nsite, GPWTRSym[latId],
+                                                  eleGPWInSumNew+offset,
+                                                  eleGPWInSumNew+(GPWTrnCfgSz/2)*Nsite+offset);
     }
 
     else {

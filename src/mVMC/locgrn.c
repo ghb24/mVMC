@@ -93,6 +93,8 @@ double complex GreenFunc2(const int ri, const int rj, const int rk, const int rl
   double complex *pfMNew = buffer; /* [NQPFull] */
   double complex *bufV   = buffer+NQPFull; /* 2*Nsize */
 
+  double *eleGPWInSumTmp = (double*)malloc(sizeof(double)*GPWTrnCfgSz*Nsite);
+
   rsi = ri + s*Nsite;
   rsj = rj + s*Nsite;
   rtk = rk + t*Nsite;
@@ -159,14 +161,14 @@ double complex GreenFunc2(const int ri, const int rj, const int rk, const int rl
   eleNum[rtl] = 0;
   eleNum[rtk] = 1;
   UpdateProjCnt(rl, rk, t, projCntNew, eleProjCnt, eleNum);
-  UpdateGPWKern(rl, rk, eleGPWKernNew, eleGPWInSumNew,
+  UpdateGPWKern(rl, rk, eleGPWKernNew, eleGPWInSumTmp,
                 eleGPWKern, eleGPWInSum, eleNum);
   eleIdx[msj] = ri;
   eleNum[rsj] = 0;
   eleNum[rsi] = 1;
   UpdateProjCnt(rj, ri, s, projCntNew, projCntNew, eleNum);
   UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWInSumNew,
-                eleGPWKern, eleGPWInSum, eleNum);
+                eleGPWKern, eleGPWInSumTmp, eleNum);
 
   z = ProjRatio(projCntNew,eleProjCnt);
   z *= GPWRatio(eleGPWKernNew,eleGPWKern);
@@ -185,6 +187,8 @@ double complex GreenFunc2(const int ri, const int rj, const int rk, const int rl
   eleIdx[msj] = rj;
   eleNum[rsj] = 1;
   eleNum[rsi] = 0;
+
+  free(eleGPWInSumTmp);
 
   return conj(z/ip);//TBC
 }

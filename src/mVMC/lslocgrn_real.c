@@ -608,7 +608,7 @@ double calHCACA1_real(const int ri, const int rj, const int rk, const int rl,
   double *oldInvM; /* [NQPFull*Nsize*Nsize;] */
   double *oldPfM;  /* [NQPFull] */
   int *projCntNew;
-  double *eleGPWKernNew, *eleGPWInSumNew;
+  double *eleGPWKernNew, *eleGPWInSumNew, *eleGPWInSumTmp;
 
   int rsi=ri+si*Nsite;
   int rsj=rj+si*Nsite;
@@ -618,11 +618,12 @@ double calHCACA1_real(const int ri, const int rj, const int rk, const int rl,
   double ipNew,z,e;
 
   RequestWorkSpaceInt(NProj);
-  RequestWorkSpaceDouble(NQPFull*(Nsize*Nsize+1)+NGPWIdx+GPWTrnCfgSz*Nsite);
+  RequestWorkSpaceDouble(NQPFull*(Nsize*Nsize+1)+NGPWIdx+2*GPWTrnCfgSz*Nsite);
 
   projCntNew = GetWorkSpaceInt(NProj);
   eleGPWKernNew = GetWorkSpaceDouble(NGPWIdx);
   eleGPWInSumNew = GetWorkSpaceDouble(GPWTrnCfgSz*Nsite);
+  eleGPWInSumTmp = GetWorkSpaceDouble(GPWTrnCfgSz*Nsite);
   oldInvM = GetWorkSpaceDouble(NQPFull*Nsize*Nsize);
   oldPfM  = GetWorkSpaceDouble(NQPFull);
 
@@ -637,7 +638,7 @@ double calHCACA1_real(const int ri, const int rj, const int rk, const int rl,
   eleNum[rsl] = 0;
   eleNum[rsk] = 1;
   UpdateProjCnt(rl, rk, sk, projCntNew, eleProjCnt, eleNum);
-  UpdateGPWKern(rl, rk, eleGPWKernNew, eleGPWInSumNew,
+  UpdateGPWKern(rl, rk, eleGPWKernNew, eleGPWInSumTmp,
                 eleGPWKern, eleGPWInSum, eleNum);
 
   /* The mj-th electron with spin si hops from rj to ri */
@@ -649,7 +650,7 @@ double calHCACA1_real(const int ri, const int rj, const int rk, const int rl,
   eleNum[rsi] = 1;
   UpdateProjCnt(rj, ri, si, projCntNew, projCntNew, eleNum);
   UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWInSumNew,
-                eleGPWKern, eleGPWInSum, eleNum);
+                eleGPWKern, eleGPWInSumTmp, eleNum);
 
   z = ProjRatio(projCntNew,eleProjCnt);
   z *= GPWRatio(eleGPWKernNew,eleGPWKern);
@@ -684,6 +685,7 @@ double calHCACA1_real(const int ri, const int rj, const int rk, const int rl,
 
   ReleaseWorkSpaceInt();
   ReleaseWorkSpaceDouble();
+
   return e*z*ipNew/ip;
 }
 

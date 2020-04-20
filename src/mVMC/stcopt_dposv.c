@@ -45,7 +45,7 @@ int stcOptMain(double *g, const int nSmat, const int * const smatToParaIdx, MPI_
   S = (double*)calloc(nSmat*nSmat, sizeof(double));
   stcOptInit(S, g, nSmat, smatToParaIdx);
 
-  if (RedCutMode) {
+  if (RedCutMode == 1) {
     eigVals = (double*) malloc(sizeof(double) * nSmat * 2);
     alpha = eigVals + nSmat;
 

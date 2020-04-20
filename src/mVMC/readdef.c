@@ -1067,7 +1067,7 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
 
         case KWRBM:
           fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
-          fidx = NProj + NGPWIdx + NGPWTrnLat;
+          fidx = NProj + NGPWIdx + NGPWTrnLat + NGPWDistWeights;
           if (GetInfoRBM(fp, RBMWeightMatrIdx, OptFlag, iComplexFlgRBM, &count_idx,
                          fidx, Nsite, RBMNVisibleIdx, RBMNHiddenIdx, defname) != 0)
             info = 1;
@@ -1076,7 +1076,7 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
         case KWOrbital:
         case KWOrbitalAntiParallel:
           /*orbitalidxs.def------------------------------------*/
-          fidx = NProj + NGPWIdx + NGPWTrnLat + NRBMTotal;
+          fidx = NProj + NGPWIdx + NGPWTrnLat + NGPWDistWeights + NRBMTotal;
           if (GetInfoOrbitalAntiParallel(fp, OrbitalIdx, OptFlag, OrbitalSgn, &count_idx,
                                          fidx, iComplexFlgOrbital, iFlgOrbitalGeneral, APFlag, Nsite, iNOrbitalAntiParallel,
                                          defname) != 0)
@@ -1084,7 +1084,7 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
           break;
 
         case KWOrbitalGeneral:
-          fidx = NProj + NGPWIdx + NGPWTrnLat + NRBMTotal;
+          fidx = NProj + NGPWIdx + NGPWTrnLat + NGPWDistWeights + NRBMTotal;
           if (GetInfoOrbitalGeneral(fp, OrbitalIdx, OptFlag, OrbitalSgn, &count_idx,
                                     fidx, iComplexFlgOrbital, iFlgOrbitalGeneral, APFlag, Nsite, NOrbitalIdx,
                                     defname) != 0)
@@ -1093,7 +1093,7 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
 
         case KWOrbitalParallel:
           /*orbitalidxt.def------------------------------------*/
-          fidx = NProj + NGPWIdx + NGPWTrnLat + NRBMTotal + iNOrbitalAntiParallel;
+          fidx = NProj + NGPWIdx + NGPWTrnLat + NGPWDistWeights + NRBMTotal + iNOrbitalAntiParallel;
           if (GetInfoOrbitalParallel(fp, OrbitalIdx, OptFlag, OrbitalSgn, &count_idx,
                                      fidx, iComplexFlgOrbital, iFlgOrbitalGeneral, APFlag, Nsite, iNOrbitalParallel,
                                      iNOrbitalAntiParallel, defname) != 0)
@@ -1132,7 +1132,7 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
 
         case KWOptTrans:
           /*qpopttrans.def------------------------------------*/
-          fidx = NProj + NGPWIdx + NGPWTrnLat + NRBMTotal + NOrbitalIdx;
+          fidx = NProj + NGPWIdx + NGPWTrnLat + NGPWDistWeights + NRBMTotal + NOrbitalIdx;
           if (GetInfoOptTrans(fp, QPOptTrans, ParaQPOptTrans, OptFlag, QPOptTransSgn, FlagOptTrans, &count_idx, fidx,
                               APFlag, Nsite, NQPOptTrans, defname) != 0)
             info = 1;

@@ -218,7 +218,7 @@ int FlagBinary=0;
 int NFileFlushInterval=1;
 
 /***** Variational Parameters *****/
-int NPara; /* the total number of variational prameters NPara= NProj + NGPWIdx + NGPWTrnLat + NSlater+ NOptTrans */
+int NPara; /* the total number of variational prameters NPara= NProj + NGPWIdx + NGPWTrnLat + NGPWDistWeights +NRBMTotal + NSlater+ NOptTrans */
 int NProj;    /* the number of correlation factor */
 int NProjBF;    /* the number of correlation factor */
 int NSlater;  /* the number of pair orbital (f_ij) = NOrbitalIdx */

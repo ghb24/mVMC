@@ -47,6 +47,8 @@ int StochasticOpt(MPI_Comm comm) {
   int si; /* index for matrix S */
   int pi; /* index for variational parameters */
 
+  int parTypes, lowerBound, upperBound;
+
   double rmax;
   int simax;
   int info=0;
@@ -98,55 +100,115 @@ int StochasticOpt(MPI_Comm comm) {
 #endif
   }
 
-// search for max and min
-  pi = 0;
-  while(OptFlag[pi] != 1 && pi < 2*nPara) {
-    pi++;
+  if (RedCutMode == 2) {
+    // per type threshold
+    parTypes = 8; //number of different variational parameter types
+  }
+  else {
+    parTypes = 1;
   }
 
-  sDiag = r[pi];
-  sDiagMax=sDiag; sDiagMin=sDiag;
-  maxId = pi;
-  minId = pi;
-
-  for(pi=0;pi<2*nPara;pi++) {
-    if (OptFlag[pi] == 1) {
-      sDiag = r[pi];
-      if(sDiag>sDiagMax) {
-        sDiagMax=sDiag;
-        maxId = pi;
-      }
-      if(sDiag<sDiagMin) {
-        sDiagMin=sDiag;
-        minId = pi;
-      }
-    }
-  }
-
-// threshold
-// optNum = number of parameters
-// cutNum: number of paramers that are cut
-  diagCutThreshold = sDiagMax*DSROptRedCut;
   si = 0;
-  for(pi=0;pi<2*nPara;pi++) {
-    //printf("DEBUG: nPara=%d pi=%d OptFlag=%d r=%lf\n",nPara,pi,OptFlag[pi],r[pi]);
-    if(OptFlag[pi]!=1) { /* fixed by OptFlag */
-      optNum++;
-      continue; //skip sDiag
+  for (i = 0; i < parTypes; i++) {
+    if (parTypes > 1) {
+      switch (i) {
+        case 0 :
+          lowerBound = 0;
+          upperBound = 2*NProj;
+          break;
+
+        case 1 :
+          lowerBound = 2*NProj;
+          upperBound = lowerBound + 2*NProjBF;
+          break;
+
+        case 2 :
+          lowerBound = 2*(NProj + NProjBF);
+          upperBound = lowerBound + 2*NGPWIdx;
+          break;
+
+        case 3 :
+          lowerBound = 2*(NProj + NProjBF + NGPWIdx);
+          upperBound = lowerBound + 2*NGPWTrnLat;
+          break;
+
+        case 4 :
+          lowerBound = 2*(NProj + NProjBF + NGPWIdx + NGPWTrnLat);
+          upperBound = lowerBound + 2*NGPWDistWeights;
+          break;
+
+        case 5 :
+          lowerBound = 2*(NProj + NProjBF + NGPWIdx + NGPWTrnLat + NGPWDistWeights);
+          upperBound = lowerBound + 2*NRBMTotal;
+          break;
+
+        case 6 :
+          lowerBound = 2*(NProj + NProjBF + NGPWIdx + NGPWTrnLat + NGPWDistWeights + NRBMTotal);
+          upperBound = lowerBound + 2*NSlater;
+          break;
+
+        case 7 :
+          lowerBound = 2*(NProj + NProjBF + NGPWIdx + NGPWTrnLat + NGPWDistWeights + NRBMTotal + NSlater);
+          upperBound = lowerBound + 2*NOptTrans;
+          break;
+      }
     }
-// s:this part will be skipped if OptFlag[pi]!=1
+    else {
+      lowerBound = 0;
+      upperBound = 2*nPara;
+    }
+
+
+    // search for max and min
+    pi = lowerBound;
+    while(OptFlag[pi] != 1 && pi < upperBound-1) {
+      pi++;
+    }
+
     sDiag = r[pi];
-    if(sDiag < diagCutThreshold && !RedCutMode) { /* fixed by diagCut */
-      cutNum++;
-    } else { /* optimized */
-      smatToParaIdx[si] = pi; // si -> restricted parameters , pi -> full paramer 0 <-> 2*NPara
-      si += 1;
+    sDiagMax=sDiag; sDiagMin=sDiag;
+    maxId = pi;
+    minId = pi;
+
+    for(pi=lowerBound;pi<upperBound;pi++) {
+      if (OptFlag[pi] == 1) {
+        sDiag = r[pi];
+        if(sDiag>sDiagMax) {
+          sDiagMax=sDiag;
+          maxId = pi;
+        }
+        if(sDiag<sDiagMin) {
+          sDiagMin=sDiag;
+          minId = pi;
+        }
+      }
     }
-    if (rank == 0) {
-      fprintf(FileRedInfo, "% .5e ", sDiag);
+
+    // threshold
+    // optNum = number of parameters
+    // cutNum: number of paramers that are cut
+    diagCutThreshold = sDiagMax*DSROptRedCut;
+    for(pi=lowerBound;pi<upperBound;pi++) {
+      //printf("DEBUG: nPara=%d pi=%d OptFlag=%d r=%lf\n",nPara,pi,OptFlag[pi],r[pi]);
+      if(OptFlag[pi]!=1) { /* fixed by OptFlag */
+        optNum++;
+        continue; //skip sDiag
+      }
+      // s:this part will be skipped if OptFlag[pi]!=1
+      sDiag = r[pi];
+      if(sDiag <= diagCutThreshold && RedCutMode != 1) { /* fixed by diagCut */
+        cutNum++;
+      } else { /* optimized */
+        smatToParaIdx[si] = pi; // si -> restricted parameters , pi -> full paramer 0 <-> 2*NPara
+        si += 1;
+      }
+      if (rank == 0) {
+        fprintf(FileRedInfo, "% .5e ", sDiag);
+      }
+      // e
     }
-// e
   }
+
   nSmat = si;
   for(si=nSmat;si<2*nPara;si++) {
     smatToParaIdx[si] = -1; // parameters that will not be optimized

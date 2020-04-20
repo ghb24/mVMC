@@ -41,77 +41,79 @@ void UpdateSlaterElm_fsz() {
   int *xqp, *xqpSgn, *xqpOpt, *xqpOptSgn;
   double complex *sltE,*sltE_i0,*sltE_i1;
 
-  #pragma omp parallel for default(shared)        \
-    private(qpidx,optidx,mpidx,                   \
-            xqpOpt,xqpOptSgn,xqp,xqpSgn,sltE,     \
-            ri,ori,tri,sgni,rsi0,rsi1,sltE_i0,sltE_i1,      \
-            rj,orj,trj,sgnj,rsj0,rsj1,slt_i0j0,slt_j0i0,slt_i0j1,slt_j1i0,slt_i1j0,slt_j0i1,slt_i1j1,slt_j1i1,\
-            tri0,tri1,trj0,trj1)
-  #pragma loop noalias
-  for(qpidx=0;qpidx<NQPFull;qpidx++) {
-    //printf("qpidx=%d \n",qpidx);
-    // note: NQPFix = NSPGaussLeg * NMPTrans, NQPFull = NQPFix * NQPOptTrans(=1);
-    // qpidx  = optidx*NQPFix+NSPGaussLeg*mpidx+spidx 
-    // optidx will not be used
-    optidx    = qpidx / NQPFix;              // optidx =0:  
-    mpidx     = (qpidx%NQPFix) / NSPGaussLeg;// mpidx !=0: momentum projection
-//  spidx     = qpidx % NSPGaussLeg;         // spidx  =0: spin projection
+  if (UseOrbital) {
+    #pragma omp parallel for default(shared)        \
+      private(qpidx,optidx,mpidx,                   \
+              xqpOpt,xqpOptSgn,xqp,xqpSgn,sltE,     \
+              ri,ori,tri,sgni,rsi0,rsi1,sltE_i0,sltE_i1,      \
+              rj,orj,trj,sgnj,rsj0,rsj1,slt_i0j0,slt_j0i0,slt_i0j1,slt_j1i0,slt_i1j0,slt_j0i1,slt_i1j1,slt_j1i1,\
+              tri0,tri1,trj0,trj1)
+    #pragma loop noalias
+    for(qpidx=0;qpidx<NQPFull;qpidx++) {
+      //printf("qpidx=%d \n",qpidx);
+      // note: NQPFix = NSPGaussLeg * NMPTrans, NQPFull = NQPFix * NQPOptTrans(=1);
+      // qpidx  = optidx*NQPFix+NSPGaussLeg*mpidx+spidx 
+      // optidx will not be used
+      optidx    = qpidx / NQPFix;              // optidx =0:  
+      mpidx     = (qpidx%NQPFix) / NSPGaussLeg;// mpidx !=0: momentum projection
+  //  spidx     = qpidx % NSPGaussLeg;         // spidx  =0: spin projection
 
-    xqpOpt    = QPOptTrans[optidx];          // xqpOpta   = 1
-    xqpOptSgn = QPOptTransSgn[optidx];       // xqpOptSgn = 1
-    xqp       = QPTrans[mpidx];              // xqp[*]=QPTrans[mpidx][*] 
-    xqpSgn    = QPTransSgn[mpidx];           // xqpSgn[*]=QPTransSgn[mpidx][*] 
-//    cs        = SPGLCosSin[spidx]; // spin projection is not used fsz
-//    cc        = SPGLCosCos[spidx];
-//    ss        = SPGLSinSin[spidx];
-    
-    sltE      = SlaterElm + qpidx*Nsite2*Nsite2;
-    // for fsz: only for translational projection
-    // spin projection is not implemented in ver.1.0
-    for(ri=0;ri<Nsite;ri++) {
-      ori     = xqpOpt[ri]; // ori = ri
-      tri     = xqp[ori];   // ori -> tri momentum projection
-      tri0    = tri;        // fsz up
-      tri1    = tri0+Nsite; // fsz down
-      sgni    = xqpSgn[ori]*xqpOptSgn[ri];
-      rsi0    = ri;       // up
-      rsi1    = ri+Nsite; // down
-      sltE_i0 = sltE + rsi0*Nsite2; // sltE_i0[*]=sltE[rsi0*Nsite2][*]
-      sltE_i1 = sltE + rsi1*Nsite2; // sltE_i1[*]=sltE[rsi1*Nsite2][*]
+      xqpOpt    = QPOptTrans[optidx];          // xqpOpta   = 1
+      xqpOptSgn = QPOptTransSgn[optidx];       // xqpOptSgn = 1
+      xqp       = QPTrans[mpidx];              // xqp[*]=QPTrans[mpidx][*] 
+      xqpSgn    = QPTransSgn[mpidx];           // xqpSgn[*]=QPTransSgn[mpidx][*] 
+  //    cs        = SPGLCosSin[spidx]; // spin projection is not used fsz
+  //    cc        = SPGLCosCos[spidx];
+  //    ss        = SPGLSinSin[spidx];
       
-      for(rj=0;rj<Nsite;rj++) {
-        //
-        orj  = xqpOpt[rj];
-        trj  = xqp[orj];
-        //
-        trj0 = trj;       // fsz up
-        trj1 = trj+Nsite; // fsz down
-        sgnj = xqpSgn[orj]*xqpOptSgn[rj];
-        //
-        rsj0 = rj;
-        rsj1 = rj+Nsite;
-        //
-// for fsz        
-        slt_i0j0        = Slater[ OrbitalIdx[tri0][trj0] ] * (double)(OrbitalSgn[tri0][trj0]*sgni*sgnj);
-        slt_j0i0        = Slater[ OrbitalIdx[trj0][tri0] ] * (double)(OrbitalSgn[trj0][tri0]*sgni*sgnj);
+      sltE      = SlaterElm + qpidx*Nsite2*Nsite2;
+      // for fsz: only for translational projection
+      // spin projection is not implemented in ver.1.0
+      for(ri=0;ri<Nsite;ri++) {
+        ori     = xqpOpt[ri]; // ori = ri
+        tri     = xqp[ori];   // ori -> tri momentum projection
+        tri0    = tri;        // fsz up
+        tri1    = tri0+Nsite; // fsz down
+        sgni    = xqpSgn[ori]*xqpOptSgn[ri];
+        rsi0    = ri;       // up
+        rsi1    = ri+Nsite; // down
+        sltE_i0 = sltE + rsi0*Nsite2; // sltE_i0[*]=sltE[rsi0*Nsite2][*]
+        sltE_i1 = sltE + rsi1*Nsite2; // sltE_i1[*]=sltE[rsi1*Nsite2][*]
+        
+        for(rj=0;rj<Nsite;rj++) {
+          //
+          orj  = xqpOpt[rj];
+          trj  = xqp[orj];
+          //
+          trj0 = trj;       // fsz up
+          trj1 = trj+Nsite; // fsz down
+          sgnj = xqpSgn[orj]*xqpOptSgn[rj];
+          //
+          rsj0 = rj;
+          rsj1 = rj+Nsite;
+          //
+  // for fsz        
+          slt_i0j0        = Slater[ OrbitalIdx[tri0][trj0] ] * (double)(OrbitalSgn[tri0][trj0]*sgni*sgnj);
+          slt_j0i0        = Slater[ OrbitalIdx[trj0][tri0] ] * (double)(OrbitalSgn[trj0][tri0]*sgni*sgnj);
 
-        slt_i0j1        = Slater[ OrbitalIdx[tri0][trj1] ] * (double)(OrbitalSgn[tri0][trj1]*sgni*sgnj);
-        slt_j1i0        = Slater[ OrbitalIdx[trj1][tri0] ] * (double)(OrbitalSgn[trj1][tri0]*sgni*sgnj);
+          slt_i0j1        = Slater[ OrbitalIdx[tri0][trj1] ] * (double)(OrbitalSgn[tri0][trj1]*sgni*sgnj);
+          slt_j1i0        = Slater[ OrbitalIdx[trj1][tri0] ] * (double)(OrbitalSgn[trj1][tri0]*sgni*sgnj);
 
-        slt_i1j0        = Slater[ OrbitalIdx[tri1][trj0] ] * (double)(OrbitalSgn[tri1][trj0]*sgni*sgnj);
-        slt_j0i1        = Slater[ OrbitalIdx[trj0][tri1] ] * (double)(OrbitalSgn[trj0][tri1]*sgni*sgnj);
+          slt_i1j0        = Slater[ OrbitalIdx[tri1][trj0] ] * (double)(OrbitalSgn[tri1][trj0]*sgni*sgnj);
+          slt_j0i1        = Slater[ OrbitalIdx[trj0][tri1] ] * (double)(OrbitalSgn[trj0][tri1]*sgni*sgnj);
 
-        slt_i1j1        = Slater[ OrbitalIdx[tri1][trj1] ] * (double)(OrbitalSgn[tri1][trj1]*sgni*sgnj);
-        slt_j1i1        = Slater[ OrbitalIdx[trj1][tri1] ] * (double)(OrbitalSgn[trj1][tri1]*sgni*sgnj);
+          slt_i1j1        = Slater[ OrbitalIdx[tri1][trj1] ] * (double)(OrbitalSgn[tri1][trj1]*sgni*sgnj);
+          slt_j1i1        = Slater[ OrbitalIdx[trj1][tri1] ] * (double)(OrbitalSgn[trj1][tri1]*sgni*sgnj);
 
-        // F_{IJ}-F_{JI}
-        sltE_i0[rsj0] =  slt_i0j0-slt_j0i0;   // up   - up
-        sltE_i0[rsj1] =  slt_i0j1-slt_j1i0;   // up   - down
-        sltE_i1[rsj0] =  slt_i1j0-slt_j0i1;   // down - up
-        sltE_i1[rsj1] =  slt_i1j1-slt_j1i1;   // down - down 
-      }// for rj 
-    }// for ri
-  }//for qpidx
+          // F_{IJ}-F_{JI}
+          sltE_i0[rsj0] =  slt_i0j0-slt_j0i0;   // up   - up
+          sltE_i0[rsj1] =  slt_i0j1-slt_j1i0;   // up   - down
+          sltE_i1[rsj0] =  slt_i1j0-slt_j0i1;   // down - up
+          sltE_i1[rsj1] =  slt_i1j1-slt_j1i1;   // down - down 
+        }// for rj 
+      }// for ri
+    }//for qpidx
+  }
   return;
 }
 

@@ -265,8 +265,13 @@ char *ReadBuffGPWInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, in
       fprintf(stderr, "Error: Lattice reference (in gpwidx.def) not found.\n");
     }
 
-    *iTrnCfgSzBuf += latSz[latIdIntern];
-    if (latType[latIdIntern] < 0) {
+    if (latType[latIdIntern] == -3) {
+      *iTrnCfgSzBuf += 2;
+    }
+    else {
+      *iTrnCfgSzBuf += latSz[latIdIntern];
+    }
+    if (latType[latIdIntern] < 0 && latType[latIdIntern] != -3) {
       if (latType[latIdIntern] == -1) {
         numDist = abs(cutRad[latIdIntern]);
       }
@@ -1253,18 +1258,20 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
   j = 0;
   k = 0;
   for (i = 0; i < NGPWIdx; i++) {
-    GPWTrnCfg[i] = GPWTrnCfgFlat+j;
-    j += 2*GPWTrnSize[GPWTrnLat[i]];
-    if (GPWKernelFunc[GPWTrnLat[i]] < 0) {
-      GPWDistWeightIdx[i] = GPWDistWeightIdx[0] + k;
-      if (GPWKernelFunc[GPWTrnLat[i]] == -1) {
-        k += GPWTrnSize[GPWTrnLat[i]]*abs(GPWCutRad[GPWTrnLat[i]]);
-      }
-      else if (GPWKernelFunc[GPWTrnLat[i]] == -2) {
-        k += GPWTrnSize[GPWTrnLat[i]]*(abs(GPWCutRad[GPWTrnLat[i]])-1);
-      }
-      else {
-        printf("Error. Kernel type not known!\n");
+    if (GPWKernelFunc[GPWTrnLat[i]] != -3) {
+      GPWTrnCfg[i] = GPWTrnCfgFlat+j;
+      j += 2*GPWTrnSize[GPWTrnLat[i]];
+      if (GPWKernelFunc[GPWTrnLat[i]] < 0 && GPWKernelFunc[GPWTrnLat[i]] != -3) {
+        GPWDistWeightIdx[i] = GPWDistWeightIdx[0] + k;
+        if (GPWKernelFunc[GPWTrnLat[i]] == -1) {
+          k += GPWTrnSize[GPWTrnLat[i]]*abs(GPWCutRad[GPWTrnLat[i]]);
+        }
+        else if (GPWKernelFunc[GPWTrnLat[i]] == -2) {
+          k += GPWTrnSize[GPWTrnLat[i]]*(abs(GPWCutRad[GPWTrnLat[i]])-1);
+        }
+        else {
+          printf("Error. Kernel type not known!\n");
+        }
       }
     }
   }
@@ -1280,7 +1287,7 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
       GPWPlaquetteSizes[i] = SetupPlaquetteIdx(-(GPWKernelFunc[i]), SysNeighbours, Nsite, GPWTrnNeighbours[i], GPWTrnSize[i], Dim,
                                                &(GPWSysPlaquetteIdx[i]), &(GPWTrnPlaquetteIdx[i]), &(GPWDistList[i]), 0);
     }
-    else if (GPWKernelFunc[i] == -1) {
+    else if ((GPWKernelFunc[i] == -1) || (GPWKernelFunc[i] == -3)) {
       GPWPlaquetteSizes[i] = SetupPlaquetteIdx(GPWCutRad[i], SysNeighbours, Nsite, GPWTrnNeighbours[i], GPWTrnSize[i], Dim,
                                                &(GPWSysPlaquetteIdx[i]), &(GPWTrnPlaquetteIdx[i]), &(GPWDistList[i]), 1);
     }
@@ -2347,13 +2354,15 @@ int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int
       trnLattices[j] = latIdIntern;
       trnSz = trnSize[latIdIntern];
 
-      for (k = 0; k < trnSz; k++) {
-        trnCfg[storeId+k] = (trnCfgUp >> k) & 1;
-        trnCfg[storeId+k+trnSz] = (trnCfgDown >> k) & 1;
+      if (kernFunc[latIdIntern] != -3) {
+        for (k = 0; k < trnSz; k++) {
+          trnCfg[storeId+k] = (trnCfgUp >> k) & 1;
+          trnCfg[storeId+k+trnSz] = (trnCfgDown >> k) & 1;
+        }
+        storeId += 2*trnSz;
       }
-      storeId += 2*trnSz;
 
-      if (kernFunc[latIdIntern] < 0) {
+      if (kernFunc[latIdIntern] < 0 && kernFunc[latIdIntern] != -3) {
         if (kernFunc[latIdIntern] == -1) {
           numDist = abs(cutRad[latIdIntern]);
         }

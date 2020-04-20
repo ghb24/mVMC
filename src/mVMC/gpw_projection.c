@@ -89,7 +89,12 @@ void CalculateGPWKern(double *eleGPWKern, double *eleGPWInSum, const int *eleNum
     }
 
     for (j = 0; j < i; j++) {
-      offset += Nsite*GPWTrnSize[GPWTrnLat[j]];
+      if (GPWKernelFunc[GPWTrnLat[j]] != -3) {
+        offset += Nsite*GPWTrnSize[GPWTrnLat[j]];
+      }
+      else {
+        offset += Nsite * 2;
+      }
       offsetDistWeights += 4*GPWPlaquetteSizes[GPWTrnLat[j]];
     }
 
@@ -205,7 +210,12 @@ void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew,
     }
 
     for (j = 0; j < i; j++) {
-      offset += Nsite*GPWTrnSize[GPWTrnLat[j]];
+      if (GPWKernelFunc[GPWTrnLat[j]] != -3) {
+        offset += Nsite*GPWTrnSize[GPWTrnLat[j]];
+      }
+      else {
+        offset += Nsite * 2;
+      }
       offsetDistWeights += 4*GPWPlaquetteSizes[GPWTrnLat[j]];
     }
 

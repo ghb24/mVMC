@@ -358,11 +358,9 @@ void ComputeInSumExpBasisOpt(double *inSum, const int *plaquetteAIdx, const int 
   int i, k, occupationId, id;
   double innerSum, element;
 
-  const int iPlaqSize = sizeA*plaquetteSize;
-
   for (i = 0; i < sizeA; i++) {
     if (flipped) {
-      inSum[sizeA*2+i] = (1-eleNum[i]) + 2 * (1-eleNum[i+sizeA]);
+      inSum[sizeA+i] = (1-eleNum[i]) + 2 * (1-eleNum[i+sizeA]);
     }
     else {
       inSum[sizeA+i] = eleNum[i] + 2 * eleNum[i+sizeA];
@@ -372,7 +370,7 @@ void ComputeInSumExpBasisOpt(double *inSum, const int *plaquetteAIdx, const int 
   for (i = 0; i < sizeA; i++) {
     innerSum = 0.0;
     for (k = 0; k < plaquetteSize; k++) {
-      id = (int)inSum[sizeA*(flipped+1)+plaquetteAIdx[iPlaqSize+k]];
+      id = (int)inSum[sizeA+plaquetteAIdx[i*plaquetteSize+k]];
       element = creal(distWeights[k*4+id]);
       innerSum += element * element;
     }
@@ -389,28 +387,29 @@ void UpdateInSumExpBasisOpt(double *inSumNew, const double *inSumOld, const int 
   double elementOld, elementNew;
 
   if (flipped) {
-    inSumNew[sizeA*2+ri] = (1-eleNum[ri]) + 2 * (1-eleNum[ri+sizeA]);
-    inSumNew[sizeA*2+rj] = (1-eleNum[rj]) + 2 * (1-eleNum[rj+sizeA]);
+    inSumNew[sizeA+ri] = (1-eleNum[ri]) + 2 * (1-eleNum[ri+sizeA]);
+    inSumNew[sizeA+rj] = (1-eleNum[rj]) + 2 * (1-eleNum[rj+sizeA]);
   }
   else {
     inSumNew[sizeA+ri] = eleNum[ri] + 2 * eleNum[ri+sizeA];
     inSumNew[sizeA+rj] = eleNum[rj] + 2 * eleNum[rj+sizeA];
   }
 
+  occupationIdOld = (int)inSumOld[sizeA+ri];
+  occupationIdNew = (int)inSumNew[sizeA+ri];
   for (i = 0; i < sizeA; i++) {
     k = plaqHash[ri + i *sizeA][0];
-    occupationIdOld = (int)inSumOld[sizeA*(flipped+1)+ri];
-    occupationIdNew = (int)inSumNew[sizeA*(flipped+1)+ri];
     elementOld = creal(distWeights[k*4+occupationIdOld]);
     elementNew = creal(distWeights[k*4+occupationIdNew]);
+
     inSumNew[i] -= elementOld*elementOld;
     inSumNew[i] += elementNew*elementNew;
   }
   if (ri != rj) {
+    occupationIdOld = (int)inSumOld[sizeA+rj];
+    occupationIdNew = (int)inSumNew[sizeA+rj];
     for (i = 0; i < sizeA; i++) {
       k = plaqHash[rj + i *sizeA][0];
-      occupationIdOld = (int)inSumOld[sizeA*(flipped+1)+rj];
-      occupationIdNew = (int)inSumNew[sizeA*(flipped+1)+rj];
       elementOld = creal(distWeights[k*4+occupationIdOld]);
       elementNew = creal(distWeights[k*4+occupationIdNew]);
       inSumNew[i] -= elementOld*elementOld;

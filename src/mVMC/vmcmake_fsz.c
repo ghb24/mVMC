@@ -33,7 +33,7 @@ int makeInitialSample_fsz(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt
 void copyFromBurnSample_fsz(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,int *eleSpn,
                             double *eleGPWKern, double *eleGPWInSum);
 void copyToBurnSample_fsz(const int *eleIdx, const int *eleCfg, const int *eleNum, const int *eleProjCnt,
-                      const int *eleSpn, const double *eleGPWKern, double *eleGPWInSum);
+                      const int *eleSpn);
 void saveEleConfig_fsz(const int sample, const double complex logIp, const double complex rbmVal,
                    const int *eleIdx, const int *eleCfg, const int *eleNum, const int *eleProjCnt,
                    const int *eleSpn, const double *eleGPWKern, const double *eleGPWInSum);
@@ -404,8 +404,7 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
 #ifdef _DEBUG_DETAIL
   fprintf(stdout, "Debug: copyToBurnSample_fsz\n");
 #endif
-  copyToBurnSample_fsz(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleSpn,TmpEleGPWKern,
-                       TmpEleGPWInSum);
+  copyToBurnSample_fsz(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleSpn);
 #ifdef _DEBUG_DETAIL
   fprintf(stdout, "Debug: Finish copyToBurnSample_fsz\n");
 #endif
@@ -512,35 +511,24 @@ void copyFromBurnSample_fsz(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjC
                             int *eleSpn, double *eleGPWKern, double *eleGPWInSum) {
   int i,n;
   const int *burnEleIdx = BurnEleIdx;// BurnEleIdx is global
-  const int nGPWIdx = NGPWIdx;
-  const double *burnGPWKern = BurnEleGPWKern;
-  const double *burnGPWInSum = BurnEleGPWInSum;
 //  n = Nsize + 2*Nsite + 2*Nsite + NProj+Nsite;//fsz
   n = Nsize + 2*Nsite + 2*Nsite + NProj+Nsize;//fsz
   #pragma loop noalias
   for(i=0;i<n;i++) eleIdx[i] = burnEleIdx[i];
 
-  #pragma loop noalias
-  for(i=0;i<nGPWIdx;i++) eleGPWKern[i] = burnGPWKern[i];
-  memcpy(eleGPWInSum, burnGPWInSum, sizeof(double)*GPWTrnCfgSz*Nsite);
+  CalculateGPWKern(eleGPWKern, eleGPWInSum, eleNum);
 
   return;
 }
 
 void copyToBurnSample_fsz(const int *eleIdx, const int *eleCfg, const int *eleNum, const int *eleProjCnt,
-                      const int *eleSpn, const double *eleGPWKern, double *eleGPWInSum) {
+                      const int *eleSpn) {
   int i,n;
   int *burnEleIdx = BurnEleIdx;
-  const int nGPWIdx = NGPWIdx;
-  double *burnGPWKern = BurnEleGPWKern;
-  double *burnGPWInSum = BurnEleGPWInSum;
   //n = Nsize + 2*Nsite + 2*Nsite + NProj+Nsite;//fsz
   n = Nsize + 2*Nsite + 2*Nsite + NProj+Nsize;//fsz
   #pragma loop noalias
   for(i=0;i<n;i++) burnEleIdx[i] = eleIdx[i];
-  #pragma loop noalias
-  for(i=0;i<nGPWIdx;i++) burnGPWKern[i] = eleGPWKern[i];
-  memcpy(burnGPWInSum, eleGPWInSum, sizeof(double)*GPWTrnCfgSz*Nsite);
 
   return;
 }

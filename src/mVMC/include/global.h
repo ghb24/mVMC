@@ -276,8 +276,6 @@ int *BurnEleCfg;
 int *BurnEleNum;
 int *BurnEleProjCnt;
 int *BurnEleSpn;
-double *BurnEleGPWKern;
-double *BurnEleGPWInSum;
 int BurnFlag=0; /* 0: off, 1: on */
 
 /***** Slater Elements ******/

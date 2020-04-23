@@ -406,8 +406,6 @@ void SetMemory() {
   BurnEleNum        = BurnEleCfg + 2*Nsite;
   BurnEleProjCnt    = BurnEleNum + 2*Nsite;
   BurnEleSpn        = BurnEleProjCnt + NProj; //fsz
-  BurnEleGPWKern     = (double*)malloc(sizeof(double)*NGPWIdx);
-  BurnEleGPWInSum     = (double*)malloc(sizeof(double)*GPWTrnCfgSz*Nsite);
 
   /***** Slater Elements ******/
   SlaterElm = (double complex*)malloc( sizeof(double complex)*(NQPFull*(2*Nsite)*(2*Nsite)) );
@@ -580,8 +578,6 @@ void FreeMemory() {
   free(InvM);
   free(SlaterElm);
 
-  free(BurnEleGPWInSum);
-  free(BurnEleGPWKern);
   free(BurnEleIdx);
   free(TmpEleGPWInSum);
   free(TmpEleGPWKern);

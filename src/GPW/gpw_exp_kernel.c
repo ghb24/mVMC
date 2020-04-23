@@ -428,7 +428,7 @@ double ComputeExpKernelBasisOpt(const int size, const int tRSym,
   }
   if (tRSym) {
     for (i = 0; i < size; i++) {
-      kernel += exp(-fabs(inSumFlipped[i]));
+      kernel += exp(-inSumFlipped[i]);
     }
     kernel /= 2.0;
   }

@@ -266,8 +266,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
 
   } /* end of outstep */
 
-  copyToBurnSample(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt, TmpEleGPWKern,
-                   TmpEleGPWInSum);
+  copyToBurnSample(TmpEleIdx, TmpEleCfg, TmpEleNum, TmpEleProjCnt);
   BurnFlag = 1;
 
   free(eleGPWInSumNew);

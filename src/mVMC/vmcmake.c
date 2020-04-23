@@ -268,8 +268,7 @@ void VMCMakeSample(MPI_Comm comm) {
 
   } /* end of outstep */
 
-  copyToBurnSample(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt,TmpEleGPWKern,
-                   TmpEleGPWInSum);
+  copyToBurnSample(TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleProjCnt);
   BurnFlag=1;
 
   free(eleGPWInSumNew);
@@ -356,34 +355,22 @@ void copyFromBurnSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
                         double *eleGPWKern, double *eleGPWInSum) {
   int i,n;
   const int *burnEleIdx = BurnEleIdx;
-  const int nGPWIdx = NGPWIdx;
-  const double *burnGPWKern = BurnEleGPWKern;
-  const double *burnGPWInSum = BurnEleGPWInSum;
 
   n = Nsize + 2*Nsite + 2*Nsite + NProj;
   #pragma loop noalias
   for(i=0;i<n;i++) eleIdx[i] = burnEleIdx[i];
-  #pragma loop noalias
-  for(i=0;i<nGPWIdx;i++) eleGPWKern[i] = burnGPWKern[i];
-  memcpy(eleGPWInSum, burnGPWInSum, sizeof(double)*GPWTrnCfgSz*Nsite);
+  CalculateGPWKern(eleGPWKern, eleGPWInSum, eleNum);
   return;
 }
 
 void copyToBurnSample(const int *eleIdx, const int *eleCfg, const int *eleNum,
-                      const int *eleProjCnt, const double *eleGPWKern,
-                      double *eleGPWInSum) {
+                      const int *eleProjCnt) {
   int i,n;
   int *burnEleIdx = BurnEleIdx;
-  const int nGPWIdx = NGPWIdx;
-  double *burnGPWKern = BurnEleGPWKern;
-  double *burnGPWInSum = BurnEleGPWInSum;
 
   n = Nsize + 2*Nsite + 2*Nsite + NProj;
   #pragma loop noalias
   for(i=0;i<n;i++) burnEleIdx[i] = eleIdx[i];
-  #pragma loop noalias
-  for(i=0;i<nGPWIdx;i++) burnGPWKern[i] = eleGPWKern[i];
-  memcpy(burnGPWInSum, eleGPWInSum, sizeof(double)*GPWTrnCfgSz*Nsite);
 
   return;
 }

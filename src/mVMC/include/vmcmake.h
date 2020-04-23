@@ -10,8 +10,7 @@ int makeInitialSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, do
 void copyFromBurnSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
                         double *eleGPWKern, double *eleGPWInSum);
 void copyToBurnSample(const int *eleIdx, const int *eleCfg, const int *eleNum,
-                      const int *eleProjCnt, const double *eleGPWKern,
-                      double *eleGPWInSum);
+                      const int *eleProjCnt);
 void saveEleConfig(const int sample, const double complex logIp, const double complex rbmVal, const int *eleIdx,
                    const int *eleCfg, const int *eleNum, const int *eleProjCnt,
                    const double *eleGPWKern, const double *eleGPWInSum);

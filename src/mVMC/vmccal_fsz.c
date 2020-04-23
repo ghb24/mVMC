@@ -271,14 +271,14 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
               for (l = 0; l < Nsite; l++) {
                 for (k = 0; k < plaqSize; k++) {
                   occId = (int)inSum[Nsite + sysPlaquetteIdx[l*plaqSize+k]];
-                  distWeightDeriv[basisOptOffset + 4*k + occId] -= GPWVar[i]*exp(-fabs(inSum[l]));
+                  distWeightDeriv[basisOptOffset + 4*k + occId] -= GPWVar[i]*exp(-inSum[l]);
                 }
               }
               if (GPWTRSym[latId]) {
                 for (l = 0; l < Nsite; l++) {
                   for (k = 0; k < plaqSize; k++) {
                     occId = (int)inSumFlipped[Nsite + sysPlaquetteIdx[l*plaqSize+k]];
-                    distWeightDeriv[basisOptOffset + 4*k + occId] -= GPWVar[i]*exp(-fabs(inSumFlipped[l]));
+                    distWeightDeriv[basisOptOffset + 4*k + occId] -= GPWVar[i]*exp(-inSumFlipped[l]);
                   }
                 }
               }

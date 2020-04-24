@@ -1837,6 +1837,7 @@ void SetDefaultValuesModPara(int *bufInt, double *bufDouble) {
   bufInt[IdxNGPWTrnLat] = 0;
   bufInt[IdxTrnLatNbSz] = 0;
   bufInt[IdxTrnCfgSz] = 0;
+  bufInt[IdxNGPWDistWeights] = 0;
   bufInt[IdxNRBMVisible] = 0;
   bufInt[IdxNRBMHidden] = 0;
   bufInt[IdxUseOrb] = 1;

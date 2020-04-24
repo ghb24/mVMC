@@ -45,7 +45,7 @@ void GPWExpKernelMat(const unsigned long *configsAUp,
                      const unsigned long *configsBDown,
                      const int *neighboursB, const int sizeB, const int numB,
                      const double *distWeights, const int numDistWeights,
-                     const int **distWeightIdx, const int dim, const int rC,
+                     int **distWeightIdx, const int dim, const int rC,
                      const int tRSym, const int shift, const int startIdA,
                      const int startIdB, const int centralDelta,
                      const int symmetric, double *kernelMatr);
@@ -71,7 +71,7 @@ void ComputeInSumExpBasisOpt(double *inSum, const int *plaquetteAIdx, const int 
 void UpdateInSumExpBasisOpt(double *inSumNew, const double *inSumOld,
                             const int *plaquetteAIdx, const int sizeA,
                             const int plaquetteSize, const double complex *distWeights,
-                            const int **plaqHash, const int ri, const int rj,
+                            int **plaqHash, const int ri, const int rj,
                             const int *eleNum, const int flipped);
 
 // Computes the exponential kernel with optimised basis

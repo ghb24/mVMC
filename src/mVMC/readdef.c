@@ -1832,12 +1832,15 @@ void SetDefaultValuesModPara(int *bufInt, double *bufDouble) {
   bufInt[IdxNJast] = 0;
   bufInt[IdxNDH2] = 0;
   bufInt[IdxNDH4] = 0;
-  bufInt[IdxDim] = 1;
   bufInt[IdxNGPW] = 0;
   bufInt[IdxNGPWTrnLat] = 0;
   bufInt[IdxTrnLatNbSz] = 0;
   bufInt[IdxTrnCfgSz] = 0;
+  bufInt[IdxDistWeightsSz] = 0;
+  bufInt[IdxLinModFlag] = 0;
+  bufInt[IdxGPWShiftFlag] = 0;
   bufInt[IdxNGPWDistWeights] = 0;
+  bufInt[IdxDim] = 1;
   bufInt[IdxNRBMVisible] = 0;
   bufInt[IdxNRBMHidden] = 0;
   bufInt[IdxUseOrb] = 1;

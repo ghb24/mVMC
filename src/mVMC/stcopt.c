@@ -241,14 +241,14 @@ int StochasticOpt(MPI_Comm comm) {
   /* calculate r[i]: global vector [nSmat] */
   info = stcOptMain(r, nSmat, smatToParaIdx, comm, FileSRinfo);
 
-  if (NGPWDistWeights > 0 && rank == 0) {
-    FileThetaOpt = fopen("output/dist_weight_opt.dat", "a+");
-    for (i = 0; i < NGPWDistWeights; i++) {
-      fprintf(FileThetaOpt, "%e    ", creal(GPWDistWeights[i]));
-    }
-    fprintf(FileThetaOpt, "\n");
-    fclose(FileThetaOpt);
-  }
+  //if (NGPWDistWeights > 0 && rank == 0) {
+  //  FileThetaOpt = fopen("output/dist_weight_opt.dat", "a+");
+  //  for (i = 0; i < NGPWDistWeights; i++) {
+  //    fprintf(FileThetaOpt, "%e    ", creal(GPWDistWeights[i]));
+  //  }
+  //  fprintf(FileThetaOpt, "\n");
+  //  fclose(FileThetaOpt);
+  //}
 
   StopTimer(51);
   StartTimer(52);

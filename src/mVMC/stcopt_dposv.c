@@ -33,9 +33,9 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 int stcOptMain(double *g, const int nSmat, const int * const smatToParaIdx, MPI_Comm comm, FILE *fp)
 {
   /* for DPOSV */
-  char uplo, jobz;
-  int n,lds,lwork,info,cutIdx,ldg,nrhs,i,j,k;
-  double *S, sum, *eigVals, *eigVecs, workSize, *work, *alpha, diagCutThreshold, tmp;
+  char uplo, jobz, trans;
+  int n,lds,lwork,info,cutIdx,ldg,nrhs,i,j,k,inca,incy;
+  double *S, sum, *eigVals, *eigVecs, workSize, *work, *alpha, *y, diagCutThreshold, tmp, prefactor, beta;
   int rank;
 
   MPI_Comm_rank(comm,&rank);
@@ -48,10 +48,7 @@ int stcOptMain(double *g, const int nSmat, const int * const smatToParaIdx, MPI_
   if (RedCutMode == 1) {
     eigVals = (double*) malloc(sizeof(double) * nSmat * 2);
     alpha = eigVals + nSmat;
-
-    for(i = 0; i < nSmat; i++) {
-      alpha[i] = g[i];
-    }
+    memcpy(alpha, g, sizeof(double)*nSmat);
 
     jobz='V'; uplo='U'; n=nSmat; lds=n;
 
@@ -71,15 +68,29 @@ int stcOptMain(double *g, const int nSmat, const int * const smatToParaIdx, MPI_
       cutIdx++;
     }
 
+    trans='T';
+    n = nSmat;
+    prefactor = 1.0;
+    beta = 0.0;
+    inca = incy = 1;
 
-    for(k = 0; k < nSmat; k++) {
-      g[k] = 0.0;
-      for (i = cutIdx; i < nSmat; i++) {
-        for (j = 0; j < nSmat; j++) {
-          g[k] +=  S[i * nSmat + k] * S[i * nSmat + j] * alpha[j] / eigVals[i];
-        }
+    //compute g = U^T * alpha
+    M_DGEMV(&trans, &n, &n, &prefactor, S, &n, alpha, &inca, &beta, g, &incy);
+
+    // cut non-relevant directions and set alpha = 1/lambda * (U^T * alpha)
+    #pragma omp parallel for default(shared) private(i)
+    for (i = 0; i < nSmat; i++) {
+      if(i < cutIdx) {
+        alpha[i] = 0.0;
+      }
+      else {
+        alpha[i] = g[i]/eigVals[i];
       }
     }
+
+    trans='N';
+    M_DGEMV(&trans, &n, &n, &prefactor, S, &n, alpha, &inca, &beta, g, &incy);
+
 
     if (rank == 0) {
       fprintf(fp, "%e, %e, %d \n", eigVals[nSmat-1], eigVals[0], cutIdx);

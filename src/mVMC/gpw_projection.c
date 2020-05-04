@@ -319,5 +319,6 @@ void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew,
       }
     }
   }
+
   return;
 }

@@ -142,88 +142,88 @@ void SlaterElmDiff_fsz(double complex *srOptO, const double complex ip, int *ele
   double complex *buf, *buffer;
   double complex tmp;
 
-  RequestWorkSpaceInt(2*nTrans*Nsize*Nsize);
-  RequestWorkSpaceComplex(NQPFull*NSlater);
-
-  transOrbIdx = GetWorkSpaceInt(nTrans*Nsize*Nsize); /* transOrbIdx[mpidx][msi][msj] */
-  transOrbSgn = GetWorkSpaceInt(nTrans*Nsize*Nsize); /* transOrbSgn[mpidx][msi][msj] */
-  buffer = GetWorkSpaceComplex(NQPFull*NSlater);
-
-  for(i=0;i<nBuf;i++) buffer[i]=0.0;
-
-  #pragma omp parallel for default(shared)                        \
-    private(qpidx,optidx,mpidx,msi,msj,xqp,xqpSgn,xqpOpt,xqpOptSgn,\
-            ri,ori,tri,sgni,rj,orj,trj,sgnj,si,sj,                       \
-            tOrbIdx,tOrbIdx_i,tOrbSgn,tOrbSgn_i,orbitalIdx_i)
-  #pragma loop noalias
-// this loop for making transObrIdx,transOrbSgn
-// transOrbIdx (NMPTrans * NQPOptTrans)*(nsize*nsize) nsize=2Ne
-// transOrbSgn (NMPTrans * NQPOptTrans)*(nsize*nsize) nsize=2Ne
-  for(qpidx=0;qpidx<nTrans;qpidx++) {//only for trans op. // nTran=nMPTrans*(NQPOptTrans=1)=nMPTrans
-    optidx    = qpidx / nMPTrans;                // qpidx=mpidx+nMPTrans*optidx
-    mpidx     = qpidx % nMPTrans; 
-                                                 // QPOptTrans:     NQPOptTrans* Nsite matrix :  usually NQPOptTrans = 1
-                                                 // QPOptTransSgn:  NQPOptTrans* Nsite matrix :  usually NQPOptTrans = 1 
-    xqpOpt    = QPOptTrans[optidx];              // xqpOpt[]    = QPOptTrans[optidx][]    : usually optidx=0 and not be used
-    xqpOptSgn = QPOptTransSgn[optidx];           // xqpOptSgn[] = QPOptTransSgn[optidx][] : usually optidx=0 and not be used
-    xqp       = QPTrans[mpidx];                  // xqp    =  QPTrans[mpidx][]
-    xqpSgn    = QPTransSgn[mpidx];               // xqpSgn =  QPTransSgn[mpidx][]
-    tOrbIdx   = transOrbIdx + qpidx*nsize*nsize; // tOrbIdx[msi][msj]=OrbitalIdx[tri][trj]
-    tOrbSgn   = transOrbSgn + qpidx*nsize*nsize; // tOrbSgn : sign of f_ij
-    for(msi=0;msi<nsize;msi++) {                 // nsize=2*Ne including spin degrees of freedom
-      ri           = eleIdx[msi];                //  ri  : postion where the msi-th electron exists  
-      si           = eleSpn[msi];                //  si  : spin of the msi-th electron  :fsz
-      ori          = xqpOpt[ri];                 // ori  : ri -> ori -> tri
-      tri          = xqp[ori]+si*Nsite;          // tri  : fsz
-      sgni         = xqpSgn[ori]*xqpOptSgn[ri];  // sgni :
-      tOrbIdx_i    = tOrbIdx + msi*nsize;        // 
-      tOrbSgn_i    = tOrbSgn + msi*nsize;        //
-      orbitalIdx_i = OrbitalIdx[tri];            //
-      for(msj=0;msj<nsize;msj++) { //nsize=2*Ne //
-        rj             = eleIdx[msj];           //
-        sj             = eleSpn[msj];        // sj spin of the msj-th electron  :fsz
-        orj            = xqpOpt[rj];         
-        trj            = xqp[orj]+sj*Nsite;       //fsz
-        sgnj           = xqpSgn[orj]*xqpOptSgn[rj]; //xqpSgn
-        tOrbIdx_i[msj] = orbitalIdx_i[trj];
-        tOrbSgn_i[msj] = sgni*sgnj*OrbitalSgn[tri][trj];
-      }
-    }
-  }
-// calculating Tr(X^{-1}*dX/df_{msi,msj})=-2*alpha(sigma(msi),sigma(msj))(X^{-1})_{msi,msj}
-  #pragma omp parallel for default(shared)        \
-    private(qpidx,mpidx,cs,                   \
-            tOrbIdx,tOrbSgn,invM,buf,msi,msj,             \
-            tOrbIdx_i,tOrbSgn_i,invM_i,orbidx)
-  #pragma loop noalias
-  for(qpidx=0;qpidx<nQPFull;qpidx++) { // nQPFull = NQPFix * NQPOptTrans: usually = NSPGaussLeg * NMPTrans
-    mpidx = qpidx / NSPGaussLeg;       // qpidx   = NSPGaussLeg*mpidx + spidx
-
-    cs = PfM[qpidx];// * SPGLCosSin[spidx]; //  PfM
-
-    tOrbIdx = transOrbIdx + mpidx*nsize*nsize; // tOrbIdx[msi][msj] = transOrbIdx[mpidx][msi][msj]
-    tOrbSgn = transOrbSgn + mpidx*nsize*nsize; // tOrbSgn[msi][msj] = transOrbSgn[mpidx][msi][msj]
-    invM    = InvM        + qpidx*Nsize*Nsize; // invM  M^-1 and PfM, InvM: NQPFull*(Nsize*Nsize)+PfM
-    buf     = buffer      + qpidx*NSlater;     // buf   fij, buffer: NSlater*NQPFull
-
-    #pragma loop norecurrence
-    for(msi=0;msi<nsize;msi++) { //fsz
-      tOrbIdx_i = tOrbIdx + msi*nsize;         // tOrbIdx_i[*] = tOrbIdx[msi][*]
-      tOrbSgn_i = tOrbSgn + msi*nsize;         // tOrbSgn_i[*] = tOrbSgn[msi][*]
-      invM_i    = invM + msi*nsize;            // invM[]       = invM[msi][]
-      for(msj=0;msj<nsize;msj++) {             // 
-        orbidx       = tOrbIdx_i[msj];         // 
-        buf[orbidx] += -1.0*invM_i[msj]*cs*tOrbSgn_i[msj]; // invM[msi][msj]// 2*(1/2)=1
-      }
-    }
-  }
-
-  /* store SROptO[] */
-  for(orbidx=0;orbidx<nSlater;orbidx++) {
-    srOptO[2*orbidx]   = 0.0+0.0*I; // 0
-    srOptO[2*orbidx+1] = 0.0+0.0*I; // 0
-  }
   if (UseOrbital) {
+    RequestWorkSpaceInt(2*nTrans*Nsize*Nsize);
+    RequestWorkSpaceComplex(NQPFull*NSlater);
+
+    transOrbIdx = GetWorkSpaceInt(nTrans*Nsize*Nsize); /* transOrbIdx[mpidx][msi][msj] */
+    transOrbSgn = GetWorkSpaceInt(nTrans*Nsize*Nsize); /* transOrbSgn[mpidx][msi][msj] */
+    buffer = GetWorkSpaceComplex(NQPFull*NSlater);
+
+    for(i=0;i<nBuf;i++) buffer[i]=0.0;
+
+    #pragma omp parallel for default(shared)                        \
+      private(qpidx,optidx,mpidx,msi,msj,xqp,xqpSgn,xqpOpt,xqpOptSgn,\
+              ri,ori,tri,sgni,rj,orj,trj,sgnj,si,sj,                       \
+              tOrbIdx,tOrbIdx_i,tOrbSgn,tOrbSgn_i,orbitalIdx_i)
+    #pragma loop noalias
+  // this loop for making transObrIdx,transOrbSgn
+  // transOrbIdx (NMPTrans * NQPOptTrans)*(nsize*nsize) nsize=2Ne
+  // transOrbSgn (NMPTrans * NQPOptTrans)*(nsize*nsize) nsize=2Ne
+    for(qpidx=0;qpidx<nTrans;qpidx++) {//only for trans op. // nTran=nMPTrans*(NQPOptTrans=1)=nMPTrans
+      optidx    = qpidx / nMPTrans;                // qpidx=mpidx+nMPTrans*optidx
+      mpidx     = qpidx % nMPTrans; 
+                                                   // QPOptTrans:     NQPOptTrans* Nsite matrix :  usually NQPOptTrans = 1
+                                                   // QPOptTransSgn:  NQPOptTrans* Nsite matrix :  usually NQPOptTrans = 1 
+      xqpOpt    = QPOptTrans[optidx];              // xqpOpt[]    = QPOptTrans[optidx][]    : usually optidx=0 and not be used
+      xqpOptSgn = QPOptTransSgn[optidx];           // xqpOptSgn[] = QPOptTransSgn[optidx][] : usually optidx=0 and not be used
+      xqp       = QPTrans[mpidx];                  // xqp    =  QPTrans[mpidx][]
+      xqpSgn    = QPTransSgn[mpidx];               // xqpSgn =  QPTransSgn[mpidx][]
+      tOrbIdx   = transOrbIdx + qpidx*nsize*nsize; // tOrbIdx[msi][msj]=OrbitalIdx[tri][trj]
+      tOrbSgn   = transOrbSgn + qpidx*nsize*nsize; // tOrbSgn : sign of f_ij
+      for(msi=0;msi<nsize;msi++) {                 // nsize=2*Ne including spin degrees of freedom
+        ri           = eleIdx[msi];                //  ri  : postion where the msi-th electron exists  
+        si           = eleSpn[msi];                //  si  : spin of the msi-th electron  :fsz
+        ori          = xqpOpt[ri];                 // ori  : ri -> ori -> tri
+        tri          = xqp[ori]+si*Nsite;          // tri  : fsz
+        sgni         = xqpSgn[ori]*xqpOptSgn[ri];  // sgni :
+        tOrbIdx_i    = tOrbIdx + msi*nsize;        // 
+        tOrbSgn_i    = tOrbSgn + msi*nsize;        //
+        orbitalIdx_i = OrbitalIdx[tri];            //
+        for(msj=0;msj<nsize;msj++) { //nsize=2*Ne //
+          rj             = eleIdx[msj];           //
+          sj             = eleSpn[msj];        // sj spin of the msj-th electron  :fsz
+          orj            = xqpOpt[rj];         
+          trj            = xqp[orj]+sj*Nsite;       //fsz
+          sgnj           = xqpSgn[orj]*xqpOptSgn[rj]; //xqpSgn
+          tOrbIdx_i[msj] = orbitalIdx_i[trj];
+          tOrbSgn_i[msj] = sgni*sgnj*OrbitalSgn[tri][trj];
+        }
+      }
+    }
+  // calculating Tr(X^{-1}*dX/df_{msi,msj})=-2*alpha(sigma(msi),sigma(msj))(X^{-1})_{msi,msj}
+    #pragma omp parallel for default(shared)        \
+      private(qpidx,mpidx,cs,                   \
+              tOrbIdx,tOrbSgn,invM,buf,msi,msj,             \
+              tOrbIdx_i,tOrbSgn_i,invM_i,orbidx)
+    #pragma loop noalias
+    for(qpidx=0;qpidx<nQPFull;qpidx++) { // nQPFull = NQPFix * NQPOptTrans: usually = NSPGaussLeg * NMPTrans
+      mpidx = qpidx / NSPGaussLeg;       // qpidx   = NSPGaussLeg*mpidx + spidx
+
+      cs = PfM[qpidx];// * SPGLCosSin[spidx]; //  PfM
+
+      tOrbIdx = transOrbIdx + mpidx*nsize*nsize; // tOrbIdx[msi][msj] = transOrbIdx[mpidx][msi][msj]
+      tOrbSgn = transOrbSgn + mpidx*nsize*nsize; // tOrbSgn[msi][msj] = transOrbSgn[mpidx][msi][msj]
+      invM    = InvM        + qpidx*Nsize*Nsize; // invM  M^-1 and PfM, InvM: NQPFull*(Nsize*Nsize)+PfM
+      buf     = buffer      + qpidx*NSlater;     // buf   fij, buffer: NSlater*NQPFull
+
+      #pragma loop norecurrence
+      for(msi=0;msi<nsize;msi++) { //fsz
+        tOrbIdx_i = tOrbIdx + msi*nsize;         // tOrbIdx_i[*] = tOrbIdx[msi][*]
+        tOrbSgn_i = tOrbSgn + msi*nsize;         // tOrbSgn_i[*] = tOrbSgn[msi][*]
+        invM_i    = invM + msi*nsize;            // invM[]       = invM[msi][]
+        for(msj=0;msj<nsize;msj++) {             // 
+          orbidx       = tOrbIdx_i[msj];         // 
+          buf[orbidx] += -1.0*invM_i[msj]*cs*tOrbSgn_i[msj]; // invM[msi][msj]// 2*(1/2)=1
+        }
+      }
+    }
+
+    /* store SROptO[] */
+    for(orbidx=0;orbidx<nSlater;orbidx++) {
+      srOptO[2*orbidx]   = 0.0+0.0*I; // 0
+      srOptO[2*orbidx+1] = 0.0+0.0*I; // 0
+    }
     #pragma loop noalias
     for(qpidx=0;qpidx<nQPFull;qpidx++) {
       tmp = QPFullWeight[qpidx];
@@ -239,9 +239,9 @@ void SlaterElmDiff_fsz(double complex *srOptO, const double complex ip, int *ele
       srOptO[2*orbidx]   *= invIP;
       srOptO[2*orbidx+1] *= invIP;
     }
-  }
 
-  ReleaseWorkSpaceInt();
-  ReleaseWorkSpaceComplex();
+    ReleaseWorkSpaceInt();
+    ReleaseWorkSpaceComplex();
+  }
   return;
 }

@@ -123,127 +123,127 @@ void SlaterElmDiff_fcmp(double complex *srOptO, const double complex ip, int *el
   double complex *buf, *buffer;
   double complex tmp;
 
-  RequestWorkSpaceInt(2*nTrans*Nsize*Nsize);
-  RequestWorkSpaceComplex(NQPFull*NSlater);
-
-  transOrbIdx = GetWorkSpaceInt(nTrans*Nsize*Nsize); /* transOrbIdx[mpidx][msi][msj] */
-  transOrbSgn = GetWorkSpaceInt(nTrans*Nsize*Nsize); /* transOrbSgn[mpidx][msi][msj] */
-  buffer = GetWorkSpaceComplex(NQPFull*NSlater);
-
-  for(i=0;i<nBuf;i++) buffer[i]=0.0;
-
-  #pragma omp parallel for default(shared)                        \
-    private(qpidx,optidx,mpidx,msi,msj,xqp,xqpSgn,xqpOpt,xqpOptSgn,\
-            ri,ori,tri,sgni,rj,orj,trj,sgnj,                       \
-            tOrbIdx,tOrbIdx_i,tOrbSgn,tOrbSgn_i,orbitalIdx_i)
-  #pragma loop noalias
-  for(qpidx=0;qpidx<nTrans;qpidx++) {            // nTran=nMPTrans*NQPOptTrans: usually nMPTrans
-    optidx    = qpidx / nMPTrans;                // qpidx=mpidx+nMPTrans*optidx
-    mpidx     = qpidx % nMPTrans; 
-                                                 // QPOptTrans:     NQPOptTrans* Nsite matrix :  usually NQPOptTrans = 1
-                                                 // QPOptTransSgn:  NQPOptTrans* Nsite matrix :  usually NQPOptTrans = 1 
-    xqpOpt    = QPOptTrans[optidx];              // xqpOpt[]    = QPOptTrans[optidx][]    : usually optidx=0 and not be used
-    xqpOptSgn = QPOptTransSgn[optidx];           // xqpOptSgn[] = QPOptTransSgn[optidx][] : usually optidx=0 and not be used
-    xqp       = QPTrans[mpidx];                  // xqp    =  QPTrans[mpidx][]
-    xqpSgn    = QPTransSgn[mpidx];               // xqpSgn =  QPTransSgn[mpidx][]
-    tOrbIdx   = transOrbIdx + qpidx*nsize*nsize; // tOrbIdx : f_ij
-    tOrbSgn   = transOrbSgn + qpidx*nsize*nsize; // tOrbSgn : sign of f_ij
-    for(msi=0;msi<nsize;msi++) {                 // nsize=2*Ne
-      ri           = eleIdx[msi];                //  ri  : postion where the msi-th electron exists  
-      ori          = xqpOpt[ri];                 // ori  : 
-      tri          = xqp[ori];                   // tri  : 
-      sgni         = xqpSgn[ori]*xqpOptSgn[ri];  // sgni :
-      tOrbIdx_i    = tOrbIdx + msi*nsize;        // 
-      tOrbSgn_i    = tOrbSgn + msi*nsize;        //
-      orbitalIdx_i = OrbitalIdx[tri];            //
-      for(msj=0;msj<nsize;msj++) { //nsize=2*Ne //
-        rj             = eleIdx[msj];           //
-        orj            = xqpOpt[rj];         
-        trj            = xqp[orj];
-        sgnj           = xqpSgn[orj]*xqpOptSgn[rj];
-        tOrbIdx_i[msj] = orbitalIdx_i[trj];
-        tOrbSgn_i[msj] = sgni*sgnj*OrbitalSgn[tri][trj];
-      }
-    }
-  }
-// calculating Tr(X^{-1}*dX/df_{msi,msj})=-2*alpha(sigma(msi),sigma(msj))(X^{-1})_{msi,msj}
-  #pragma omp parallel for default(shared)        \
-    private(qpidx,mpidx,spidx,cs,cc,ss,                   \
-            tOrbIdx,tOrbSgn,invM,buf,msi,msj,             \
-            tOrbIdx_i,tOrbSgn_i,invM_i,orbidx)
-  #pragma loop noalias
-  for(qpidx=0;qpidx<nQPFull;qpidx++) { // nQPFull = NQPFix * NQPOptTrans: usually = NSPGaussLeg * NMPTrans
-    mpidx = qpidx / NSPGaussLeg;       // qpidx   = NSPGaussLeg*mpidx + spidx
-    spidx = qpidx % NSPGaussLeg;
-
-    cs = PfM[qpidx] * SPGLCosSin[spidx]; // spin rotation + PfM
-    cc = PfM[qpidx] * SPGLCosCos[spidx]; // spin rotation + PfM
-    ss = PfM[qpidx] * SPGLSinSin[spidx]; // spin rotation + PfM
-
-    tOrbIdx = transOrbIdx + mpidx*nsize*nsize; // tOrbIdx[msi][msj] = transOrbIdx[mpidx][msi][msj]
-    tOrbSgn = transOrbSgn + mpidx*nsize*nsize; // tOrbSgn[msi][msj] = transOrbSgn[mpidx][msi][msj]
-    invM    = InvM        + qpidx*Nsize*Nsize; // invM  M^-1 and PfM, InvM: NQPFull*(Nsize*Nsize)+PfM
-    buf     = buffer      + qpidx*NSlater;     // buf   fij, buffer: NSlater*NQPFull
-
-    #pragma loop norecurrence
-    for(msi=0;msi<ne;msi++) {
-      tOrbIdx_i = tOrbIdx + msi*nsize;         // tOrbIdx_i[] = tOrbIdx[msi][msj]
-      tOrbSgn_i = tOrbSgn + msi*nsize;         // tOrbSgn_i[] = tOrbSgn[msi][msj]
-      invM_i    = invM + msi*nsize;            // invM[]      = invM[msi][]
-      for(msj=0;msj<ne;msj++) {                // up-up
-        /* si=0 sj=0*/
-        orbidx       = tOrbIdx_i[msj];         // 
-        buf[orbidx] += invM_i[msj]*cs*tOrbSgn_i[msj]; // invM[msi][msj]
-      }
-      for(msj=ne;msj<nsize;msj++) {            // up-down
-        /* si=0 sj=1*/
-        orbidx       = tOrbIdx_i[msj];
-        buf[orbidx] -= invM_i[msj]*cc*tOrbSgn_i[msj];
-      }
-    }
-    #pragma loop norecurrence
-    for(msi=ne;msi<nsize;msi++) { 
-      tOrbIdx_i = tOrbIdx + msi*nsize;
-      tOrbSgn_i = tOrbSgn + msi*nsize;
-      invM_i = invM + msi*nsize;
-      for(msj=0;msj<ne;msj++) {    // down-up
-        /* si=1 sj=0*/
-        orbidx = tOrbIdx_i[msj];
-        buf[orbidx] += invM_i[msj]*ss*tOrbSgn_i[msj];
-      }
-      for(msj=ne;msj<nsize;msj++) {// down-down
-        /* si=1 sj=1*/
-        orbidx = tOrbIdx_i[msj];
-        buf[orbidx] -= invM_i[msj]*cs*tOrbSgn_i[msj];
-      }
-    }
-  }
-
-  /* store SROptO[] */
-  for(orbidx=0;orbidx<nSlater;orbidx++) {
-    srOptO[2*orbidx]   = 0.0+0.0*I; // 0
-    srOptO[2*orbidx+1] = 0.0+0.0*I; // 0
-  }
   if(UseOrbital) {
+    RequestWorkSpaceInt(2*nTrans*Nsize*Nsize);
+    RequestWorkSpaceComplex(NQPFull*NSlater);
+
+    transOrbIdx = GetWorkSpaceInt(nTrans*Nsize*Nsize); /* transOrbIdx[mpidx][msi][msj] */
+    transOrbSgn = GetWorkSpaceInt(nTrans*Nsize*Nsize); /* transOrbSgn[mpidx][msi][msj] */
+    buffer = GetWorkSpaceComplex(NQPFull*NSlater);
+
+    for(i=0;i<nBuf;i++) buffer[i]=0.0;
+
+    #pragma omp parallel for default(shared)                        \
+      private(qpidx,optidx,mpidx,msi,msj,xqp,xqpSgn,xqpOpt,xqpOptSgn,\
+              ri,ori,tri,sgni,rj,orj,trj,sgnj,                       \
+              tOrbIdx,tOrbIdx_i,tOrbSgn,tOrbSgn_i,orbitalIdx_i)
     #pragma loop noalias
-    for(qpidx=0;qpidx<nQPFull;qpidx++) {
-      tmp = QPFullWeight[qpidx];
-      buf = buffer + qpidx*nSlater;
-      for(orbidx=0;orbidx<nSlater;orbidx++) {
-        srOptO[2*orbidx]   += tmp * buf[orbidx];   //real      TBC
-        srOptO[2*orbidx+1] += tmp * buf[orbidx]*I; //imaginary TBC
-        //printf("Re DEBUG: tmp=%lf :orbidx=%d srOptO=%lf %lf invIP=%lf %lf \n",tmp,orbidx,creal(srOptO[2*orbidx]),cimag(srOptO[2*orbidx]),creal(invIP),cimag(invIP));
-        //printf("Im DEBUG:orbidx=%d srOptO=%lf %lf invIP=%lf %lf \n",orbidx,creal(srOptO[2*orbidx+1]),cimag(srOptO[2*orbidx+1]),creal(invIP),cimag(invIP));
+    for(qpidx=0;qpidx<nTrans;qpidx++) {            // nTran=nMPTrans*NQPOptTrans: usually nMPTrans
+      optidx    = qpidx / nMPTrans;                // qpidx=mpidx+nMPTrans*optidx
+      mpidx     = qpidx % nMPTrans; 
+                                                   // QPOptTrans:     NQPOptTrans* Nsite matrix :  usually NQPOptTrans = 1
+                                                   // QPOptTransSgn:  NQPOptTrans* Nsite matrix :  usually NQPOptTrans = 1 
+      xqpOpt    = QPOptTrans[optidx];              // xqpOpt[]    = QPOptTrans[optidx][]    : usually optidx=0 and not be used
+      xqpOptSgn = QPOptTransSgn[optidx];           // xqpOptSgn[] = QPOptTransSgn[optidx][] : usually optidx=0 and not be used
+      xqp       = QPTrans[mpidx];                  // xqp    =  QPTrans[mpidx][]
+      xqpSgn    = QPTransSgn[mpidx];               // xqpSgn =  QPTransSgn[mpidx][]
+      tOrbIdx   = transOrbIdx + qpidx*nsize*nsize; // tOrbIdx : f_ij
+      tOrbSgn   = transOrbSgn + qpidx*nsize*nsize; // tOrbSgn : sign of f_ij
+      for(msi=0;msi<nsize;msi++) {                 // nsize=2*Ne
+        ri           = eleIdx[msi];                //  ri  : postion where the msi-th electron exists  
+        ori          = xqpOpt[ri];                 // ori  : 
+        tri          = xqp[ori];                   // tri  : 
+        sgni         = xqpSgn[ori]*xqpOptSgn[ri];  // sgni :
+        tOrbIdx_i    = tOrbIdx + msi*nsize;        // 
+        tOrbSgn_i    = tOrbSgn + msi*nsize;        //
+        orbitalIdx_i = OrbitalIdx[tri];            //
+        for(msj=0;msj<nsize;msj++) { //nsize=2*Ne //
+          rj             = eleIdx[msj];           //
+          orj            = xqpOpt[rj];         
+          trj            = xqp[orj];
+          sgnj           = xqpSgn[orj]*xqpOptSgn[rj];
+          tOrbIdx_i[msj] = orbitalIdx_i[trj];
+          tOrbSgn_i[msj] = sgni*sgnj*OrbitalSgn[tri][trj];
+        }
       }
     }
-    for(orbidx=0;orbidx<nSlater;orbidx++) {
-      srOptO[2*orbidx]   *= invIP;
-      srOptO[2*orbidx+1] *= invIP;
-    }
-  }
+  // calculating Tr(X^{-1}*dX/df_{msi,msj})=-2*alpha(sigma(msi),sigma(msj))(X^{-1})_{msi,msj}
+    #pragma omp parallel for default(shared)        \
+      private(qpidx,mpidx,spidx,cs,cc,ss,                   \
+              tOrbIdx,tOrbSgn,invM,buf,msi,msj,             \
+              tOrbIdx_i,tOrbSgn_i,invM_i,orbidx)
+    #pragma loop noalias
+    for(qpidx=0;qpidx<nQPFull;qpidx++) { // nQPFull = NQPFix * NQPOptTrans: usually = NSPGaussLeg * NMPTrans
+      mpidx = qpidx / NSPGaussLeg;       // qpidx   = NSPGaussLeg*mpidx + spidx
+      spidx = qpidx % NSPGaussLeg;
 
-  ReleaseWorkSpaceInt();
-  ReleaseWorkSpaceComplex();
+      cs = PfM[qpidx] * SPGLCosSin[spidx]; // spin rotation + PfM
+      cc = PfM[qpidx] * SPGLCosCos[spidx]; // spin rotation + PfM
+      ss = PfM[qpidx] * SPGLSinSin[spidx]; // spin rotation + PfM
+
+      tOrbIdx = transOrbIdx + mpidx*nsize*nsize; // tOrbIdx[msi][msj] = transOrbIdx[mpidx][msi][msj]
+      tOrbSgn = transOrbSgn + mpidx*nsize*nsize; // tOrbSgn[msi][msj] = transOrbSgn[mpidx][msi][msj]
+      invM    = InvM        + qpidx*Nsize*Nsize; // invM  M^-1 and PfM, InvM: NQPFull*(Nsize*Nsize)+PfM
+      buf     = buffer      + qpidx*NSlater;     // buf   fij, buffer: NSlater*NQPFull
+
+      #pragma loop norecurrence
+      for(msi=0;msi<ne;msi++) {
+        tOrbIdx_i = tOrbIdx + msi*nsize;         // tOrbIdx_i[] = tOrbIdx[msi][msj]
+        tOrbSgn_i = tOrbSgn + msi*nsize;         // tOrbSgn_i[] = tOrbSgn[msi][msj]
+        invM_i    = invM + msi*nsize;            // invM[]      = invM[msi][]
+        for(msj=0;msj<ne;msj++) {                // up-up
+          /* si=0 sj=0*/
+          orbidx       = tOrbIdx_i[msj];         // 
+          buf[orbidx] += invM_i[msj]*cs*tOrbSgn_i[msj]; // invM[msi][msj]
+        }
+        for(msj=ne;msj<nsize;msj++) {            // up-down
+          /* si=0 sj=1*/
+          orbidx       = tOrbIdx_i[msj];
+          buf[orbidx] -= invM_i[msj]*cc*tOrbSgn_i[msj];
+        }
+      }
+      #pragma loop norecurrence
+      for(msi=ne;msi<nsize;msi++) { 
+        tOrbIdx_i = tOrbIdx + msi*nsize;
+        tOrbSgn_i = tOrbSgn + msi*nsize;
+        invM_i = invM + msi*nsize;
+        for(msj=0;msj<ne;msj++) {    // down-up
+          /* si=1 sj=0*/
+          orbidx = tOrbIdx_i[msj];
+          buf[orbidx] += invM_i[msj]*ss*tOrbSgn_i[msj];
+        }
+        for(msj=ne;msj<nsize;msj++) {// down-down
+          /* si=1 sj=1*/
+          orbidx = tOrbIdx_i[msj];
+          buf[orbidx] -= invM_i[msj]*cs*tOrbSgn_i[msj];
+        }
+      }
+    }
+
+    /* store SROptO[] */
+    for(orbidx=0;orbidx<nSlater;orbidx++) {
+      srOptO[2*orbidx]   = 0.0+0.0*I; // 0
+      srOptO[2*orbidx+1] = 0.0+0.0*I; // 0
+    }
+      #pragma loop noalias
+      for(qpidx=0;qpidx<nQPFull;qpidx++) {
+        tmp = QPFullWeight[qpidx];
+        buf = buffer + qpidx*nSlater;
+        for(orbidx=0;orbidx<nSlater;orbidx++) {
+          srOptO[2*orbidx]   += tmp * buf[orbidx];   //real      TBC
+          srOptO[2*orbidx+1] += tmp * buf[orbidx]*I; //imaginary TBC
+          //printf("Re DEBUG: tmp=%lf :orbidx=%d srOptO=%lf %lf invIP=%lf %lf \n",tmp,orbidx,creal(srOptO[2*orbidx]),cimag(srOptO[2*orbidx]),creal(invIP),cimag(invIP));
+          //printf("Im DEBUG:orbidx=%d srOptO=%lf %lf invIP=%lf %lf \n",orbidx,creal(srOptO[2*orbidx+1]),cimag(srOptO[2*orbidx+1]),creal(invIP),cimag(invIP));
+        }
+      }
+      for(orbidx=0;orbidx<nSlater;orbidx++) {
+        srOptO[2*orbidx]   *= invIP;
+        srOptO[2*orbidx+1] *= invIP;
+      }
+
+    ReleaseWorkSpaceInt();
+    ReleaseWorkSpaceComplex();
+  }
   return;
 }
 

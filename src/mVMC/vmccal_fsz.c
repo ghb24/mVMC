@@ -42,6 +42,7 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
   const int qpEnd=NQPFull;
   int sample,sampleStart,sampleEnd,sampleSize;
   int i,info,j,offset,idx,f,targetBasis,k,l,opt;
+  int *workspaceRefState;
 
   /* optimazation for Kei */
   const int nProj=NProj;
@@ -65,6 +66,8 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
   printf("  Debug: SplitLoop\n");
 #endif
   SplitLoop(&sampleStart,&sampleEnd,NVMCSample,rank,size);
+  workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
+
 
   /* initialization */
   StartTimer(24);
@@ -104,7 +107,7 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
       ip = CalculateIP_fcmp(PfM,qpStart,qpEnd,MPI_COMM_SELF);
     }
     else {
-      ip = 1.0;
+      ip = ComputeRefState(eleIdx, eleNum, workspaceRefState);
     }
     ip *= RBMVal(eleNum);
 
@@ -442,6 +445,7 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
   if (NVMCCalMode == 1) {
     fclose(fp);
   }
+  free(workspaceRefState);
 
 // calculate OO and HO at NVMCCalMode==0
   if(NVMCCalMode==0){

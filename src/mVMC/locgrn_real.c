@@ -49,10 +49,15 @@ double  GreenFunc1_real(const int ri, const int rj, const int s, const double ip
                   double *buffer) {
   double  z;
   int mj,msj,rsi,rsj;
+  int *workspaceRefState;
+
   double  *pfMNew_real = buffer; /* NQPFull */
+
 
   if(ri==rj) return eleNum[ri+s*Nsite];
   if(eleNum[ri+s*Nsite]==1 || eleNum[rj+s*Nsite]==0) return 0.0;
+
+  workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
 
   mj = eleCfg[rj+s*Nsite];
   msj = mj + s*Ne;
@@ -75,11 +80,16 @@ double  GreenFunc1_real(const int ri, const int rj, const int s, const double ip
     CalculateNewPfM_real(mj, s, pfMNew_real, eleIdx, 0, NQPFull);
     z *= CalculateIP_real(pfMNew_real, 0, NQPFull, MPI_COMM_SELF);
   }
+  else {
+    z *= ComputeRefState(eleIdx, eleNum, workspaceRefState);
+  }
 
   /* revert hopping */
   eleIdx[msj] = rj;
   eleNum[rsj] = 1;
   eleNum[rsi] = 0;
+
+  free(workspaceRefState);
 
   return z/ip;//TBC
 }
@@ -98,7 +108,9 @@ double GreenFunc2_real(const int ri, const int rj, const int rk, const int rl,
   int rsi,rsj,rtk,rtl;
   double *pfMNew_real = buffer; /* [NQPFull] */
   double *bufV   = buffer+NQPFull; /* 2*Nsize */
-  double *eleGPWInSumTmp = (double*)malloc(sizeof(double)*GPWTrnCfgSz*Nsite);
+  int *workspaceRefState;
+  double *eleGPWInSumTmp;
+
 
   rsi = ri + s*Nsite;
   rsj = rj + s*Nsite;
@@ -156,6 +168,9 @@ double GreenFunc2_real(const int ri, const int rj, const int rk, const int rl,
 
   if(eleNum[rsi]==1 || eleNum[rsj]==0 || eleNum[rtk]==1 || eleNum[rtl]==0) return 0.0;
 
+  eleGPWInSumTmp = (double*)malloc(sizeof(double)*GPWTrnCfgSz*Nsite);
+  workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
+
   mj = eleCfg[rj+s*Nsite];
   ml = eleCfg[rl+t*Nsite];
   msj = mj + s*Ne;
@@ -184,6 +199,9 @@ double GreenFunc2_real(const int ri, const int rj, const int rk, const int rl,
     CalculateNewPfMTwo_real(ml, t, mj, s, pfMNew_real, eleIdx, 0, NQPFull, bufV);
     z *= CalculateIP_real(pfMNew_real, 0, NQPFull, MPI_COMM_SELF);
   }
+  else {
+    z *= ComputeRefState(eleIdx, eleNum, workspaceRefState);
+  }
 
   /* revert hopping */
   eleIdx[mtl] = rl;
@@ -193,6 +211,7 @@ double GreenFunc2_real(const int ri, const int rj, const int rk, const int rl,
   eleNum[rsj] = 1;
   eleNum[rsi] = 0;
 
+  free(workspaceRefState);
   free(eleGPWInSumTmp);
 
   return z/ip;//TBC
@@ -227,11 +246,14 @@ double GreenFuncN_real(const int n, int *rsi, int *rsj, const double  ip,
   double z,x;
   int qpidx;
 
+  int *workspaceRefState;
+
   int *projCntNew = bufferInt; /* [NProj] */
 
   int msj[n];
   double *pfMNew = buffer; /* [NQPFull] */
   double *bufV = buffer+NQPFull; /* [n*Nsize] */
+
 
   for(k=0;k<n;k++) {
     si = rsi[k]/Nsite;
@@ -317,6 +339,8 @@ double GreenFuncN_real(const int n, int *rsi, int *rsj, const double  ip,
     if(eleNum[rsk]==1) return 0;
   }
 
+  workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
+
   /* hopping */
   #pragma loop noalias
   for(k=0;k<n;k++) {
@@ -345,7 +369,7 @@ double GreenFuncN_real(const int n, int *rsi, int *rsj, const double  ip,
     z = CalculateIP_real(pfMNew, 0, NQPFull, MPI_COMM_SELF);
   }
   else {
-    z = 1.0;
+    z = ComputeRefState(eleIdx, eleNum, workspaceRefState);
   }
 
   /* revert hoppint */
@@ -356,6 +380,8 @@ double GreenFuncN_real(const int n, int *rsi, int *rsj, const double  ip,
     eleNum[rsj[k]] = 1;
     eleNum[rsi[k]] = 0;
   }
+
+  free(workspaceRefState);
 
   return x*z/ip;
 }

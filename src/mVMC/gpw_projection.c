@@ -160,13 +160,14 @@ void CalculateGPWKern(double *eleGPWKern, double *eleGPWInSum, const int *eleNum
         ComputeInSum(eleGPWInSum+offset, GPWSysPlaquetteIdx[latId],
                      Nsite, GPWTrnPlaquetteIdx[latId],
                      GPWTrnSize[latId], GPWPlaquetteSizes[latId],
-                     GPWDistList[latId], distWeightFlag);
+                     GPWDistList[latId], GPWShift[latId], 0, 0,
+                     distWeightFlag);
         if (GPWTRSym[latId]) {
           ComputeInSum(eleGPWInSum+(GPWTrnCfgSz/2)*Nsite+offset,
                        GPWSysPlaquetteIdx[latId], Nsite,
                        GPWTrnPlaquetteIdx[latId], GPWTrnSize[latId],
                        GPWPlaquetteSizes[latId], GPWDistList[latId],
-                       distWeightFlag);
+                       GPWShift[latId], 0, 0, distWeightFlag);
         }
         eleGPWKern[i] = ComputeKernel(Nsite, GPWTrnSize[latId],
                                       GPWPower[latId], GPWThetaVar[latId],
@@ -289,8 +290,8 @@ void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew,
         UpdateInSum(eleGPWInSumNew+offset, eleGPWInSumOld+offset,
                     GPWSysPlaquetteIdx[latId], Nsite, GPWTrnPlaquetteIdx[latId],
                     GPWTrnSize[latId], GPWPlaquetteSizes[latId],
-                    GPWDistList[latId], distWeightFlag, GPWSysPlaqHash[latId],
-                    GPWSysPlaqHashSz[latId], ri, rj);
+                    GPWDistList[latId], GPWShift[latId], 0, 0, distWeightFlag,
+                    GPWSysPlaqHash[latId], GPWSysPlaqHashSz[latId], ri, rj);
 
         if (GPWTRSym[latId]) {
           UpdateInSum(eleGPWInSumNew+(GPWTrnCfgSz/2)*Nsite+offset,
@@ -298,8 +299,9 @@ void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew,
                       GPWSysPlaquetteIdx[latId], Nsite,
                       GPWTrnPlaquetteIdx[latId], GPWTrnSize[latId],
                       GPWPlaquetteSizes[latId], GPWDistList[latId],
-                      distWeightFlag, GPWSysPlaqHash[latId],
-                      GPWSysPlaqHashSz[latId], ri, rj);
+                      GPWShift[latId], 0, 0, distWeightFlag,
+                      GPWSysPlaqHash[latId], GPWSysPlaqHashSz[latId],
+                      ri, rj);
         }
         eleGPWKernNew[i] = ComputeKernel(Nsite, GPWTrnSize[latId],
                                          GPWPower[latId], GPWThetaVar[latId],

@@ -52,6 +52,7 @@ void FreeMemPlaquetteHash(const int sysSize, int **plaqHash, int *plaqHashSz);
 void ComputeInSum(double *inSum, const int *plaquetteAIdx,
                   const int sizeA, const int *plaquetteBIdx, const int sizeB,
                   const int plaquetteSize, const int *distList,
+                  const int shift, const int startIdA, const int startIdB,
                   const int distWeightFlag);
 
 // Updates the inner sum for the full kernel
@@ -59,9 +60,9 @@ void UpdateInSum(double *inSumNew, const double *inSumOld,
                  const int *plaquetteAIdx, const int sizeA,
                  const int *plaquetteBIdx, const int sizeB,
                  const int plaquetteSize, const int *distList,
+                 const int shift, const int startIdA, const int startIdB,
                  const int distWeightFlag, int **plaqHash,
-                 int *plaqHashSz, const int siteA,
-                 const int siteB);
+                 int *plaqHashSz, const int siteA, const int siteB);
 
 // Updates the delta list
 void UpdateDelta(double *inSumNew, const int *cfgA, const int sizeA,

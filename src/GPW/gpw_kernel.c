@@ -457,13 +457,33 @@ void FreeMemPlaquetteHash(const int sysSize, int **plaqHash, int *plaqHashSz) {
 void ComputeInSum(double *inSum, const int *plaquetteAIdx,
                   const int sizeA, const int *plaquetteBIdx, const int sizeB,
                   const int plaquetteSize, const int *distList,
+                  const int shift, const int startIdA, const int startIdB,
                   const int distWeightFlag) {
   int i, a, k;
   double innerSum;
 
+  int shiftSys = 1 + startIdA;
+  int shiftTrn = 1 + startIdB;
+  int translationSys = 1;
+  int translationTrn = 1;
+
+  if (abs(shift) & 1) {
+    shiftSys = sizeA;
+    if (shift < 0) {
+      translationSys = sizeB;
+    }
+  }
+  if ((abs(shift) & 2) >> 1) {
+    shiftTrn = sizeB;
+
+    if (shift < 0) {
+      translationTrn = sizeA;
+    }
+  }
+
   if (distWeightFlag) {
-    for (i = 0; i < sizeA; i++) {
-      for (a = 0; a < sizeB; a++) {
+    for (i = startIdA; i < shiftSys; i+=translationSys) {
+      for (a = startIdB; a < shiftTrn; a+=translationTrn) {
         innerSum = 0.0;
         for (k = 0; k < plaquetteSize; k++) {
           if (signbit(inSum[plaquetteAIdx[i*plaquetteSize+k]*sizeB +
@@ -476,8 +496,8 @@ void ComputeInSum(double *inSum, const int *plaquetteAIdx,
     }
   }
   else {
-    for (i = 0; i < sizeA; i++) {
-      for (a = 0; a < sizeB; a++) {
+    for (i = startIdA; i < shiftSys; i+=translationSys) {
+      for (a = startIdB; a < shiftTrn; a+=translationTrn) {
         innerSum = 0.0;
         for (k = 0; k < plaquetteSize; k++) {
           if (signbit(inSum[plaquetteAIdx[i*plaquetteSize+k]*sizeB +
@@ -495,19 +515,39 @@ void UpdateInSum(double *inSumNew, const double *inSumOld,
                  const int *plaquetteAIdx, const int sizeA,
                  const int *plaquetteBIdx, const int sizeB,
                  const int plaquetteSize, const int *distList,
+                 const int shift, const int startIdA, const int startIdB,
                  const int distWeightFlag, int **plaqHash,
                  int *plaqHashSz, const int siteA, const int siteB) {
   int i, a, k, countA, countB, id;
   const int *hashListA, *hashListB;
 
+  int shiftSys = 1 + startIdA;
+  int shiftTrn = 1 + startIdB;
+  int translationSys = 1;
+  int translationTrn = 1;
+
+  if (abs(shift) & 1) {
+    shiftSys = sizeA;
+    if (shift < 0) {
+      translationSys = sizeB;
+    }
+  }
+  if ((abs(shift) & 2) >> 1) {
+    shiftTrn = sizeB;
+
+    if (shift < 0) {
+      translationTrn = sizeA;
+    }
+  }
+
   if (distWeightFlag) {
-    for (i = 0; i < sizeA; i++) {
+    for (i = startIdA; i < shiftSys; i+=translationSys) {
       countA = plaqHashSz[sizeA*i + siteA];
       countB = plaqHashSz[sizeA*i + siteB];
       hashListA = plaqHash[sizeA*i + siteA];
       hashListB = plaqHash[sizeA*i + siteB];
 
-      for (a = 0; a < sizeB; a++) {
+      for (a = startIdB; a < shiftTrn; a+=translationTrn) {
         for (k = 0; k < countA; k++) {
           id = hashListA[k];
           if (signbit(inSumNew[siteA*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
@@ -532,13 +572,13 @@ void UpdateInSum(double *inSumNew, const double *inSumOld,
     }
   }
   else {
-    for (i = 0; i < sizeA; i++) {
+    for (i = startIdA; i < shiftSys; i+=translationSys) {
       countA = plaqHashSz[sizeA*i + siteA];
       countB = plaqHashSz[sizeA*i + siteB];
       hashListA = plaqHash[sizeA*i + siteA];
       hashListB = plaqHash[sizeA*i + siteB];
 
-      for (a = 0; a < sizeB; a++) {
+      for (a = startIdB; a < shiftTrn; a+=translationTrn) {
         for (k = 0; k < countA; k++) {
           id = hashListA[k];
           if (signbit(inSumNew[siteA*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
@@ -1049,12 +1089,14 @@ double GPWKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
 
   CalculatePairDelta(innerSum, cfgA, sizeA, cfgB, sizeB);
   ComputeInSum(innerSum, plaquetteAIdx, sizeA, plaquetteBIdx,
-               sizeB, plaquetteSize, distList, distWeightFlag);
+               sizeB, plaquetteSize, distList, shift,
+               startIdA, startIdB, distWeightFlag);
 
   if (tRSym) {
     CalculatePairDeltaFlipped(innerSumFlipped, cfgA, sizeA, cfgB, sizeB);
     ComputeInSum(innerSumFlipped, plaquetteAIdx, sizeA,
-                 plaquetteBIdx, sizeB, plaquetteSize, distList, distWeightFlag);
+                 plaquetteBIdx, sizeB, plaquetteSize, distList, shift,
+                 startIdA, startIdB, distWeightFlag);
   }
 
   return ComputeKernel(sizeA, sizeB, power, theta0, norm, tRSym, shift,

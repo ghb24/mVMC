@@ -50,8 +50,6 @@ double complex GreenFunc1(const int ri, const int rj, const int s, const double 
   if(ri==rj) return eleNum[ri+s*Nsite];
   if(eleNum[ri+s*Nsite]==1 || eleNum[rj+s*Nsite]==0) return 0.0;
 
-  workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
-
   mj = eleCfg[rj+s*Nsite];
   msj = mj + s*Ne;
   rsi = ri + s*Nsite;
@@ -74,15 +72,15 @@ double complex GreenFunc1(const int ri, const int rj, const int s, const double 
     z *= CalculateIP_fcmp(pfMNew, 0, NQPFull, MPI_COMM_SELF);
   }
   else {
+    workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
     z *= ComputeRefState(eleIdx, eleNum, workspaceRefState);
+    free(workspaceRefState);
   }
 
   /* revert hopping */
   eleIdx[msj] = rj;
   eleNum[rsj] = 1;
   eleNum[rsi] = 0;
-
-  free(workspaceRefState);
 
   return conj(z/ip);//TBC
 }
@@ -162,7 +160,6 @@ double complex GreenFunc2(const int ri, const int rj, const int rk, const int rl
   if(eleNum[rsi]==1 || eleNum[rsj]==0 || eleNum[rtk]==1 || eleNum[rtl]==0) return 0.0;
 
   eleGPWInSumTmp = (double*)malloc(sizeof(double)*GPWTrnCfgSz*Nsite);
-  workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
 
   mj = eleCfg[rj+s*Nsite];
   ml = eleCfg[rl+t*Nsite];
@@ -193,7 +190,9 @@ double complex GreenFunc2(const int ri, const int rj, const int rk, const int rl
     z *= CalculateIP_fcmp(pfMNew, 0, NQPFull, MPI_COMM_SELF);
   }
   else {
+    workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
     z *= ComputeRefState(eleIdx, eleNum, workspaceRefState);
+    free(workspaceRefState);
   }
 
   /* revert hopping */
@@ -204,7 +203,6 @@ double complex GreenFunc2(const int ri, const int rj, const int rk, const int rl
   eleNum[rsj] = 1;
   eleNum[rsi] = 0;
 
-  free(workspaceRefState);
   free(eleGPWInSumTmp);
 
   return conj(z/ip);//TBC
@@ -318,8 +316,6 @@ double complex GreenFuncN(const int n, int *rsi, int *rsj, const double complex 
     if(eleNum[rsk]==1) return 0;
   }
 
-  workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
-
   /* hopping */
   #pragma loop noalias
   for(k=0;k<n;k++) {
@@ -349,7 +345,9 @@ double complex GreenFuncN(const int n, int *rsi, int *rsj, const double complex 
     z = CalculateIP_fcmp(pfMNew, 0, NQPFull, MPI_COMM_SELF);
   }
   else {
+    workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
     z = ComputeRefState(eleIdx, eleNum, workspaceRefState);
+    free(workspaceRefState);
   }
 
 
@@ -361,8 +359,6 @@ double complex GreenFuncN(const int n, int *rsi, int *rsj, const double complex 
     eleNum[rsj[k]] = 1;
     eleNum[rsi[k]] = 0;
   }
-
-  free(workspaceRefState);
 
   return x*z/ip;
 }

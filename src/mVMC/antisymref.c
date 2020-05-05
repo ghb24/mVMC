@@ -15,12 +15,14 @@ int ComputeRefState(const int *eleIdx, const int *eleNum, int *workspace) {
     }
   }
 
+  #pragma omp parallel for default(shared) private(i)
   for(i = 0; i < Nsite2; i++) {
     masterCandidate[i] = -1;
   }
 
   for (i = 0; i < NMPTrans; i++) {
     for (j = 0; j <= trSym; j++) {
+      #pragma omp parallel for default(shared) private(k)
       for (k = 0; k < Nsite; k++) {
         master[QPTrans[i][k] + j * Nsite] = eleNum[k];
         master[QPTrans[i][k] + (1-j) * Nsite] = eleNum[k+Nsite];
@@ -54,6 +56,7 @@ int ComputeRefState(const int *eleIdx, const int *eleNum, int *workspace) {
       sign *= QPTransSgn[translationId][eleIdx[i]];
     }
   }
+
   for (i = Ne; i < Nsize; i++) {
     eleCfg[QPTrans[translationId][eleIdx[i]] + (1 - trId) * Nsite] = i;
     if (APFlag) {

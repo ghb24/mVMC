@@ -70,8 +70,6 @@ double complex GreenFunc1_fsz(const int ri, const int rj, const int s, const dou
   if(ri==rj) return eleNum[ri+s*Nsite];
   if(eleNum[ri+s*Nsite]==1 || eleNum[rj+s*Nsite]==0) return 0.0;
 
-  workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
-
   mj  = eleCfg[rj+s*Nsite];
   msj = mj;// + s*Ne;
   rsi = ri + s*Nsite;
@@ -95,7 +93,9 @@ double complex GreenFunc1_fsz(const int ri, const int rj, const int s, const dou
     z *= CalculateIP_fcmp(pfMNew, 0, NQPFull, MPI_COMM_SELF);
   }
   else {
+    workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
     z *= ComputeRefState(eleIdx, eleNum, workspaceRefState);
+    free(workspaceRefState);
   }
 
   /* revert hopping */
@@ -103,8 +103,6 @@ double complex GreenFunc1_fsz(const int ri, const int rj, const int s, const dou
   eleSpn[msj] = s; //fsz
   eleNum[rsj] = 1;
   eleNum[rsi] = 0;
-
-  free(workspaceRefState);
 
   return conj(z/ip);//TBC
 }
@@ -124,8 +122,6 @@ double complex GreenFunc1_fsz2(const int ri, const int rj, const int s,const int
 
   //if(ri==rj) return eleNum[ri+s*Nsite]; //fsz
   if(eleNum[ri+s*Nsite]==1 || eleNum[rj+t*Nsite]==0) return 0.0;
-
-  workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
 
   mj  = eleCfg[rj+t*Nsite];
   //mtj = mj;// + s*Ne;
@@ -151,7 +147,9 @@ double complex GreenFunc1_fsz2(const int ri, const int rj, const int s,const int
     z *= CalculateIP_fcmp(pfMNew, 0, NQPFull, MPI_COMM_SELF);
   }
   else {
+    workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
     z *= ComputeRefState(eleIdx, eleNum, workspaceRefState);
+    free(workspaceRefState);
   }
 
   /* revert hopping */
@@ -159,8 +157,6 @@ double complex GreenFunc1_fsz2(const int ri, const int rj, const int s,const int
   eleSpn[mj] = t; //fsz
   eleNum[rtj] = 1;
   eleNum[rsi] = 0;
-
-  free(workspaceRefState);
 
   return conj(z/ip);//TBC
 }
@@ -241,7 +237,6 @@ double complex GreenFunc2_fsz(const int ri, const int rj, const int rk, const in
   if(eleNum[rsi]==1 || eleNum[rsj]==0 || eleNum[rtk]==1 || eleNum[rtl]==0) return 0.0;
 
   eleGPWInSumTmp = (double*)malloc(sizeof(double)*GPWTrnCfgSz*Nsite);
-  workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
 
   mj = eleCfg[rj+s*Nsite];
   ml = eleCfg[rl+t*Nsite];
@@ -274,7 +269,9 @@ double complex GreenFunc2_fsz(const int ri, const int rj, const int rk, const in
     z *= CalculateIP_fcmp(pfMNew, 0, NQPFull, MPI_COMM_SELF);
   }
   else {
+    workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
     z *= ComputeRefState(eleIdx, eleNum, workspaceRefState);
+    free(workspaceRefState);
   }
 
   /* revert hopping */
@@ -287,7 +284,6 @@ double complex GreenFunc2_fsz(const int ri, const int rj, const int rk, const in
   eleNum[rsj] = 1;
   eleNum[rsi] = 0;
 
-  free(workspaceRefState);
   free(eleGPWInSumTmp);
 
   return conj(z/ip);//TBC
@@ -401,7 +397,6 @@ double complex GreenFunc2_fsz2(const int ri, const int rj, const int rk, const i
   if(eleNum[XI]==1 || eleNum[XJ]==0 || eleNum[XK]==1 || eleNum[XL]==0) return 0.0;
 
   eleGPWInSumTmp = (double*)malloc(sizeof(double)*GPWTrnCfgSz*Nsite);
-  workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
 
   mj = eleCfg[XJ]; // electron exists
   ml = eleCfg[XL]; // electron exists
@@ -434,7 +429,9 @@ double complex GreenFunc2_fsz2(const int ri, const int rj, const int rk, const i
     z *= CalculateIP_fcmp(pfMNew, 0, NQPFull, MPI_COMM_SELF);
   }
   else {
+    workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
     z *= ComputeRefState(eleIdx, eleNum, workspaceRefState);
+    free(workspaceRefState);
   }
 
   /* revert hopping */
@@ -447,7 +444,6 @@ double complex GreenFunc2_fsz2(const int ri, const int rj, const int rk, const i
   eleNum[XJ] = 1;
   eleNum[XI] = 0;
 
-  free(workspaceRefState);
   free(eleGPWInSumTmp);
 
   return conj(z/ip);//TBC

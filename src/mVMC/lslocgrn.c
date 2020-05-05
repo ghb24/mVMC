@@ -235,7 +235,6 @@ double complex checkGF1(const int ri, const int rj, const int s, const double co
   double complex pfMNew[NQPFull];
 
   int *workspaceRefState;
-  workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
 
   mj = eleCfg[rj+s*Nsite];
   msj = mj + s*Ne;
@@ -253,15 +252,15 @@ double complex checkGF1(const int ri, const int rj, const int s, const double co
     z = CalculateIP_fcmp(pfMNew, 0, NQPFull, MPI_COMM_SELF);
   }
   else {
+    workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
     z = ComputeRefState(eleIdx, eleNum, workspaceRefState);
+    free(workspaceRefState);
   }
 
   /* revert hopping */
   eleIdx[msj] = rj;
   eleNum[rsj] = 1;
   eleNum[rsi] = 0;
-
-  free(workspaceRefState);
 
   return z/ip;
 }
@@ -282,7 +281,6 @@ double complex calHCA1(const int ri, const int rj, const int s,
   double complex ipNew,z,e;
 
   int *workspaceRefState;
-  workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
 
   RequestWorkSpaceInt(NProj);
   RequestWorkSpaceDouble(NGPWIdx+GPWTrnCfgSz*Nsite);
@@ -317,7 +315,9 @@ double complex calHCA1(const int ri, const int rj, const int s,
     ipNew = CalculateIP_fcmp(PfM,0,NQPFull,MPI_COMM_SELF);
   }
   else {
+    workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
     ipNew = ComputeRefState(eleIdx, eleNum, workspaceRefState);
+    free(workspaceRefState);
   }
   ipNew *= RBMVal(eleNum);
 
@@ -338,7 +338,6 @@ double complex calHCA1(const int ri, const int rj, const int s,
   ReleaseWorkSpaceInt();
   ReleaseWorkSpaceDouble();
   ReleaseWorkSpaceComplex();
-  free(workspaceRefState);
   return e*z*ipNew/ip;
 }
 
@@ -581,7 +580,6 @@ double complex checkGF2(const int ri, const int rj, const int rk, const int rl,
   double complex *buffer;
 
   int *workspaceRefState;
-  workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
 
   RequestWorkSpaceComplex(NQPFull+2*Nsize);
   pfMNew = GetWorkSpaceComplex(NQPFull);
@@ -612,7 +610,9 @@ double complex checkGF2(const int ri, const int rj, const int rk, const int rl,
     z = CalculateIP_fcmp(pfMNew, 0, NQPFull, MPI_COMM_SELF);
   }
   else {
+    workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
     z = ComputeRefState(eleIdx, eleNum, workspaceRefState);
+    free(workspaceRefState);
   }
 
   /* revert hopping */
@@ -624,7 +624,6 @@ double complex checkGF2(const int ri, const int rj, const int rk, const int rl,
   eleNum[rsi] = 0;
 
   ReleaseWorkSpaceComplex();
-  free(workspaceRefState);
   return z/ip;
 }
 
@@ -646,8 +645,6 @@ double complex calHCACA1(const int ri, const int rj, const int rk, const int rl,
   double complex ipNew,z,e;
 
   int *workspaceRefState;
-
-  workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
 
   RequestWorkSpaceInt(NProj);
   RequestWorkSpaceDouble(NGPWIdx+2*GPWTrnCfgSz*Nsite);
@@ -694,7 +691,9 @@ double complex calHCACA1(const int ri, const int rj, const int rk, const int rl,
   }
 
   else {
+    workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
     ipNew = ComputeRefState(eleIdx, eleNum, workspaceRefState);
+    free(workspaceRefState);
   }
 
   ipNew *= RBMVal(eleNum);
@@ -721,7 +720,6 @@ double complex calHCACA1(const int ri, const int rj, const int rk, const int rl,
   ReleaseWorkSpaceInt();
   ReleaseWorkSpaceDouble();
   ReleaseWorkSpaceComplex();
-  free(workspaceRefState);
   return e*z*ipNew/ip;
 }
 

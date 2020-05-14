@@ -9,6 +9,8 @@ int ComputeRefState(const int *eleIdx, const int *eleNum, int *workspace) {
   int trSym = 0;
   int sign = 1;
 
+  return 1;
+
   if (NGPWIdx > 0) {
     if(GPWTRSym[0] == 1) {
       trSym = 1;

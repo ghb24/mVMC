@@ -274,14 +274,14 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
               for (l = 0; l < Nsite; l++) {
                 for (k = 0; k < plaqSize; k++) {
                   occId = (int)inSum[Nsite + sysPlaquetteIdx[l*plaqSize+k]];
-                  distWeightDeriv[basisOptOffset + 4*k + occId] -= GPWVar[i]*exp(-inSum[l]);
+                  distWeightDeriv[basisOptOffset + 4*k + occId] -= GPWVar[i] * inSum[l] / creal(GPWDistWeights[basisOptOffset + 4*k + occId]);
                 }
               }
               if (GPWTRSym[latId]) {
                 for (l = 0; l < Nsite; l++) {
                   for (k = 0; k < plaqSize; k++) {
                     occId = (int)inSumFlipped[Nsite + sysPlaquetteIdx[l*plaqSize+k]];
-                    distWeightDeriv[basisOptOffset + 4*k + occId] -= GPWVar[i]*exp(-inSumFlipped[l]);
+                    distWeightDeriv[basisOptOffset + 4*k + occId] -= GPWVar[i] * inSumFlipped[l] / creal(GPWDistWeights[basisOptOffset + 4*k + occId]);
                   }
                 }
               }
@@ -305,7 +305,7 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
                     }
                     sumTargetLat /= 2.0;
                   }
-                  distWeightDeriv[GPWDistWeightIdx[i][trnSize*k + j]] -= GPWVar[i] * sumTargetLat;
+                  distWeightDeriv[GPWDistWeightIdx[i][trnSize*k + j]] -= 2.0 *GPWVar[i] * creal(GPWDistWeights[GPWDistWeightIdx[i][trnSize*k + j]]) * sumTargetLat;
                 }
               }
             }
@@ -319,7 +319,6 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
         }
 
         for (i = 0; i < nGPWDistWeights; i++) {
-          srOptO[(offset+i)*2]     *= 2.0 * creal(GPWDistWeights[i]);
           if (GPWLinModFlag) {
             srOptO[(offset+i)*2] /= GPWVal(eleGPWKern);
           }

@@ -15,6 +15,7 @@ int ComputeRefState(const int *eleIdx, const int *eleNum, int *workspace) {
     }
   }
 
+
   #pragma omp parallel for default(shared) private(i)
   for(i = 0; i < Nsite2; i++) {
     masterCandidate[i] = -1;

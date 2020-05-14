@@ -368,11 +368,11 @@ void ComputeInSumExpBasisOpt(double *inSum, const int *plaquetteAIdx, const int 
   }
 
   for (i = 0; i < sizeA; i++) {
-    innerSum = 0.0;
+    innerSum = 1.0;
     for (k = 0; k < plaquetteSize; k++) {
       id = (int)inSum[sizeA+plaquetteAIdx[i*plaquetteSize+k]];
       element = creal(distWeights[k*4+id]);
-      innerSum += element * element;
+      innerSum *= element;
     }
     inSum[i] = innerSum;
   }
@@ -402,8 +402,8 @@ void UpdateInSumExpBasisOpt(double *inSumNew, const double *inSumOld, const int 
     elementOld = creal(distWeights[k*4+occupationIdOld]);
     elementNew = creal(distWeights[k*4+occupationIdNew]);
 
-    inSumNew[i] -= elementOld*elementOld;
-    inSumNew[i] += elementNew*elementNew;
+    inSumNew[i] /= elementOld;
+    inSumNew[i] *= elementNew;
   }
   if (ri != rj) {
     occupationIdOld = (int)inSumOld[sizeA+rj];
@@ -412,8 +412,8 @@ void UpdateInSumExpBasisOpt(double *inSumNew, const double *inSumOld, const int 
       k = plaqHash[rj + i *sizeA][0];
       elementOld = creal(distWeights[k*4+occupationIdOld]);
       elementNew = creal(distWeights[k*4+occupationIdNew]);
-      inSumNew[i] -= elementOld*elementOld;
-      inSumNew[i] += elementNew*elementNew;
+      inSumNew[i] /= elementOld;
+      inSumNew[i] *= elementNew;
     }
   }
 }
@@ -424,11 +424,11 @@ double ComputeExpKernelBasisOpt(const int size, const int tRSym,
   double kernel = 0.0;
 
   for (i = 0; i < size; i++) {
-    kernel += exp(-fabs(inSum[i]));
+    kernel -= inSum[i];
   }
   if (tRSym) {
     for (i = 0; i < size; i++) {
-      kernel += exp(-inSumFlipped[i]);
+      kernel -= inSumFlipped[i];
     }
     kernel /= 2.0;
   }

@@ -73,7 +73,7 @@ GetInfoDH4(FILE *fp, int **ArrayIdx, int *ArrayOpt, int iComplxFlag, int *iOptCo
            char *defname);
 
 int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int *trnCfg,
-               int *kernFunc, int *power, int *cutRad, double *theta0, double *thetaC,
+               int *kernFunc, double *power, int *cutRad, double *theta, double *distWeightPower,
                int *tRSym, int *shift, int *ArrayOpt, int iComplxFlag, int *iOptCount,
                int _fidx, char *defname);
 
@@ -235,8 +235,8 @@ char *ReadBuffGPWInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, in
         cutRad[i] = (int)(dtmp);
       }
       else if (CheckWords(ctmp2, "KernelFunc") != 0  && CheckWords(ctmp2, "Power") != 0 &&
-          CheckWords(ctmp2, "CutRad") != 0 && CheckWords(ctmp2, "Theta0") != 0 &&
-          CheckWords(ctmp2, "OptTheta") != 0 && CheckWords(ctmp2, "ThetaC") != 0 &&
+          CheckWords(ctmp2, "CutRad") != 0 && CheckWords(ctmp2, "Theta") != 0 &&
+          CheckWords(ctmp2, "OptTheta") != 0 && CheckWords(ctmp2, "DistWeightPower") != 0 &&
           CheckWords(ctmp2, "TRSym") != 0 && CheckWords(ctmp2, "Shift") != 0) {
         read = 0;
       }
@@ -923,7 +923,6 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
                  + GPWTrnLatNeighboursSz /* GPWTrnNeighboursFlat */
                  + GPWTrnCfgSz /* GPWTrnCfgFlat */
                  + NGPWTrnLat /* GPWKernelFunc */
-                 + NGPWTrnLat /* GPWPower */
                  + NGPWTrnLat /* GPWCutRad */
                  + NGPWTrnLat /* GPWTRSym */
                  + NGPWTrnLat /* GPWShift */
@@ -953,8 +952,9 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
       //    + NQPTrans /* ParaQPTrans */
       //+ NInterAll /* ParaInterAll */
       + NQPOptTrans /* ParaQPTransOpt */
-      + NGPWTrnLat /* GPWTheta0 */
-      + NGPWTrnLat /* GPWThetaC */
+      + NGPWTrnLat /* GPWPower */
+      + NGPWTrnLat /* GPWTheta */
+      + NGPWTrnLat /* GPWDistWeightPower */
       + NGPWTrnLat; /* GPWNorm */
 
   return 0;
@@ -1060,7 +1060,7 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
 
           fidx = NGutzwillerIdx + NJastrowIdx + 2 * 3 * NDoublonHolon2siteIdx + 2 * 5 * NDoublonHolon4siteIdx;
           if (GetInfoGPW(fp, GPWTrnSize, GPWTrnNeighboursFlat, GPWTrnLat, GPWTrnCfgFlat, GPWKernelFunc, GPWPower,
-                         GPWCutRad, GPWTheta0, GPWThetaC, GPWTRSym, GPWShift, OptFlag, iComplexFlgGPW, &count_idx, fidx,
+                         GPWCutRad, GPWTheta, GPWDistWeightPower, GPWTRSym, GPWShift, OptFlag, iComplexFlgGPW, &count_idx, fidx,
                          defname) != 0)
             info = 1;
           break;
@@ -1302,20 +1302,9 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
     SetupPlaquetteHash(Nsite, GPWPlaquetteSizes[i], GPWSysPlaquetteIdx[i],
                        &(GPWSysPlaqHash[i]), &(GPWSysPlaqHashSz[i]));
 
-    if (GPWThetaC[i] > 0.0) {
-      distWeightFlag = 1;
-    }
-    else {
-      distWeightFlag = 0;
-    }
     GPWNorm[i] = 0.0;
     for (j = 0; j < GPWPlaquetteSizes[i]; j++) {
-      if (distWeightFlag) {
-        GPWNorm[i] += 1.0/GPWDistList[i][j];
-      }
-      else {
-        GPWNorm[i] += 1.0;
-      }
+      GPWNorm[i] += 1.0/pow(GPWDistList[i][j], GPWDistWeightPower[i]);
     }
   }
 
@@ -2267,7 +2256,7 @@ GetInfoDH4(FILE *fp, int **ArrayIdx, int *ArrayOpt, int iComplxFlag, int *iOptCo
 }
 
 int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int *trnCfg,
-               int *kernFunc, int *power, int *cutRad, double *theta0, double *thetaC,
+               int *kernFunc, double *power, int *cutRad, double *theta, double *distWeightPower,
                int *tRSym, int *shift, int *ArrayOpt, int iComplxFlag, int *iOptCount,
                int _fidx, char *defname) {
   char ctmp[D_CharTmpReadDef], ctmp2[D_CharTmpReadDef];
@@ -2301,15 +2290,15 @@ int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int
         if (CheckWords(ctmp2, "KernelFunc") == 0) {
           kernFunc[i] = (int) dtmp;
         } else if (CheckWords(ctmp2, "Power") == 0) {
-          power[i] = (int) dtmp;
+          power[i] = dtmp;
         } else if (CheckWords(ctmp2, "CutRad") == 0) {
           cutRad[i] = (int) dtmp;
-        } else if (CheckWords(ctmp2, "Theta0") == 0) {
-          theta0[i] = dtmp;
+        } else if (CheckWords(ctmp2, "Theta") == 0) {
+          theta[i] = dtmp;
         } else if (CheckWords(ctmp2, "OptTheta") == 0) {
           optTheta[i] = dtmp;
-        } else if (CheckWords(ctmp2, "ThetaC") == 0) {
-          thetaC[i] = dtmp;
+        } else if (CheckWords(ctmp2, "DistWeightPower") == 0) {
+          distWeightPower[i] = dtmp;
         } else if (CheckWords(ctmp2, "TRSym") == 0) {
           tRSym[i] = (int) dtmp;
         } else if (CheckWords(ctmp2, "Shift") == 0) {

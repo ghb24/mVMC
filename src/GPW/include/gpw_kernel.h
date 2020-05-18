@@ -53,7 +53,7 @@ void ComputeInSum(double *inSum, const int *plaquetteAIdx,
                   const int sizeA, const int *plaquetteBIdx, const int sizeB,
                   const int plaquetteSize, const int *distList,
                   const int shift, const int startIdA, const int startIdB,
-                  const int distWeightFlag);
+                  const double distWeightPower);
 
 // Updates the inner sum for the full kernel
 void UpdateInSum(double *inSumNew, const double *inSumOld,
@@ -61,7 +61,7 @@ void UpdateInSum(double *inSumNew, const double *inSumOld,
                  const int *plaquetteBIdx, const int sizeB,
                  const int plaquetteSize, const int *distList,
                  const int shift, const int startIdA, const int startIdB,
-                 const int distWeightFlag, int **plaqHash,
+                 const double distWeightPower, int **plaqHash,
                  int *plaqHashSz, const int siteA, const int siteB);
 
 // Updates the delta list
@@ -75,15 +75,15 @@ void UpdateDeltaFlipped(double *inSumNew, const int *cfgA, const int sizeA,
                         const int siteB);
 
 // Computes the full kernel
-double ComputeKernel(const int sizeA, const int sizeB, const int power,
-                     const double theta0, const double norm, const int tRSym,
+double ComputeKernel(const int sizeA, const int sizeB, const double power,
+                     const double theta, const double norm, const int tRSym,
                      const int shift, const int startIdA, const int startIdB,
                      const double *inSum, const double *inSumFlipped);
 
 /* Computes the derivative of the kernel (divided by the wave function amplitude)
-with respect to theta0 */
-double ComputeKernDeriv(const int sizeA, const int sizeB, const int power,
-                        const double theta0, const double norm, const int tRSym,
+with respect to theta */
+double ComputeKernDeriv(const int sizeA, const int sizeB, const double power,
+                        const double theta, const double norm, const int tRSym,
                         const int shift, const int startIdA, const int startIdB,
                         const double *inSum, const double *inSumFlipped);
 
@@ -124,7 +124,7 @@ void GPWKernelNVec(const unsigned long *configsAUp, const unsigned long *configs
 // Computes the full kernel in place
 double GPWKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
                  const int *cfgB, const int *plaquetteBIdx, const int sizeB,
-                 const int power, const double theta0, const double thetaC,
+                 const double power, const double theta, const double distWeightPower,
                  const int tRSym, const int shift, const int startIdA,
                  const int startIdB, const int plaquetteSize, const int *distList,
                  double *workspace);
@@ -137,8 +137,8 @@ void GPWKernelMat(const unsigned long *configsAUp,
                   const unsigned long *configsBUp,
                   const unsigned long *configsBDown,
                   const int *neighboursB, const int sizeB, const int numB,
-                  const int dim, const int power, const int rC,
-                  const double theta0, const double thetaC,
+                  const int dim, const double power, const int rC,
+                  const double theta, const double distWeightPower,
                   const int tRSym, const int shift, const int startIdA,
                   const int startIdB, const int symmetric,
                   double *kernelMatr);
@@ -149,7 +149,7 @@ void GPWKernelVec(const unsigned long *configsAUp,
                   const unsigned long *configsADown, const int *neighboursA,
                   const int sizeA, const int numA, const int *configRef,
                   const int *neighboursRef, const int sizeRef, const int dim,
-                  const int power, const int rC, const double theta0,
-                  const double thetaC, const int tRSym, const int shift,
+                  const double power, const int rC, const double theta,
+                  const double distWeightPower, const int tRSym, const int shift,
                   const int startIdA, const int startIdB, double *kernelVec);
 #endif // _GPW_KERN_INCLUDE_FILES

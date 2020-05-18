@@ -209,8 +209,6 @@ void SetMemoryDef() {
   GPWTrnNeighbours = GPWTrnCfg+NGPWIdx;
   GPWKernelFunc = pInt;
   pInt += NGPWTrnLat;
-  GPWPower = pInt;
-  pInt += NGPWTrnLat;
   GPWCutRad = pInt;
   pInt += NGPWTrnLat;
   GPWTRSym = pInt;
@@ -230,10 +228,6 @@ void SetMemoryDef() {
   // intitialise kernel function with default value
   for (i = 0; i < NGPWTrnLat; i++) {
     GPWKernelFunc[i] = 0;
-  }
-  // intitialise power in full kernel with default value
-  for (i = 0; i < NGPWTrnLat; i++) {
-    GPWPower[i] = 5;
   }
   // intitialise cutoff radius with default value
   for (i = 0; i < NGPWTrnLat; i++) {
@@ -285,22 +279,30 @@ void SetMemoryDef() {
   ParaQPOptTrans = pDouble;
   pDouble += NQPOptTrans;
 
-  GPWTheta0 = pDouble;
+  GPWPower = pDouble;
   pDouble += NGPWTrnLat;
 
-  GPWThetaC = pDouble;
+  GPWTheta = pDouble;
+  pDouble += NGPWTrnLat;
+
+  GPWDistWeightPower = pDouble;
   pDouble += NGPWTrnLat;
 
   GPWNorm = pDouble;
   pDouble += NGPWTrnLat;
 
-  // intitialise theta0 with default value
+  // intitialise power in full kernel with default value
   for (i = 0; i < NGPWTrnLat; i++) {
-    GPWTheta0[i] = 1.0;
+    GPWPower[i] = 1.0;
   }
-  // intitialise thetaC with default value
+
+  // intitialise GPWTheta with default value
   for (i = 0; i < NGPWTrnLat; i++) {
-    GPWThetaC[i] = 1.0;
+    GPWTheta[i] = 1.0;
+  }
+  // intitialise GPWDistWeightPower with default value
+  for (i = 0; i < NGPWTrnLat; i++) {
+    GPWDistWeightPower[i] = 1.0;
   }
 
   ParaQPTrans = (double complex*)malloc(sizeof(double complex)*(NQPTrans));

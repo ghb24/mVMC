@@ -79,14 +79,7 @@ void CalculateGPWKern(double *eleGPWKern, double *eleGPWInSum, const int *eleNum
     int latId = GPWTrnLat[i];
     int offset = 0;
     int offsetDistWeights = 0;
-    int j, distWeightFlag;
-
-    if (GPWThetaC[latId] > 0.0) {
-      distWeightFlag = 1;
-    }
-    else {
-      distWeightFlag = 0;
-    }
+    int j;
 
     for (j = 0; j < i; j++) {
       if (GPWKernelFunc[GPWTrnLat[j]] != -3) {
@@ -161,13 +154,13 @@ void CalculateGPWKern(double *eleGPWKern, double *eleGPWInSum, const int *eleNum
                      Nsite, GPWTrnPlaquetteIdx[latId],
                      GPWTrnSize[latId], GPWPlaquetteSizes[latId],
                      GPWDistList[latId], GPWShift[latId], 0, 0,
-                     distWeightFlag);
+                     GPWDistWeightPower[latId]);
         if (GPWTRSym[latId]) {
           ComputeInSum(eleGPWInSum+(GPWTrnCfgSz/2)*Nsite+offset,
                        GPWSysPlaquetteIdx[latId], Nsite,
                        GPWTrnPlaquetteIdx[latId], GPWTrnSize[latId],
                        GPWPlaquetteSizes[latId], GPWDistList[latId],
-                       GPWShift[latId], 0, 0, distWeightFlag);
+                       GPWShift[latId], 0, 0, GPWDistWeightPower[latId]);
         }
         eleGPWKern[i] = ComputeKernel(Nsite, GPWTrnSize[latId],
                                       GPWPower[latId], GPWThetaVar[latId],
@@ -202,13 +195,6 @@ void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew,
     int offset = 0;
     int offsetDistWeights = 0;
     int j, distWeightFlag;
-
-    if (GPWThetaC[latId] > 0.0) {
-      distWeightFlag = 1;
-    }
-    else {
-      distWeightFlag = 0;
-    }
 
     for (j = 0; j < i; j++) {
       if (GPWKernelFunc[GPWTrnLat[j]] != -3) {
@@ -290,7 +276,7 @@ void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew,
         UpdateInSum(eleGPWInSumNew+offset, eleGPWInSumOld+offset,
                     GPWSysPlaquetteIdx[latId], Nsite, GPWTrnPlaquetteIdx[latId],
                     GPWTrnSize[latId], GPWPlaquetteSizes[latId],
-                    GPWDistList[latId], GPWShift[latId], 0, 0, distWeightFlag,
+                    GPWDistList[latId], GPWShift[latId], 0, 0, GPWDistWeightPower[latId],
                     GPWSysPlaqHash[latId], GPWSysPlaqHashSz[latId], ri, rj);
 
         if (GPWTRSym[latId]) {
@@ -299,7 +285,7 @@ void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew,
                       GPWSysPlaquetteIdx[latId], Nsite,
                       GPWTrnPlaquetteIdx[latId], GPWTrnSize[latId],
                       GPWPlaquetteSizes[latId], GPWDistList[latId],
-                      GPWShift[latId], 0, 0, distWeightFlag,
+                      GPWShift[latId], 0, 0, GPWDistWeightPower[latId],
                       GPWSysPlaqHash[latId], GPWSysPlaqHashSz[latId],
                       ri, rj);
         }

@@ -150,10 +150,10 @@ int **GPWTrnCfg; /* [NGPWIdx][2*trnSize], training configurations representation
 int *GPWKernelFunc; /* [NGPWTrnLat] which kernel function should be used for the associated lattice
                    0: full kernel
                    n > 0: simple plaquette kernel with plaquette size n */
-int *GPWPower; /* [NGPWTrnLat] power for full GPW kernel */
 int *GPWCutRad; /* [NGPWTrnLat] cutoff radius for full GPW kernel */
-double *GPWTheta0; /* [NGPWTrnLat] theta0 parameter for full GPW kernel */
-double *GPWThetaC; /* [NGPWTrnLat] thetac parameter for full GPW kernel */
+double *GPWPower; /* [NGPWTrnLat] power for full GPW kernel */
+double *GPWTheta; /* [NGPWTrnLat] theta parameter for full GPW kernel */
+double *GPWDistWeightPower; /* [NGPWTrnLat] dist weight power parameter for full GPW kernel */
 double *GPWNorm; /* [NGPWTrnLat] norm for full GPW kernel */
 int *GPWTRSym; /* [NGPWTrnLat] whether kernel should respect time reversal symmetry (=1) or not (=0) */
 int *GPWShift; /* [NGPWTrnLat] whether kernel should respect translational

@@ -458,7 +458,7 @@ void ComputeInSum(double *inSum, const int *plaquetteAIdx,
                   const int sizeA, const int *plaquetteBIdx, const int sizeB,
                   const int plaquetteSize, const int *distList,
                   const int shift, const int startIdA, const int startIdB,
-                  const int distWeightFlag) {
+                  const double distWeightPower) {
   int i, a, k;
   double innerSum;
 
@@ -481,32 +481,16 @@ void ComputeInSum(double *inSum, const int *plaquetteAIdx,
     }
   }
 
-  if (distWeightFlag) {
-    for (i = startIdA; i < shiftSys; i+=translationSys) {
-      for (a = startIdB; a < shiftTrn; a+=translationTrn) {
-        innerSum = 0.0;
-        for (k = 0; k < plaquetteSize; k++) {
-          if (signbit(inSum[plaquetteAIdx[i*plaquetteSize+k]*sizeB +
-                            plaquetteBIdx[a*plaquetteSize+k]])) {
-            innerSum += 1.0/distList[k];
-          }
+  for (i = startIdA; i < shiftSys; i+=translationSys) {
+    for (a = startIdB; a < shiftTrn; a+=translationTrn) {
+      innerSum = 0.0;
+      for (k = 0; k < plaquetteSize; k++) {
+        if (signbit(inSum[plaquetteAIdx[i*plaquetteSize+k]*sizeB +
+                          plaquetteBIdx[a*plaquetteSize+k]])) {
+          innerSum += 1.0/pow(distList[k], distWeightPower);
         }
-        inSum[i*sizeB + a] = copysign(innerSum, inSum[i*sizeB + a]);
       }
-    }
-  }
-  else {
-    for (i = startIdA; i < shiftSys; i+=translationSys) {
-      for (a = startIdB; a < shiftTrn; a+=translationTrn) {
-        innerSum = 0.0;
-        for (k = 0; k < plaquetteSize; k++) {
-          if (signbit(inSum[plaquetteAIdx[i*plaquetteSize+k]*sizeB +
-                            plaquetteBIdx[a*plaquetteSize+k]])) {
-            innerSum += 1.0;
-          }
-        }
-        inSum[i*sizeB + a] = copysign(innerSum, inSum[i*sizeB + a]);
-      }
+      inSum[i*sizeB + a] = copysign(innerSum, inSum[i*sizeB + a]);
     }
   }
 }
@@ -516,7 +500,7 @@ void UpdateInSum(double *inSumNew, const double *inSumOld,
                  const int *plaquetteBIdx, const int sizeB,
                  const int plaquetteSize, const int *distList,
                  const int shift, const int startIdA, const int startIdB,
-                 const int distWeightFlag, int **plaqHash,
+                 const double distWeightPower, int **plaqHash,
                  int *plaqHashSz, const int siteA, const int siteB) {
   int i, a, k, countA, countB, id;
   const int *hashListA, *hashListB;
@@ -540,63 +524,30 @@ void UpdateInSum(double *inSumNew, const double *inSumOld,
     }
   }
 
-  if (distWeightFlag) {
-    for (i = startIdA; i < shiftSys; i+=translationSys) {
-      countA = plaqHashSz[sizeA*i + siteA];
-      countB = plaqHashSz[sizeA*i + siteB];
-      hashListA = plaqHash[sizeA*i + siteA];
-      hashListB = plaqHash[sizeA*i + siteB];
+  for (i = startIdA; i < shiftSys; i+=translationSys) {
+    countA = plaqHashSz[sizeA*i + siteA];
+    countB = plaqHashSz[sizeA*i + siteB];
+    hashListA = plaqHash[sizeA*i + siteA];
+    hashListB = plaqHash[sizeA*i + siteB];
 
-      for (a = startIdB; a < shiftTrn; a+=translationTrn) {
-        for (k = 0; k < countA; k++) {
-          id = hashListA[k];
-          if (signbit(inSumNew[siteA*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
-            inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) + 1.0/distList[id], inSumNew[i*sizeB + a]);
-          }
-          if (signbit(inSumOld[siteA*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
-            inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) - 1.0/distList[id], inSumNew[i*sizeB + a]);
-          }
+    for (a = startIdB; a < shiftTrn; a+=translationTrn) {
+      for (k = 0; k < countA; k++) {
+        id = hashListA[k];
+        if (signbit(inSumNew[siteA*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
+          inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) + 1.0/pow(distList[id], distWeightPower), inSumNew[i*sizeB + a]);
         }
-        if (siteA != siteB) {
-          for (k = 0; k < countB; k++) {
-            id = hashListB[k];
-            if (signbit(inSumNew[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
-              inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) + 1.0/distList[id], inSumNew[i*sizeB + a]);
-            }
-            if (signbit(inSumOld[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
-              inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) - 1.0/distList[id], inSumNew[i*sizeB + a]);
-            }
-          }
+        if (signbit(inSumOld[siteA*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
+          inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) - 1.0/pow(distList[id], distWeightPower), inSumNew[i*sizeB + a]);
         }
       }
-    }
-  }
-  else {
-    for (i = startIdA; i < shiftSys; i+=translationSys) {
-      countA = plaqHashSz[sizeA*i + siteA];
-      countB = plaqHashSz[sizeA*i + siteB];
-      hashListA = plaqHash[sizeA*i + siteA];
-      hashListB = plaqHash[sizeA*i + siteB];
-
-      for (a = startIdB; a < shiftTrn; a+=translationTrn) {
-        for (k = 0; k < countA; k++) {
-          id = hashListA[k];
-          if (signbit(inSumNew[siteA*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
-            inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) + 1.0, inSumNew[i*sizeB + a]);
+      if (siteA != siteB) {
+        for (k = 0; k < countB; k++) {
+          id = hashListB[k];
+          if (signbit(inSumNew[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
+            inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) + 1.0/pow(distList[id], distWeightPower), inSumNew[i*sizeB + a]);
           }
-          if (signbit(inSumOld[siteA*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
-            inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) - 1.0, inSumNew[i*sizeB + a]);
-          }
-        }
-        if (siteA != siteB) {
-          for (k = 0; k < countB; k++) {
-            id = hashListB[k];
-            if (signbit(inSumNew[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
-              inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) + 1.0, inSumNew[i*sizeB + a]);
-            }
-            if (signbit(inSumOld[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
-              inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) - 1.0, inSumNew[i*sizeB + a]);
-            }
+          if (signbit(inSumOld[siteB*sizeB + plaquetteBIdx[a*plaquetteSize+id]])) {
+            inSumNew[i*sizeB + a] = copysign(fabs(inSumNew[i*sizeB + a]) - 1.0/pow(distList[id], distWeightPower), inSumNew[i*sizeB + a]);
           }
         }
       }
@@ -653,8 +604,8 @@ void UpdateDeltaFlipped(double *inSumNew, const int *cfgA, const int sizeA,
   }
 }
 
-double ComputeKernel(const int sizeA, const int sizeB, const int power,
-                     const double theta0, const double norm, const int tRSym,
+double ComputeKernel(const int sizeA, const int sizeB, const double power,
+                     const double theta, const double norm, const int tRSym,
                      const int shift, const int startIdA, const int startIdB,
                      const double *inSum, const double *inSumFlipped) {
   int i, a;
@@ -663,7 +614,7 @@ double ComputeKernel(const int sizeA, const int sizeB, const int power,
   int translationSys = 1;
   int translationTrn = 1;
   double kernel = 0.0;
-  const double scaledNorm = theta0 + norm/power;
+  const double scaledNorm = theta + norm/power;
 
   if (abs(shift) & 1) {
     shiftSys = sizeA;
@@ -681,14 +632,14 @@ double ComputeKernel(const int sizeA, const int sizeB, const int power,
 
   // looks ugly but we want speed here
   if (tRSym) {
-    if (power == -1) {
+    if (power < 0.0) {
       for (i = startIdA; i < shiftSys; i+=translationSys) {
         for (a = startIdB; a < shiftTrn; a+=translationTrn) {
           if (signbit(inSum[i*sizeB+a])) {
-            kernel += exp(-1.0/theta0 * (norm - fabs(inSum[i*sizeB+a])));
+            kernel += exp(-1.0/theta * (norm - fabs(inSum[i*sizeB+a])));
           }
           if (signbit(inSumFlipped[i*sizeB+a])) {
-            kernel += exp(-1.0/theta0 * (norm - fabs(inSumFlipped[i*sizeB+a])));
+            kernel += exp(-1.0/theta * (norm - fabs(inSumFlipped[i*sizeB+a])));
           }
         }
       }
@@ -697,10 +648,10 @@ double ComputeKernel(const int sizeA, const int sizeB, const int power,
       for (i = startIdA; i < shiftSys; i+=translationSys) {
         for (a = startIdB; a < shiftTrn; a+=translationTrn) {
           if (signbit(inSum[i*sizeB+a])) {
-            kernel += pow(((theta0 + fabs(inSum[i*sizeB+a])/power)/scaledNorm), power);
+            kernel += pow(((theta + fabs(inSum[i*sizeB+a])/power)/scaledNorm), power);
           }
           if (signbit(inSumFlipped[i*sizeB+a])) {
-            kernel += pow(((theta0 + fabs(inSumFlipped[i*sizeB+a])/power)/scaledNorm), power);
+            kernel += pow(((theta + fabs(inSumFlipped[i*sizeB+a])/power)/scaledNorm), power);
           }
         }
       }
@@ -708,11 +659,11 @@ double ComputeKernel(const int sizeA, const int sizeB, const int power,
     kernel /= 2.0;
   }
   else {
-    if (power == -1) {
+    if (power < 0.0) {
       for (i = startIdA; i < shiftSys; i+=translationSys) {
         for (a = startIdB; a < shiftTrn; a+=translationTrn) {
           if (signbit(inSum[i*sizeB+a])) {
-            kernel += exp(-1.0/theta0 * (norm - fabs(inSum[i*sizeB+a])));
+            kernel += exp(-1.0/theta * (norm - fabs(inSum[i*sizeB+a])));
           }
         }
       }
@@ -721,7 +672,7 @@ double ComputeKernel(const int sizeA, const int sizeB, const int power,
       for (i = startIdA; i < shiftSys; i+=translationSys) {
         for (a = startIdB; a < shiftTrn; a+=translationTrn) {
           if (signbit(inSum[i*sizeB+a])) {
-            kernel += pow(((theta0 + fabs(inSum[i*sizeB+a])/power)/scaledNorm), power);
+            kernel += pow(((theta + fabs(inSum[i*sizeB+a])/power)/scaledNorm), power);
           }
         }
       }
@@ -730,8 +681,8 @@ double ComputeKernel(const int sizeA, const int sizeB, const int power,
   return kernel;
 }
 
-double ComputeKernDeriv(const int sizeA, const int sizeB, const int power,
-                        const double theta0, const double norm, const int tRSym,
+double ComputeKernDeriv(const int sizeA, const int sizeB, const double power,
+                        const double theta, const double norm, const int tRSym,
                         const int shift, const int startIdA, const int startIdB,
                         const double *inSum, const double *inSumFlipped) {
   int i, a;
@@ -739,7 +690,7 @@ double ComputeKernDeriv(const int sizeA, const int sizeB, const int power,
   int shiftTrn = 1 + startIdB;
   int translationSys = 1;
   int translationTrn = 1;
-  const double scaledNorm = theta0 + norm/power;
+  const double scaledNorm = theta + norm/power;
 
   double kernDeriv = 0.0;
 
@@ -757,11 +708,11 @@ double ComputeKernDeriv(const int sizeA, const int sizeB, const int power,
     }
   }
 
-  if (power == -1) {
+  if (power < 0.0) {
     for (i = startIdA; i < shiftSys; i+=translationSys) {
       for (a = startIdB; a < shiftTrn; a+=translationTrn) {
         if (signbit(inSum[i*sizeB+a])) {
-          kernDeriv += exp(-1.0/theta0 * (norm - fabs(inSum[i*sizeB+a])))*
+          kernDeriv += exp(-1.0/theta * (norm - fabs(inSum[i*sizeB+a])))*
                        (norm-fabs(inSum[i*sizeB+a]));
         }
       }
@@ -770,20 +721,20 @@ double ComputeKernDeriv(const int sizeA, const int sizeB, const int power,
       for (i = startIdA; i < shiftSys; i+=translationSys) {
         for (a = startIdB; a < shiftTrn; a+=translationTrn) {
           if (signbit(inSumFlipped[i*sizeB+a])) {
-            kernDeriv += exp(-1.0/theta0 * (norm - fabs(inSumFlipped[i*sizeB+a])))*
+            kernDeriv += exp(-1.0/theta * (norm - fabs(inSumFlipped[i*sizeB+a])))*
                          (norm-fabs(inSumFlipped[i*sizeB+a]));
           }
         }
       }
     kernDeriv /= 2.0;
     }
-    kernDeriv /= (theta0 * theta0);
+    kernDeriv /= (theta * theta);
   }
   else {
     for (i = startIdA; i < shiftSys; i+=translationSys) {
       for (a = startIdB; a < shiftTrn; a+=translationTrn) {
         if (signbit(inSum[i*sizeB+a])) {
-          kernDeriv += pow(((theta0 + (fabs(inSum[i*sizeB+a])/power))/scaledNorm), power-1)*
+          kernDeriv += pow(((theta + (fabs(inSum[i*sizeB+a])/power))/scaledNorm), power-1)*
                        ((norm - fabs(inSum[i*sizeB+a]))/power);
         }
       }
@@ -792,7 +743,7 @@ double ComputeKernDeriv(const int sizeA, const int sizeB, const int power,
       for (i = startIdA; i < shiftSys; i+=translationSys) {
         for (a = startIdB; a < shiftTrn; a+=translationTrn) {
           if (signbit(inSumFlipped[i*sizeB+a])) {
-            kernDeriv += pow(((theta0 + (fabs(inSumFlipped[i*sizeB+a])/power))/scaledNorm), power-1)*
+            kernDeriv += pow(((theta + (fabs(inSumFlipped[i*sizeB+a])/power))/scaledNorm), power-1)*
                          ((norm - fabs(inSumFlipped[i*sizeB+a]))/power);
           }
         }
@@ -1059,7 +1010,7 @@ void GPWKernelNVec(const unsigned long *configsAUp, const unsigned long *configs
 
 double GPWKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
                  const int *cfgB, const int *plaquetteBIdx, const int sizeB,
-                 const int power, const double theta0, const double thetaC,
+                 const double power, const double theta, const double distWeightPower,
                  const int tRSym, const int shift, const int startIdA,
                  const int startIdB, const int plaquetteSize, const int *distList,
                  double *workspace) {
@@ -1070,36 +1021,23 @@ double GPWKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
 
   double norm = 0.0;
 
-  if (thetaC > 0.0) {
-    distWeightFlag = 1;
-  }
-  else {
-    distWeightFlag = 0;
-  }
-
-
   for (i = 0; i < plaquetteSize; i++) {
-    if (distWeightFlag) {
-      norm += 1.0/distList[i];
-    }
-    else {
-      norm += 1.0;
-    }
+    norm += 1.0/pow(distList[i], distWeightPower);
   }
 
   CalculatePairDelta(innerSum, cfgA, sizeA, cfgB, sizeB);
   ComputeInSum(innerSum, plaquetteAIdx, sizeA, plaquetteBIdx,
                sizeB, plaquetteSize, distList, shift,
-               startIdA, startIdB, distWeightFlag);
+               startIdA, startIdB, distWeightPower);
 
   if (tRSym) {
     CalculatePairDeltaFlipped(innerSumFlipped, cfgA, sizeA, cfgB, sizeB);
     ComputeInSum(innerSumFlipped, plaquetteAIdx, sizeA,
                  plaquetteBIdx, sizeB, plaquetteSize, distList, shift,
-                 startIdA, startIdB, distWeightFlag);
+                 startIdA, startIdB, distWeightPower);
   }
 
-  return ComputeKernel(sizeA, sizeB, power, theta0, norm, tRSym, shift,
+  return ComputeKernel(sizeA, sizeB, power, theta, norm, tRSym, shift,
                        startIdA, startIdB, innerSum, innerSumFlipped);
 }
 
@@ -1109,8 +1047,8 @@ void GPWKernelMat(const unsigned long *configsAUp,
                   const unsigned long *configsBUp,
                   const unsigned long *configsBDown,
                   const int *neighboursB, const int sizeB, const int numB,
-                  const int dim, const int power, const int rC,
-                  const double theta0, const double thetaC,
+                  const int dim, const double power, const int rC,
+                  const double theta, const double distWeightPower,
                   const int tRSym, const int shift, const int startIdA,
                   const int startIdB, const int symmetric,
                   double *kernelMatr) {
@@ -1154,7 +1092,7 @@ void GPWKernelMat(const unsigned long *configsAUp,
         for (j = 0; j < numB; j++) {
           kernelMatr[i*numB + j] = GPWKernel(cfgsA[i], plaquetteAIdx, sizeA,
                                              cfgsB[j], plaquetteBIdx, sizeB,
-                                             power, theta0, thetaC, tRSym, shift,
+                                             power, theta, distWeightPower, tRSym, shift,
                                              startIdA, startIdB, plaquetteSize,
                                              distList, workspace);
         }
@@ -1178,7 +1116,7 @@ void GPWKernelMat(const unsigned long *configsAUp,
         for (j = 0; j <= i; j++) {
           kernelMatr[i*numA + j] = GPWKernel(cfgsA[i], plaquetteAIdx, sizeA,
                                              cfgsA[j], plaquetteAIdx, sizeA,
-                                             power, theta0, thetaC, tRSym, shift,
+                                             power, theta, distWeightPower, tRSym, shift,
                                              startIdA, startIdB,
                                              plaquetteSize, distList,
                                              workspace);
@@ -1201,8 +1139,8 @@ void GPWKernelVec(const unsigned long *configsAUp,
                   const unsigned long *configsADown, const int *neighboursA,
                   const int sizeA, const int numA, const int *configRef,
                   const int *neighboursRef, const int sizeRef, const int dim,
-                  const int power, const int rC, const double theta0,
-                  const double thetaC, const int tRSym, const int shift,
+                  const double power, const int rC, const double theta,
+                  const double distWeightPower, const int tRSym, const int shift,
                   const int startIdA, const int startIdB, double *kernelVec) {
   int i, j;
   int **cfgsA;
@@ -1231,7 +1169,7 @@ void GPWKernelVec(const unsigned long *configsAUp,
     #pragma omp for
     for (i = 0; i < numA; i++) {
       kernelVec[i] = GPWKernel(cfgsA[i], plaquetteAIdx, sizeA, configRef,
-                               plaquetteBIdx, sizeRef, power, theta0, thetaC, tRSym,
+                               plaquetteBIdx, sizeRef, power, theta, distWeightPower, tRSym,
                                shift, startIdA, startIdB, plaquetteSize,
                                distList, workspace);
     }

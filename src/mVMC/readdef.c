@@ -265,10 +265,7 @@ char *ReadBuffGPWInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, in
       fprintf(stderr, "Error: Lattice reference (in gpwidx.def) not found.\n");
     }
 
-    if (latType[latIdIntern] == -3) {
-      *iTrnCfgSzBuf += 2;
-    }
-    else {
+    if (latType[latIdIntern] != -3) {
       *iTrnCfgSzBuf += latSz[latIdIntern];
     }
     if (latType[latIdIntern] < 0 && latType[latIdIntern] != -3) {
@@ -970,6 +967,7 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
   int fidx = 0; /* index for OptFlag */
   int count_idx = 0;
   int x0, x1;
+  int inSumSize;
   int rank;
 
   int iNOneBodyG;
@@ -1274,6 +1272,18 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
         }
       }
     }
+    inSumSize = 1;
+    if (abs(GPWShift[GPWTrnLat[i]]) & 1) {
+      inSumSize *= Nsite;
+    }
+    if (((abs(GPWShift[GPWTrnLat[i]]) & 2) >> 1) && GPWKernelFunc[GPWTrnLat[i]] != -3) {
+      inSumSize *= GPWTrnSize[GPWTrnLat[i]];
+    }
+    if (GPWTRSym[GPWTrnLat[i]]) {
+      inSumSize *= 2;
+    }
+
+    GPWInSumSize += inSumSize;
   }
 
   j = 0;

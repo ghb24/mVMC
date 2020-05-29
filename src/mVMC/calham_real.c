@@ -60,7 +60,7 @@ double CalculateHamiltonian_real(const double ip, int *eleIdx, const int *eleCfg
 
   #pragma omp parallel default(none) \
     private(myEleIdx,myEleNum,myProjCntNew,myGPWKernNew,myGPWInSumNew,myBuffer,myEnergy, idx, ri, rj, rk, rl, s, t) \
-    firstprivate(Nsize, Nsite, Nsite2, NProj, NGPWIdx, GPWTrnCfgSz, NQPFull, NCoulombIntra, CoulombIntra, ParaCoulombIntra,   \
+    firstprivate(Nsize, Nsite, Nsite2, NProj, NGPWIdx, GPWTrnCfgSz, GPWInSumSize, NQPFull, NCoulombIntra, CoulombIntra, ParaCoulombIntra,   \
     NCoulombInter, CoulombInter, ParaCoulombInter, NHundCoupling, HundCoupling, ParaHundCoupling,    \
     NTransfer, Transfer, ParaTransfer, NPairHopping, PairHopping, ParaPairHopping,    \
     NExchangeCoupling, ExchangeCoupling, ParaExchangeCoupling, NInterAll, InterAll, ParaInterAll, n0, n1)\
@@ -70,7 +70,7 @@ double CalculateHamiltonian_real(const double ip, int *eleIdx, const int *eleCfg
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myProjCntNew = GetWorkSpaceThreadInt(NProj);
     myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
-    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWTrnCfgSz*Nsite);
+    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWInSumSize);
     myBuffer = GetWorkSpaceThreadDouble(NQPFull+2*Nsize);
 
     #pragma loop noalias

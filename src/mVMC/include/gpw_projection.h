@@ -7,6 +7,8 @@ extern inline double complex LogGPWRatio(const double *eleGPWKernNew, const doub
 extern inline double complex GPWRatio(const double *eleGPWKernNew, const double *eleGPWKernOld);
 void CalculateGPWKern(double *eleGPWKern, double *eleGPWInSum, const int *eleNum);
 
-void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew, double *eleGPWInSumNew,
-                   const double *eleGPWKernOld, const double *eleGPWInSumOld, const int *eleNum);
+void UpdateGPWKern(const int ri, const int rj, const int *cfgOldReduced,
+                   double *eleGPWKernNew, double *eleGPWInSumNew,
+                   const double *eleGPWKernOld, const double *eleGPWInSumOld,
+                   const int *eleNum);
 #endif

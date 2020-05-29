@@ -208,18 +208,24 @@ double calHCA1_real(const int ri, const int rj, const int s,
   int mj;
   double ipNew,z,e;
   int *workspaceRefState;
+  int prevConfigReduced[4];
 
   RequestWorkSpaceInt(NProj);
   RequestWorkSpaceDouble(NQPFull*(Nsize*Nsize+1)+NGPWIdx+GPWTrnCfgSz*Nsite);
 
   projCntNew = GetWorkSpaceInt(NProj);
   eleGPWKernNew = GetWorkSpaceDouble(NGPWIdx);
-  eleGPWInSumNew = GetWorkSpaceDouble(GPWTrnCfgSz*Nsite);
+  eleGPWInSumNew = GetWorkSpaceDouble(GPWInSumSize);
   oldInvM = GetWorkSpaceDouble(NQPFull*Nsize*Nsize);
   oldPfM  = GetWorkSpaceDouble(NQPFull);
 
   /* copy InvM and PfM */
   copyMAll_real(InvM_real,PfM_real,oldInvM,oldPfM);
+
+  prevConfigReduced[0] = eleNum[rj];
+  prevConfigReduced[1] = eleNum[ri];
+  prevConfigReduced[2] = eleNum[rj+Nsite];
+  prevConfigReduced[3] = eleNum[ri+Nsite];
 
   /* The mj-th electron with spin s hops to site ri */
   mj = eleCfg[rsj];
@@ -232,7 +238,7 @@ double calHCA1_real(const int ri, const int rj, const int s,
   UpdateProjCnt(rj, ri, s, projCntNew, eleProjCnt, eleNum);
   z = ProjRatio(projCntNew,eleProjCnt);
 
-  UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWInSumNew,
+  UpdateGPWKern(rj, ri, prevConfigReduced, eleGPWKernNew, eleGPWInSumNew,
                 eleGPWKern, eleGPWInSum, eleNum);
   z *= GPWRatio(eleGPWKernNew,eleGPWKern);
 
@@ -304,7 +310,7 @@ double calHCA2_real(const int ri, const int rj, const int s,
   bufferInt = GetWorkSpaceInt(NProj);
   buffer = GetWorkSpaceDouble(NQPFull);
   eleGPWKernNew = GetWorkSpaceDouble(NGPWIdx);
-  eleGPWInSumNew = GetWorkSpaceDouble(GPWTrnCfgSz*Nsite);
+  eleGPWInSumNew = GetWorkSpaceDouble(GPWInSumSize);
 
   /* H0 term */
   /* <psi|H0 CA|x>/<psi|x> = H0(x') <psi|CA|x>/<psi|x> */
@@ -335,7 +341,7 @@ double calHCA2_real(const int ri, const int rj, const int s,
     myRsj = GetWorkSpaceThreadInt(3);
     myBuffer = GetWorkSpaceThreadDouble(NQPFull+3*Nsize);
     myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
-    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWTrnCfgSz*Nsite);
+    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWInSumSize);
 
 #pragma loop noalias
     for(idx=0;idx<nsize;idx++) myEleIdx[idx] = eleIdx[idx];
@@ -627,19 +633,24 @@ double calHCACA1_real(const int ri, const int rj, const int rk, const int rl,
   double ipNew,z,e;
 
   int *workspaceRefState;
+  int prevConfigReduced[4];
 
   RequestWorkSpaceInt(NProj);
   RequestWorkSpaceDouble(NQPFull*(Nsize*Nsize+1)+NGPWIdx+2*GPWTrnCfgSz*Nsite);
 
   projCntNew = GetWorkSpaceInt(NProj);
   eleGPWKernNew = GetWorkSpaceDouble(NGPWIdx);
-  eleGPWInSumNew = GetWorkSpaceDouble(GPWTrnCfgSz*Nsite);
-  eleGPWInSumTmp = GetWorkSpaceDouble(GPWTrnCfgSz*Nsite);
+  eleGPWInSumNew = GetWorkSpaceDouble(GPWInSumSize);
+  eleGPWInSumTmp = GetWorkSpaceDouble(GPWInSumSize);
   oldInvM = GetWorkSpaceDouble(NQPFull*Nsize*Nsize);
   oldPfM  = GetWorkSpaceDouble(NQPFull);
 
   /* copy InvM and PfM */
   copyMAll_real(InvM_real,PfM_real,oldInvM,oldPfM);
+  prevConfigReduced[0] = eleNum[rl];
+  prevConfigReduced[1] = eleNum[rk];
+  prevConfigReduced[2] = eleNum[rl+Nsite];
+  prevConfigReduced[3] = eleNum[rk+Nsite];
 
   /* The ml-th electron with spin sk hops from rl to rk */
   ml = eleCfg[rsl];
@@ -649,8 +660,13 @@ double calHCACA1_real(const int ri, const int rj, const int rk, const int rl,
   eleNum[rsl] = 0;
   eleNum[rsk] = 1;
   UpdateProjCnt(rl, rk, sk, projCntNew, eleProjCnt, eleNum);
-  UpdateGPWKern(rl, rk, eleGPWKernNew, eleGPWInSumTmp,
+  UpdateGPWKern(rl, rk, prevConfigReduced, eleGPWKernNew, eleGPWInSumTmp,
                 eleGPWKern, eleGPWInSum, eleNum);
+
+  prevConfigReduced[0] = eleNum[rj];
+  prevConfigReduced[1] = eleNum[ri];
+  prevConfigReduced[2] = eleNum[rj+Nsite];
+  prevConfigReduced[3] = eleNum[ri+Nsite];
 
   /* The mj-th electron with spin si hops from rj to ri */
   mj = eleCfg[rsj];
@@ -660,7 +676,7 @@ double calHCACA1_real(const int ri, const int rj, const int rk, const int rl,
   eleNum[rsj] = 0;
   eleNum[rsi] = 1;
   UpdateProjCnt(rj, ri, si, projCntNew, projCntNew, eleNum);
-  UpdateGPWKern(rj, ri, eleGPWKernNew, eleGPWInSumNew,
+  UpdateGPWKern(rj, ri, prevConfigReduced, eleGPWKernNew, eleGPWInSumNew,
                 eleGPWKern, eleGPWInSumTmp, eleNum);
 
   z = ProjRatio(projCntNew,eleProjCnt);
@@ -737,7 +753,7 @@ double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
   bufferInt = GetWorkSpaceInt(NProj);
   buffer = GetWorkSpaceDouble(NQPFull+2*Nsize);
   eleGPWKernNew = GetWorkSpaceDouble(NGPWIdx);
-  eleGPWInSumNew = GetWorkSpaceDouble(GPWTrnCfgSz*Nsite);
+  eleGPWInSumNew = GetWorkSpaceDouble(GPWInSumSize);
 
 
   /* H0 term */
@@ -773,7 +789,7 @@ double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
     myRsj = GetWorkSpaceThreadInt(4);
     myBuffer = GetWorkSpaceThreadDouble(NQPFull+4*Nsize);
     myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
-    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWTrnCfgSz*Nsite);
+    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWInSumSize);
 
 #pragma loop noalias
     for(idx=0;idx<nsize;idx++) myEleIdx[idx] = eleIdx[idx];

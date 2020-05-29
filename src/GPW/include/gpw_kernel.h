@@ -23,12 +23,8 @@ void GPWKernel1Vec(const unsigned long *configsAUp, const unsigned long *configs
                    const int sizeRef, const int tRSym, const int shift,
                    const int startIdA, const int startIdB, double *kernelVec);
 
-// Computes the delta matrix
-void CalculatePairDelta(double *inSum, const int *cfgA, const int sizeA,
-                        const int *cfgB, const int sizeB);
-
-void CalculatePairDeltaFlipped(double *inSum, const int *cfgA, const int sizeA,
-                               const int *cfgB, const int sizeB);
+// computes the delta function
+int delta(const int *cfgA, const int sizeA,  const int *cfgB, const int sizeB, const int i, const int a, const int flip);
 
 // Sets up the index list for the two lattices
 int SetupPlaquetteIdx(const int rC, const int *neighboursA,
@@ -50,49 +46,42 @@ void FreeMemPlaquetteHash(const int sysSize, int **plaqHash, int *plaqHashSz);
 
 // Computes the inner sum for the full kernel
 void ComputeInSum(double *inSum, const int *plaquetteAIdx,
-                  const int sizeA, const int *plaquetteBIdx, const int sizeB,
+                  const int *cfgA, const int sizeA,
+                  const int *plaquetteBIdx, const int *cfgB, const int sizeB,
                   const int plaquetteSize, const int *distList,
                   const int shift, const int startIdA, const int startIdB,
-                  const double distWeightPower);
+                  const double distWeightPower, const int tRSym);
 
 // Updates the inner sum for the full kernel
-void UpdateInSum(double *inSumNew, const double *inSumOld,
+void UpdateInSum(double *inSumNew, const int *cfgAOldReduced, const int *cfgANew,
                  const int *plaquetteAIdx, const int sizeA,
-                 const int *plaquetteBIdx, const int sizeB,
+                 const int *plaquetteBIdx, const int *cfgB, const int sizeB,
                  const int plaquetteSize, const int *distList,
                  const int shift, const int startIdA, const int startIdB,
                  const double distWeightPower, int **plaqHash,
-                 int *plaqHashSz, const int siteA, const int siteB);
-
-// Updates the delta list
-void UpdateDelta(double *inSumNew, const int *cfgA, const int sizeA,
-                 const int *cfgB, const int sizeB, const int siteA,
-                 const int siteB);
-
-// Updates the delta list for the flipped configuration
-void UpdateDeltaFlipped(double *inSumNew, const int *cfgA, const int sizeA,
-                        const int *cfgB, const int sizeB, const int siteA,
-                        const int siteB);
+                 int *plaqHashSz, const int siteA, const int siteB,
+                 const int tRSym);
 
 // Computes the full kernel
-double ComputeKernel(const int sizeA, const int sizeB, const double power,
+double ComputeKernel(const int *cfgA, const int sizeA, const int *cfgB,
+                     const int sizeB, const double power,
                      const double theta, const double norm, const int tRSym,
                      const int shift, const int startIdA, const int startIdB,
-                     const double *inSum, const double *inSumFlipped);
+                     const double *inSum);
 
 /* Computes the derivative of the kernel (divided by the wave function amplitude)
 with respect to theta */
-double ComputeKernDeriv(const int sizeA, const int sizeB, const double power,
+double ComputeKernDeriv(const int *cfgA, const int sizeA, const int *cfgB,
+                        const int sizeB, const double power,
                         const double theta, const double norm, const int tRSym,
                         const int shift, const int startIdA, const int startIdB,
-                        const double *inSum, const double *inSumFlipped);
+                        const double *inSum);
 
 // Computes the kn kernel
 double ComputeKernelN(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
                       const int *cfgB, const int *plaquetteBIdx, const int sizeB,
                       const int n, const int tRSym, const int shift,
-                      const int startIdA, const int startIdB, const double *inSum,
-                      const double *inSumFlipped);
+                      const int startIdA, const int startIdB, const double *inSum);
 
 // Computes the kn kernel in place
 double GPWKernelN(const int *cfgA, const int *plaquetteAIdx, const int sizeA,

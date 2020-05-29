@@ -84,7 +84,7 @@ double complex CalculateHamiltonian_fsz(const double complex ip, int *eleIdx, co
 #pragma omp parallel default(none)                                      \
   private(myEleIdx,myEleSpn,myEleNum,myProjCntNew,myGPWKernNew, \
           myGPWInSumNew,myBuffer,myEnergy, idx, ri, rj, rk, rl, s, t,u,v) \
-  firstprivate(Nsize, Nsite, Nsite2, NProj, NGPWIdx, GPWTrnCfgSz, NQPFull, NCoulombIntra, CoulombIntra, ParaCoulombIntra, \
+  firstprivate(Nsize, Nsite, Nsite2, NProj, NGPWIdx, GPWTrnCfgSz, GPWInSumSize, NQPFull, NCoulombIntra, CoulombIntra, ParaCoulombIntra, \
                NCoulombInter, CoulombInter, ParaCoulombInter, NHundCoupling, HundCoupling, ParaHundCoupling, \
                NTransfer, Transfer, ParaTransfer, NPairHopping, PairHopping, ParaPairHopping, \
                NExchangeCoupling, ExchangeCoupling, ParaExchangeCoupling, NInterAll, InterAll, ParaInterAll, n0, n1) \
@@ -95,7 +95,7 @@ double complex CalculateHamiltonian_fsz(const double complex ip, int *eleIdx, co
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myProjCntNew = GetWorkSpaceThreadInt(NProj);
     myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
-    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWTrnCfgSz*Nsite);
+    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWInSumSize);
     myBuffer = GetWorkSpaceThreadComplex(NQPFull+2*Nsize);
 
     #pragma loop noalias
@@ -306,7 +306,7 @@ double complex CalculateHamiltonian1_fsz(const double complex ip, int *eleIdx, c
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myProjCntNew = GetWorkSpaceThreadInt(NProj);
     myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
-    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWTrnCfgSz*Nsite);
+    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWInSumSize);
     myBuffer = GetWorkSpaceThreadComplex(NQPFull);
 
     #pragma loop noalias
@@ -368,7 +368,7 @@ double complex CalculateHamiltonian2_fsz(const double complex ip, int *eleIdx, c
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myProjCntNew = GetWorkSpaceThreadInt(NProj);
     myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
-    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWTrnCfgSz*Nsite);
+    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWInSumSize);
     myBuffer = GetWorkSpaceThreadComplex(NQPFull+2*Nsize);
 
     #pragma loop noalias

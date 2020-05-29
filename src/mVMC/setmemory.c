@@ -385,7 +385,7 @@ void SetMemory() {
   EleGPWKern        = (double*)malloc(sizeof(double)*(NVMCSample*NGPWIdx));
   EleGPWInSum       = (double**)malloc(sizeof(int*)*NVMCSample);
   for (i = 0; i < NVMCSample; i++) {
-    EleGPWInSum[i] = (double*)malloc(sizeof(double)*(GPWTrnCfgSz*Nsite));
+    EleGPWInSum[i] = (double*)malloc(sizeof(double)*(GPWInSumSize));
   }
   logSqPfFullSlater = (double*)malloc(sizeof(double)*(NVMCSample));
   SmpSltElmBF_real = (double *)malloc(sizeof(double)*(NVMCSample*NQPFull*(2*Nsite)*(2*Nsite)));
@@ -401,7 +401,7 @@ void SetMemory() {
   TmpEleProjBFCnt = TmpEleProjCnt + NProj;
 //[e] MERGE BY TM
   TmpEleGPWKern     = (double*)malloc(sizeof(double)*NGPWIdx);
-  TmpEleGPWInSum     = (double*)malloc(sizeof(double)*GPWTrnCfgSz*Nsite);
+  TmpEleGPWInSum     = (double*)malloc(sizeof(double)*GPWInSumSize);
 
   BurnEleIdx        = (int*)malloc(sizeof(int)*(2*Ne+2*Nsite+2*Nsite+NProj+2*Ne)); //fsz
   BurnEleCfg        = BurnEleIdx + 2*Ne;

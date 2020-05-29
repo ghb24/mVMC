@@ -139,6 +139,7 @@ int NGPWTrnLat; /* NGPWTrnLat = total number of different training lattices */
 int NGPWDistWeights; /* NGPWDistWeights = total number of distance weights for exponential kernel */
 int GPWTrnLatNeighboursSz; /* total size of the training lattice neighbours array (sum_(all training lattices) 2*Dim*latSize) */
 int GPWTrnCfgSz; /* total size of the training configurations array (sum_(all training configs) 2*latSize) */
+int GPWInSumSize; /* total size of the local kernel array */
 int GPWDistWeightIdxSz; /* total size of the GPWDistWeightIdx array (sum_(all training configs) latSize^2) */
 int GPWLinModFlag; /* 1: linear model, 0: correction to log */
 int *GPWTrnSize; /* [NGPWTrnLat] Lattice sizes of training configurations*/

@@ -52,7 +52,7 @@ void CalculateGreenFunc(const double w, const double complex ip, int *eleIdx, in
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myProjCntNew = GetWorkSpaceThreadInt(NProj);
     myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
-    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWTrnCfgSz*Nsite);
+    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWInSumSize);
     myBuffer = GetWorkSpaceThreadComplex(NQPFull+2*Nsize);
 
     #pragma loop noalias

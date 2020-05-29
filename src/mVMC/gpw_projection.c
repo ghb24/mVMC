@@ -79,15 +79,21 @@ void CalculateGPWKern(double *eleGPWKern, double *eleGPWInSum, const int *eleNum
     int latId = GPWTrnLat[i];
     int offset = 0;
     int offsetDistWeights = 0;
-    int j;
+    int j, inSumSize;
 
     for (j = 0; j < i; j++) {
-      if (GPWKernelFunc[GPWTrnLat[j]] != -3) {
-        offset += Nsite*GPWTrnSize[GPWTrnLat[j]];
+      inSumSize = 1;
+      if (abs(GPWShift[GPWTrnLat[j]]) & 1) {
+        inSumSize *= Nsite;
       }
-      else {
-        offset += Nsite * 2;
+      if ((abs(GPWShift[GPWTrnLat[j]]) & 2) >> 1) {
+        inSumSize *= GPWTrnSize[GPWTrnLat[j]];
       }
+      if (GPWTRSym[GPWTrnLat[j]]) {
+        inSumSize *= 2;
+      }
+
+      offset += inSumSize;
       offsetDistWeights += 4*GPWPlaquetteSizes[GPWTrnLat[j]];
     }
 
@@ -95,114 +101,83 @@ void CalculateGPWKern(double *eleGPWKern, double *eleGPWInSum, const int *eleNum
       eleGPWKern[i] = GPWKernel1(eleNum, Nsite, GPWTrnCfg[i], GPWTrnSize[latId],
                                  GPWTRSym[latId], GPWShift[latId], 0, 0);
     }
-    if (GPWKernelFunc[latId] == -3) {
+    else if (GPWKernelFunc[latId] == -3) {
       ComputeInSumExpBasisOpt(eleGPWInSum+offset, GPWSysPlaquetteIdx[latId],
                               Nsite, GPWPlaquetteSizes[latId],
                               GPWDistWeights + offsetDistWeights, eleNum, 0);
-      if (GPWTRSym[latId]) {
-        ComputeInSumExpBasisOpt(eleGPWInSum+(GPWTrnCfgSz/2)*Nsite+offset,
-                                GPWSysPlaquetteIdx[latId],
-                                Nsite, GPWPlaquetteSizes[latId],
-                                GPWDistWeights + offsetDistWeights, eleNum, 1);
-      }
-      eleGPWKern[i] = ComputeExpKernelBasisOpt(Nsite, GPWTRSym[latId],
-                                               eleGPWInSum+offset,
-                                               eleGPWInSum+(GPWTrnCfgSz/2)*Nsite+offset);
+      eleGPWKern[i] = ComputeExpKernelBasisOpt(Nsite, GPWTRSym[latId], eleGPWInSum+offset);
     }
-    else {
-      CalculatePairDelta(eleGPWInSum+offset, eleNum, Nsite, GPWTrnCfg[i],
-                         GPWTrnSize[latId]);
-
-      if (GPWTRSym[latId]) {
-        CalculatePairDeltaFlipped(eleGPWInSum+(GPWTrnCfgSz/2)*Nsite+offset, eleNum,
-                                  Nsite, GPWTrnCfg[i], GPWTrnSize[latId]);
+    else if (GPWKernelFunc[latId] < 0) {
+      ComputeInSumExp(eleGPWInSum+offset, GPWSysPlaquetteIdx[latId],
+                      eleNum, Nsite, GPWTrnPlaquetteIdx[latId],
+                      GPWTrnCfg[i], GPWTrnSize[latId], GPWPlaquetteSizes[latId],
+                      GPWDistWeights, GPWDistWeightIdx[i], GPWTRSym[latId],
+                      GPWShift[latId], 0, 0);
+      if (GPWKernelFunc[latId] == -1) {
+        eleGPWKern[i] = ComputeExpKernel(eleNum, Nsite, GPWTrnCfg[i], GPWTrnSize[latId],
+                                         GPWTRSym[latId], GPWShift[latId], 0, 0,
+                                         eleGPWInSum+offset, 0);
       }
-
-      if (GPWKernelFunc[latId] < 0) {
-        ComputeInSumExp(eleGPWInSum+offset, GPWSysPlaquetteIdx[latId],
-                        Nsite, GPWTrnPlaquetteIdx[latId],
-                        GPWTrnSize[latId], GPWPlaquetteSizes[latId],
-                        GPWDistWeights, GPWDistWeightIdx[i]);
-        if (GPWTRSym[latId]) {
-          ComputeInSumExp(eleGPWInSum+(GPWTrnCfgSz/2)*Nsite+offset,
-                          GPWSysPlaquetteIdx[latId], Nsite,
-                          GPWTrnPlaquetteIdx[latId], GPWTrnSize[latId],
-                          GPWPlaquetteSizes[latId], GPWDistWeights,
-                          GPWDistWeightIdx[i]);
-        }
-        if (GPWKernelFunc[latId] == -1) {
-          eleGPWKern[i] = ComputeExpKernel(Nsite, GPWTrnSize[latId],
-                                           GPWTRSym[latId], GPWShift[latId], 0, 0,
-                                           eleGPWInSum+offset,
-                                           eleGPWInSum+(GPWTrnCfgSz/2)*Nsite+offset,
-                                           0);
-        }
-        else if (GPWKernelFunc[latId] == -2) {
-          eleGPWKern[i] = ComputeExpKernel(Nsite, GPWTrnSize[latId],
-                                           GPWTRSym[latId], GPWShift[latId], 0, 0,
-                                           eleGPWInSum+offset,
-                                           eleGPWInSum+(GPWTrnCfgSz/2)*Nsite+offset,
-                                           1);
-        }
-        else {
-          printf("Error, bad kernel type\n");
-        }
+      else if (GPWKernelFunc[latId] == -2) {
+        eleGPWKern[i] = ComputeExpKernel(eleNum, Nsite, GPWTrnCfg[i], GPWTrnSize[latId],
+                                         GPWTRSym[latId], GPWShift[latId], 0, 0,
+                                         eleGPWInSum+offset, 1);
       }
-
-      else if (GPWKernelFunc[latId] == 0) {
-        ComputeInSum(eleGPWInSum+offset, GPWSysPlaquetteIdx[latId],
-                     Nsite, GPWTrnPlaquetteIdx[latId],
-                     GPWTrnSize[latId], GPWPlaquetteSizes[latId],
-                     GPWDistList[latId], GPWShift[latId], 0, 0,
-                     GPWDistWeightPower[latId]);
-        if (GPWTRSym[latId]) {
-          ComputeInSum(eleGPWInSum+(GPWTrnCfgSz/2)*Nsite+offset,
-                       GPWSysPlaquetteIdx[latId], Nsite,
-                       GPWTrnPlaquetteIdx[latId], GPWTrnSize[latId],
-                       GPWPlaquetteSizes[latId], GPWDistList[latId],
-                       GPWShift[latId], 0, 0, GPWDistWeightPower[latId]);
-        }
-        eleGPWKern[i] = ComputeKernel(Nsite, GPWTrnSize[latId],
-                                      GPWPower[latId], GPWThetaVar[latId],
-                                      GPWNorm[latId], GPWTRSym[latId],
-                                      GPWShift[latId], 0, 0,
-                                      eleGPWInSum+offset,
-                                      eleGPWInSum+(GPWTrnCfgSz/2)*Nsite+offset);
-      }
-
       else {
-        eleGPWKern[i] = ComputeKernelN(eleNum, GPWSysPlaquetteIdx[latId], Nsite,
-                                       GPWTrnCfg[i], GPWTrnPlaquetteIdx[latId], GPWTrnSize[latId],
-                                       GPWKernelFunc[latId], GPWTRSym[latId],
-                                       GPWShift[latId], 0, 0, eleGPWInSum+offset,
-                                       eleGPWInSum+(GPWTrnCfgSz/2)*Nsite+offset);
+        printf("Error, bad kernel type\n");
       }
+    }
+
+    else if (GPWKernelFunc[latId] == 0) {
+      ComputeInSum(eleGPWInSum+offset, GPWSysPlaquetteIdx[latId],
+                   eleNum, Nsite, GPWTrnPlaquetteIdx[latId],
+                   GPWTrnCfg[latId], GPWTrnSize[latId], GPWPlaquetteSizes[latId],
+                   GPWDistList[latId], GPWShift[latId], 0, 0,
+                   GPWDistWeightPower[latId], GPWTRSym[latId]);
+      eleGPWKern[i] = ComputeKernel(eleNum, Nsite, GPWTrnCfg[latId], GPWTrnSize[latId],
+                                    GPWPower[latId], GPWThetaVar[latId],
+                                    GPWNorm[latId], GPWTRSym[latId],
+                                    GPWShift[latId], 0, 0, eleGPWInSum+offset);
+    }
+
+    else {
+      eleGPWKern[i] = ComputeKernelN(eleNum, GPWSysPlaquetteIdx[latId], Nsite,
+                                     GPWTrnCfg[i], GPWTrnPlaquetteIdx[latId], GPWTrnSize[latId],
+                                     GPWKernelFunc[latId], GPWTRSym[latId],
+                                     GPWShift[latId], 0, 0, eleGPWInSum+offset);
     }
   }
   return;
 }
 
-void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew,
-                   double *eleGPWInSumNew, const double *eleGPWKernOld,
-                   const double *eleGPWInSumOld, const int *eleNum) {
+void UpdateGPWKern(const int ri, const int rj, const int *cfgOldReduced,
+                   double *eleGPWKernNew, double *eleGPWInSumNew,
+                   const double *eleGPWKernOld, const double *eleGPWInSumOld,
+                   const int *eleNum) {
   const int nGPWIdx=NGPWIdx;
   int i;
-  memcpy(eleGPWInSumNew, eleGPWInSumOld, sizeof(double)*GPWTrnCfgSz*Nsite);
+  memcpy(eleGPWInSumNew, eleGPWInSumOld, sizeof(double)*GPWInSumSize);
 
   #pragma omp parallel for default(shared) private(i)
   for(i=0;i<nGPWIdx;i++) {
+    int j, distWeightFlag, inSumSize;
     int latId = GPWTrnLat[i];
     int offset = 0;
     int offsetDistWeights = 0;
-    int j, distWeightFlag;
 
     for (j = 0; j < i; j++) {
-      if (GPWKernelFunc[GPWTrnLat[j]] != -3) {
-        offset += Nsite*GPWTrnSize[GPWTrnLat[j]];
+      inSumSize = 1;
+      if (abs(GPWShift[GPWTrnLat[j]]) & 1) {
+        inSumSize *= Nsite;
       }
-      else {
-        offset += Nsite * 2;
+      if ((abs(GPWShift[GPWTrnLat[j]]) & 2) >> 1) {
+        inSumSize *= GPWTrnSize[GPWTrnLat[j]];
       }
+      if (GPWTRSym[GPWTrnLat[j]]) {
+        inSumSize *= 2;
+      }
+
+      offset += inSumSize;
       offsetDistWeights += 4*GPWPlaquetteSizes[GPWTrnLat[j]];
     }
 
@@ -210,101 +185,54 @@ void UpdateGPWKern(const int ri, const int rj, double *eleGPWKernNew,
       eleGPWKernNew[i] = GPWKernel1(eleNum, Nsite, GPWTrnCfg[i], GPWTrnSize[latId],
                                     GPWTRSym[latId], GPWShift[latId], 0, 0);
     }
-    if (GPWKernelFunc[latId] == -3) {
-      UpdateInSumExpBasisOpt(eleGPWInSumNew+offset, eleGPWInSumOld+offset,
-                             GPWSysPlaquetteIdx[latId],
-                             Nsite, GPWPlaquetteSizes[latId],
+    else if (GPWKernelFunc[latId] == -3) {
+      UpdateInSumExpBasisOpt(eleGPWInSumNew+offset, cfgOldReduced, eleNum,
+                             GPWSysPlaquetteIdx[latId], Nsite, GPWPlaquetteSizes[latId],
                              GPWDistWeights + offsetDistWeights,
-                             GPWSysPlaqHash[latId], ri, rj, eleNum, 0);
-      if (GPWTRSym[latId]) {
-        UpdateInSumExpBasisOpt(eleGPWInSumNew+(GPWTrnCfgSz/2)*Nsite+offset,
-                               eleGPWInSumOld+(GPWTrnCfgSz/2)*Nsite+offset,
-                               GPWSysPlaquetteIdx[latId],
-                               Nsite, GPWPlaquetteSizes[latId],
-                               GPWDistWeights + offsetDistWeights,
-                               GPWSysPlaqHash[latId], ri, rj, eleNum, 1);
-      }
+                             GPWSysPlaqHash[latId], ri, rj, GPWTRSym[latId]);
       eleGPWKernNew[i] = ComputeExpKernelBasisOpt(Nsite, GPWTRSym[latId],
-                                                  eleGPWInSumNew+offset,
-                                                  eleGPWInSumNew+(GPWTrnCfgSz/2)*Nsite+offset);
+                                                  eleGPWInSumNew+offset);
     }
 
-    else {
-      UpdateDelta(eleGPWInSumNew+offset, eleNum, Nsite, GPWTrnCfg[i],
-                  GPWTrnSize[latId], ri, rj);
-
-      if (GPWTRSym[latId]) {
-        UpdateDeltaFlipped(eleGPWInSumNew+(GPWTrnCfgSz/2)*Nsite+offset, eleNum,
-                           Nsite, GPWTrnCfg[i], GPWTrnSize[latId], ri, rj);
-      }
-
-      if (GPWKernelFunc[latId] < 0) {
-        UpdateInSumExp(eleGPWInSumNew+offset, eleGPWInSumOld+offset,
-                       GPWSysPlaquetteIdx[latId], Nsite, GPWTrnPlaquetteIdx[latId],
-                       GPWTrnSize[latId], GPWPlaquetteSizes[latId],
-                       GPWDistWeights, GPWDistWeightIdx[i], GPWSysPlaqHash[latId],
-                       GPWSysPlaqHashSz[latId], ri, rj);
-
-        if (GPWTRSym[latId]) {
-          UpdateInSumExp(eleGPWInSumNew+(GPWTrnCfgSz/2)*Nsite+offset,
-                         eleGPWInSumOld+(GPWTrnCfgSz/2)*Nsite+offset,
-                         GPWSysPlaquetteIdx[latId], Nsite,
-                         GPWTrnPlaquetteIdx[latId], GPWTrnSize[latId],
-                         GPWPlaquetteSizes[latId], GPWDistWeights,
-                         GPWDistWeightIdx[i], GPWSysPlaqHash[latId],
-                         GPWSysPlaqHashSz[latId], ri, rj);
-        }
-        if (GPWKernelFunc[latId] == -1) {
-          eleGPWKernNew[i] = ComputeExpKernel(Nsite, GPWTrnSize[latId],
+    else if (GPWKernelFunc[latId] < 0) {
+      UpdateInSumExp(eleGPWInSumNew+offset, cfgOldReduced, eleNum,
+                     GPWSysPlaquetteIdx[latId], Nsite, GPWTrnPlaquetteIdx[latId],
+                     GPWTrnCfg[i], GPWTrnSize[latId], GPWPlaquetteSizes[latId],
+                     GPWDistWeights, GPWDistWeightIdx[i], GPWShift[latId],
+                     0, 0, GPWSysPlaqHash[latId], GPWSysPlaqHashSz[latId], ri, rj,
+                     GPWTRSym[latId]);
+      if (GPWKernelFunc[latId] == -1) {
+        eleGPWKernNew[i] = ComputeExpKernel(eleNum, Nsite, GPWTrnCfg[i], GPWTrnSize[latId],
                                             GPWTRSym[latId], GPWShift[latId],
-                                            0, 0, eleGPWInSumNew+offset,
-                                            eleGPWInSumNew+(GPWTrnCfgSz/2)*Nsite+offset,
-                                            0);
-        }
-        else if (GPWKernelFunc[latId] == -2) {
-          eleGPWKernNew[i] = ComputeExpKernel(Nsite, GPWTrnSize[latId],
+                                            0, 0, eleGPWInSumNew+offset, 0);
+      }
+      else if (GPWKernelFunc[latId] == -2) {
+        eleGPWKernNew[i] = ComputeExpKernel(eleNum, Nsite, GPWTrnCfg[i], GPWTrnSize[latId],
                                             GPWTRSym[latId], GPWShift[latId],
-                                            0, 0, eleGPWInSumNew+offset,
-                                            eleGPWInSumNew+(GPWTrnCfgSz/2)*Nsite+offset,
-                                            1);
-        }
-        else {
-          printf("Error, bad kernel type\n");
-        }
+                                            0, 0, eleGPWInSumNew+offset, 1);
       }
-      else if (GPWKernelFunc[latId] == 0) {
-        UpdateInSum(eleGPWInSumNew+offset, eleGPWInSumOld+offset,
-                    GPWSysPlaquetteIdx[latId], Nsite, GPWTrnPlaquetteIdx[latId],
-                    GPWTrnSize[latId], GPWPlaquetteSizes[latId],
-                    GPWDistList[latId], GPWShift[latId], 0, 0, GPWDistWeightPower[latId],
-                    GPWSysPlaqHash[latId], GPWSysPlaqHashSz[latId], ri, rj);
-
-        if (GPWTRSym[latId]) {
-          UpdateInSum(eleGPWInSumNew+(GPWTrnCfgSz/2)*Nsite+offset,
-                      eleGPWInSumOld+(GPWTrnCfgSz/2)*Nsite+offset,
-                      GPWSysPlaquetteIdx[latId], Nsite,
-                      GPWTrnPlaquetteIdx[latId], GPWTrnSize[latId],
-                      GPWPlaquetteSizes[latId], GPWDistList[latId],
-                      GPWShift[latId], 0, 0, GPWDistWeightPower[latId],
-                      GPWSysPlaqHash[latId], GPWSysPlaqHashSz[latId],
-                      ri, rj);
-        }
-        eleGPWKernNew[i] = ComputeKernel(Nsite, GPWTrnSize[latId],
-                                         GPWPower[latId], GPWThetaVar[latId],
-                                         GPWNorm[latId], GPWTRSym[latId],
-                                         GPWShift[latId], 0, 0, eleGPWInSumNew+offset,
-                                         eleGPWInSumNew+(GPWTrnCfgSz/2)*Nsite+offset);
-      }
-
       else {
-        eleGPWKernNew[i] = ComputeKernelN(eleNum, GPWSysPlaquetteIdx[latId], Nsite,
-                                          GPWTrnCfg[i], GPWTrnPlaquetteIdx[latId], GPWTrnSize[latId],
-                                          GPWKernelFunc[latId], GPWTRSym[latId],
-                                          GPWShift[latId], 0, 0, eleGPWInSumNew+offset,
-                                          eleGPWInSumNew+(GPWTrnCfgSz/2)*Nsite+offset);
+        printf("Error, bad kernel type\n");
       }
+    }
+    else if (GPWKernelFunc[latId] == 0) {
+      UpdateInSum(eleGPWInSumNew+offset, cfgOldReduced, eleNum,
+                  GPWSysPlaquetteIdx[latId], Nsite, GPWTrnPlaquetteIdx[latId],
+                  GPWTrnCfg[i], GPWTrnSize[latId], GPWPlaquetteSizes[latId],
+                  GPWDistList[latId], GPWShift[latId], 0, 0, GPWDistWeightPower[latId],
+                  GPWSysPlaqHash[latId], GPWSysPlaqHashSz[latId], ri, rj, GPWTRSym[latId]);
+
+      eleGPWKernNew[i] = ComputeKernel(eleNum, Nsite, GPWTrnCfg[i], GPWTrnSize[latId],
+                                       GPWPower[latId], GPWThetaVar[latId],
+                                       GPWNorm[latId], GPWTRSym[latId],
+                                       GPWShift[latId], 0, 0, eleGPWInSumNew+offset);
+    }
+    else {
+      eleGPWKernNew[i] = ComputeKernelN(eleNum, GPWSysPlaquetteIdx[latId], Nsite,
+                                        GPWTrnCfg[i], GPWTrnPlaquetteIdx[latId], GPWTrnSize[latId],
+                                        GPWKernelFunc[latId], GPWTRSym[latId],
+                                        GPWShift[latId], 0, 0, eleGPWInSumNew+offset);
     }
   }
-
   return;
 }

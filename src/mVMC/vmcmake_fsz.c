@@ -74,6 +74,8 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
   double complex pfMNew[NQPFull];
   double x,w; // TBC x will be complex number
 
+  int prevConfigReduced[4];
+
   int qpStart,qpEnd;
   int rejectFlag;
   int rank,size;
@@ -81,7 +83,7 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
   MPI_Comm_size(comm,&size);
   MPI_Comm_rank(comm,&rank);
 
-  eleGPWInSumNew = (double*)malloc(Nsite*GPWTrnCfgSz*sizeof(double));
+  eleGPWInSumNew = (double*)malloc(GPWInSumSize*sizeof(double));
 
   SplitLoop(&qpStart,&qpEnd,NQPFull,rank,size);
 
@@ -168,6 +170,11 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
 
         if(rejectFlag) continue;
 
+        prevConfigReduced[0] = TmpEleNum[ri];
+        prevConfigReduced[1] = TmpEleNum[rj];
+        prevConfigReduced[2] = TmpEleNum[ri+Nsite];
+        prevConfigReduced[3] = TmpEleNum[rj+Nsite];
+
         StartTimer(32);
         StartTimer(60);
         /* The mi-th electron with spin s hops to site rj with t */
@@ -177,7 +184,7 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
         }else{
           UpdateProjCnt_fsz(ri,rj,s,t,projCntNew,TmpEleProjCnt,TmpEleNum);
         }
-        UpdateGPWKern(ri,rj,eleGPWKernNew,eleGPWInSumNew,
+        UpdateGPWKern(ri,rj,prevConfigReduced,eleGPWKernNew,eleGPWInSumNew,
                       TmpEleGPWKern,TmpEleGPWInSum,TmpEleNum);
         StopTimer(60);
         if (UseOrbital) {
@@ -216,7 +223,7 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
 
           for(i=0;i<NProj;i++) TmpEleProjCnt[i] = projCntNew[i];
           for(i=0;i<NGPWIdx;i++) TmpEleGPWKern[i] = eleGPWKernNew[i];
-          memcpy(TmpEleGPWInSum, eleGPWInSumNew, sizeof(double)*GPWTrnCfgSz*Nsite);
+          memcpy(TmpEleGPWInSum, eleGPWInSumNew, sizeof(double)*GPWInSumSize);
           logIpOld = logIpNew;
           rbmValOld = rbmValNew;
           nAccept++;
@@ -238,6 +245,11 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
         StopTimer(31);
         if(rejectFlag) continue;
 
+        prevConfigReduced[0] = TmpEleNum[ri];
+        prevConfigReduced[1] = TmpEleNum[rj];
+        prevConfigReduced[2] = TmpEleNum[ri+Nsite];
+        prevConfigReduced[3] = TmpEleNum[rj+Nsite];
+
         StartTimer(33); //LSF
         StartTimer(65);
 
@@ -251,7 +263,7 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
         /* The mj-th electron with spin t hops to ri */
         updateEleConfig_fsz(mj,rj,ri,t,t,TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleSpn);
         UpdateProjCnt(rj,ri,t,projCntNew,projCntNew,TmpEleNum);
-        UpdateGPWKern(ri,rj,eleGPWKernNew,eleGPWInSumNew,
+        UpdateGPWKern(ri,rj,prevConfigReduced,eleGPWKernNew,eleGPWInSumNew,
                       TmpEleGPWKern,TmpEleGPWInSum,TmpEleNum);
 
         StopTimer(65);
@@ -291,7 +303,7 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
 
           for(i=0;i<NProj;i++) TmpEleProjCnt[i] = projCntNew[i];
           for(i=0;i<NGPWIdx;i++) TmpEleGPWKern[i] = eleGPWKernNew[i];
-          memcpy(TmpEleGPWInSum, eleGPWInSumNew, sizeof(double)*GPWTrnCfgSz*Nsite);
+          memcpy(TmpEleGPWInSum, eleGPWInSumNew, sizeof(double)*GPWInSumSize);
           logIpOld = logIpNew;
           rbmValOld = rbmValNew;
           nAccept++;
@@ -311,6 +323,11 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
 
         if(rejectFlag) continue;
 
+        prevConfigReduced[0] = TmpEleNum[ri];
+        prevConfigReduced[1] = TmpEleNum[rj];
+        prevConfigReduced[2] = TmpEleNum[ri+Nsite];
+        prevConfigReduced[3] = TmpEleNum[rj+Nsite];
+
         StartTimer(36);
         StartTimer(600);
         /* The mi-th electron with spin s hops to site rj with t */
@@ -318,7 +335,7 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
         //
         updateEleConfig_fsz(mi,ri,rj,s,t,TmpEleIdx,TmpEleCfg,TmpEleNum,TmpEleSpn);
         UpdateProjCnt_fsz(ri,rj,s,t,projCntNew,TmpEleProjCnt,TmpEleNum);
-        UpdateGPWKern(ri,rj,eleGPWKernNew,eleGPWInSumNew,
+        UpdateGPWKern(ri,rj,prevConfigReduced,eleGPWKernNew,eleGPWInSumNew,
                       TmpEleGPWKern,TmpEleGPWInSum,TmpEleNum);
         StopTimer(600);
         if (UseOrbital) {
@@ -362,7 +379,7 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
 
           for(i=0;i<NProj;i++) TmpEleProjCnt[i] = projCntNew[i];
           for(i=0;i<NGPWIdx;i++) TmpEleGPWKern[i] = eleGPWKernNew[i];
-          memcpy(TmpEleGPWInSum, eleGPWInSumNew, sizeof(double)*GPWTrnCfgSz*Nsite);
+          memcpy(TmpEleGPWInSum, eleGPWInSumNew, sizeof(double)*GPWInSumSize);
           logIpOld = logIpNew;
           nAccept++;
           Counter[5]++;
@@ -561,7 +578,7 @@ void saveEleConfig_fsz(const int sample, const double complex logIp, const doubl
   offset = sample*nGPWIdx;
   #pragma loop noalias
   for(i=0;i<nGPWIdx;i++) EleGPWKern[offset+i] = eleGPWKern[i];
-  memcpy(EleGPWInSum[sample], eleGPWInSum, sizeof(double)*GPWTrnCfgSz*Nsite);
+  memcpy(EleGPWInSum[sample], eleGPWInSum, sizeof(double)*GPWInSumSize);
 
   x = LogProjVal(eleProjCnt);
   x += LogGPWVal(eleGPWKern);

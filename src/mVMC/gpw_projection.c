@@ -131,10 +131,10 @@ void CalculateGPWKern(double *eleGPWKern, double *eleGPWInSum, const int *eleNum
     else if (GPWKernelFunc[latId] == 0) {
       ComputeInSum(eleGPWInSum+offset, GPWSysPlaquetteIdx[latId],
                    eleNum, Nsite, GPWTrnPlaquetteIdx[latId],
-                   GPWTrnCfg[latId], GPWTrnSize[latId], GPWPlaquetteSizes[latId],
+                   GPWTrnCfg[i], GPWTrnSize[latId], GPWPlaquetteSizes[latId],
                    GPWDistList[latId], GPWShift[latId], 0, 0,
                    GPWDistWeightPower[latId], GPWTRSym[latId]);
-      eleGPWKern[i] = ComputeKernel(eleNum, Nsite, GPWTrnCfg[latId], GPWTrnSize[latId],
+      eleGPWKern[i] = ComputeKernel(eleNum, Nsite, GPWTrnCfg[i], GPWTrnSize[latId],
                                     GPWPower[latId], GPWThetaVar[latId],
                                     GPWNorm[latId], GPWTRSym[latId],
                                     GPWShift[latId], 0, 0, eleGPWInSum+offset);

@@ -430,7 +430,7 @@ void ComputeInSum(double *inSum, const int *plaquetteAIdx,
                   const int plaquetteSize, const int *distList,
                   const int shift, const int startIdA, const int startIdB,
                   const double distWeightPower, const int tRSym) {
-  int i, a, k, tSym;
+  int i, a, k, tSym, count;
   double innerSum;
 
   int shiftSys = 1 + startIdA;
@@ -452,6 +452,7 @@ void ComputeInSum(double *inSum, const int *plaquetteAIdx,
     }
   }
 
+  count = 0;
   for (tSym = 0; tSym <= tRSym; tSym++) {
     for (i = startIdA; i < shiftSys; i+=translationSys) {
       for (a = startIdB; a < shiftTrn; a+=translationTrn) {
@@ -461,7 +462,8 @@ void ComputeInSum(double *inSum, const int *plaquetteAIdx,
             innerSum += 1.0/pow(distList[k], distWeightPower);
           }
         }
-        inSum[tSym*shiftTrn*shiftSys + i*shiftTrn + a] = innerSum;
+        inSum[count] = innerSum;
+        count++;
       }
     }
   }
@@ -475,7 +477,7 @@ void UpdateInSum(double *inSumNew, const int *cfgAOldReduced, const int *cfgANew
                  const double distWeightPower, int **plaqHash,
                  int *plaqHashSz, const int siteA, const int siteB,
                  const int tRSym) {
-  int i, a, k, countA, countB, id, tSym;
+  int i, a, k, countA, countB, id, tSym, count;
   const int *hashListA, *hashListB;
 
   int shiftSys = 1 + startIdA;
@@ -497,6 +499,7 @@ void UpdateInSum(double *inSumNew, const int *cfgAOldReduced, const int *cfgANew
     }
   }
 
+  count = 0;
   for (tSym = 0; tSym <= tRSym; tSym++) {
     for (i = startIdA; i < shiftSys; i+=translationSys) {
       countA = plaqHashSz[sizeA*i + siteA];
@@ -508,23 +511,24 @@ void UpdateInSum(double *inSumNew, const int *cfgAOldReduced, const int *cfgANew
         for (k = 0; k < countA; k++) {
           id = hashListA[k];
           if (delta(cfgANew, sizeA, cfgB, sizeB, siteA, plaquetteBIdx[a*plaquetteSize+id], tSym)) {
-            inSumNew[tSym*shiftTrn*shiftSys + i*shiftTrn + a] += 1.0/pow(distList[id], distWeightPower);
+            inSumNew[count] += 1.0/pow(distList[id], distWeightPower);
           }
           if (delta(cfgAOldReduced, 2, cfgB, sizeB, 0, plaquetteBIdx[a*plaquetteSize+id], tSym)) {
-            inSumNew[tSym*shiftTrn*shiftSys + i*shiftTrn + a] -= 1.0/pow(distList[id], distWeightPower);
+            inSumNew[count] -= 1.0/pow(distList[id], distWeightPower);
           }
         }
         if (siteA != siteB) {
           for (k = 0; k < countB; k++) {
             id = hashListB[k];
             if (delta(cfgANew, sizeA, cfgB, sizeB, siteB, plaquetteBIdx[a*plaquetteSize+id], tSym)) {
-              inSumNew[tSym*shiftTrn*shiftSys + i*shiftTrn + a] += 1.0/pow(distList[id], distWeightPower);
+              inSumNew[count] += 1.0/pow(distList[id], distWeightPower);
             }
             if (delta(cfgAOldReduced, 2, cfgB, sizeB, 1, plaquetteBIdx[a*plaquetteSize+id], tSym)) {
-              inSumNew[tSym*shiftTrn*shiftSys + i*shiftTrn + a] -= 1.0/pow(distList[id], distWeightPower);
+              inSumNew[count] -= 1.0/pow(distList[id], distWeightPower);
             }
           }
         }
+        count++;
       }
     }
   }
@@ -535,7 +539,7 @@ double ComputeKernel(const int *cfgA, const int sizeA, const int *cfgB,
                      const double theta, const double norm, const int tRSym,
                      const int shift, const int startIdA, const int startIdB,
                      const double *inSum) {
-  int i, a, tSym;
+  int i, a, tSym, count;
   int shiftSys = 1 + startIdA;
   int shiftTrn = 1 + startIdB;
   int translationSys = 1;
@@ -557,13 +561,16 @@ double ComputeKernel(const int *cfgA, const int sizeA, const int *cfgB,
     }
   }
 
+  count = 0;
+
   if (power < 0.0) {
     for (tSym = 0; tSym <= tRSym; tSym++) {
       for (i = startIdA; i < shiftSys; i+=translationSys) {
         for (a = startIdB; a < shiftTrn; a+=translationTrn) {
           if (delta(cfgA, sizeA, cfgB, sizeB, i, a, tSym)) {
-            kernel += exp(-1.0/theta * (norm - inSum[tSym*shiftTrn*shiftSys + i*shiftTrn + a]));
+            kernel += exp(-1.0/theta * (norm - inSum[count]));
           }
+          count++;
         }
       }
     }
@@ -573,8 +580,9 @@ double ComputeKernel(const int *cfgA, const int sizeA, const int *cfgB,
       for (i = startIdA; i < shiftSys; i+=translationSys) {
         for (a = startIdB; a < shiftTrn; a+=translationTrn) {
           if (delta(cfgA, sizeA, cfgB, sizeB, i, a, tSym)) {
-            kernel += pow(((theta + inSum[tSym*shiftTrn*shiftSys + i*shiftTrn + a]/power)/scaledNorm), power);
+            kernel += pow(((theta + inSum[count]/power)/scaledNorm), power);
           }
+          count++;
         }
       }
     }
@@ -588,7 +596,7 @@ double ComputeKernDeriv(const int *cfgA, const int sizeA, const int *cfgB,
                         const double theta, const double norm, const int tRSym,
                         const int shift, const int startIdA, const int startIdB,
                         const double *inSum) {
-  int i, a, tSym;
+  int i, a, tSym, count;
   int shiftSys = 1 + startIdA;
   int shiftTrn = 1 + startIdB;
   int translationSys = 1;
@@ -611,14 +619,15 @@ double ComputeKernDeriv(const int *cfgA, const int sizeA, const int *cfgB,
     }
   }
 
+  count = 0;
   if (power < 0.0) {
     for (tSym = 0; tSym <= tRSym; tSym++) {
       for (i = startIdA; i < shiftSys; i+=translationSys) {
         for (a = startIdB; a < shiftTrn; a+=translationTrn) {
           if (delta(cfgA, sizeA, cfgB, sizeB, i, a, tSym)) {
-            kernDeriv += exp(-1.0/theta * (norm - fabs(inSum[tSym*shiftTrn*shiftSys + i*shiftTrn + a])))*
-                         (norm-fabs(inSum[tSym*shiftTrn*shiftSys + i*shiftTrn + a]));
+            kernDeriv += exp(-1.0/theta * (norm - inSum[count])) * (norm-inSum[count]);
           }
+          count++;
         }
       }
     }
@@ -629,9 +638,9 @@ double ComputeKernDeriv(const int *cfgA, const int sizeA, const int *cfgB,
       for (i = startIdA; i < shiftSys; i+=translationSys) {
         for (a = startIdB; a < shiftTrn; a+=translationTrn) {
           if (delta(cfgA, sizeA, cfgB, sizeB, i, a, tSym)) {
-            kernDeriv += pow(((theta + (fabs(inSum[tSym*shiftTrn*shiftSys + i*shiftTrn + a])/power))/scaledNorm), power-1)*
-                         ((norm - fabs(inSum[tSym*shiftTrn*shiftSys + i*shiftTrn + a]))/power);
+            kernDeriv += pow(((theta + (inSum[count]/power))/scaledNorm), power-1) * ((norm - inSum[count])/power);
           }
+          count++;
         }
       }
     }

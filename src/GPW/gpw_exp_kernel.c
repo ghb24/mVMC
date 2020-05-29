@@ -11,7 +11,7 @@ void ComputeInSumExp(double *inSum, const int *plaquetteAIdx, const int *cfgA,
                      const int sizeB, const int plaquetteSize, const double complex *distWeights,
                      const int *distWeightIdx, const int shift, const int startIdA, const int startIdB,
                      const int tRSym) {
-  int i, a, k, iPlaqSize, aPlaqSize, tSym;
+  int i, a, k, iPlaqSize, aPlaqSize, tSym, count;
   double innerSum, element;
 
   int shiftSys = 1 + startIdA;
@@ -34,6 +34,7 @@ void ComputeInSumExp(double *inSum, const int *plaquetteAIdx, const int *cfgA,
   }
 
   iPlaqSize = 0;
+  count = 0;
 
   for (tSym = 0; tSym <= tRSym; tSym++) {
     for (i = startIdA; i < shiftSys; i+=translationSys) {
@@ -46,8 +47,9 @@ void ComputeInSumExp(double *inSum, const int *plaquetteAIdx, const int *cfgA,
             innerSum += element*element;
           }
         }
-        inSum[tSym*shiftTrn*shiftSys + i*shiftTrn + a] = innerSum;
+        inSum[count] = innerSum;
         aPlaqSize += plaquetteSize;
+        count++;
       }
       iPlaqSize += plaquetteSize;
     }
@@ -62,7 +64,7 @@ void UpdateInSumExp(double *inSumNew, const int *cfgAOldReduced, const int *cfgA
                     const int *distWeightIdx, const int shift, const int startIdA,
                     const int startIdB,int **plaqHash, int *plaqHashSz, const int siteA,
                     const int siteB, const int tRSym) {
-  int i, a, k, countA, countB, id, countAId, countBId, tSym;
+  int i, a, k, countA, countB, id, countAId, countBId, tSym, count;
   const int *hashListA, *hashListB;
   double element;
 
@@ -100,11 +102,11 @@ void UpdateInSumExp(double *inSumNew, const int *cfgAOldReduced, const int *cfgA
           id = hashListA[k];
           if (delta(cfgANew, sizeA, cfgB, sizeB, siteA, plaquetteBIdx[a*plaquetteSize+id], tSym)) {
             element = creal(distWeights[distWeightIdx[sizeB*id + a]]);
-            inSumNew[tSym*shiftTrn*shiftSys + i*shiftTrn + a] -= element*element;
+            inSumNew[count] -= element*element;
           }
           if (delta(cfgAOldReduced, 2, cfgB, sizeB, 0, plaquetteBIdx[a*plaquetteSize+id], tSym)) {
             element = creal(distWeights[distWeightIdx[sizeB*id + a]]);
-            inSumNew[tSym*shiftTrn*shiftSys + i*shiftTrn + a] += element*element;
+            inSumNew[count] += element*element;
           }
         }
         if (siteA != siteB) {
@@ -112,14 +114,15 @@ void UpdateInSumExp(double *inSumNew, const int *cfgAOldReduced, const int *cfgA
             id = hashListB[k];
             if (delta(cfgANew, sizeA, cfgB, sizeB, siteB, plaquetteBIdx[a*plaquetteSize+id], tSym)) {
               element = creal(distWeights[distWeightIdx[sizeB*id + a]]);
-              inSumNew[tSym*shiftTrn*shiftSys + i*shiftTrn + a] -= element*element;
+              inSumNew[count] -= element*element;
             }
             if (delta(cfgAOldReduced, 2, cfgB, sizeB, 1, plaquetteBIdx[a*plaquetteSize+id], tSym)) {
               element = creal(distWeights[distWeightIdx[sizeB*id + a]]);
-              inSumNew[tSym*shiftTrn*shiftSys + i*shiftTrn + a] += element*element;
+              inSumNew[count] += element*element;
             }
           }
         }
+        count++;
       }
       countAId += sizeA;
       countBId += sizeA;
@@ -131,7 +134,7 @@ double ComputeExpKernel(const int *cfgA, const int sizeA, const int *cfgB,
                         const int sizeB, const int tRSym,
                         const int shift, const int startIdA, const int startIdB,
                         const double *inSum, const int centralDelta) {
-  int i, a, tSym;
+  int i, a, tSym, count;
   int shiftSys = 1 + startIdA;
   int shiftTrn = 1 + startIdB;
   int translationSys = 1;
@@ -152,13 +155,15 @@ double ComputeExpKernel(const int *cfgA, const int sizeA, const int *cfgB,
     }
   }
 
+  count = 0;
   if (centralDelta) {
     for (tSym = 0; tSym <= tRSym; tSym++) {
       for (i = startIdA; i < shiftSys; i+=translationSys) {
         for (a = startIdB; a < shiftTrn; a+=translationTrn) {
           if (delta(cfgA, sizeA, cfgB, sizeB, i, a, tSym)) {
-            kernel += exp(-inSum[tSym*shiftTrn*shiftSys + i*shiftTrn + a]);
+            kernel += exp(-inSum[count]);
           }
+          count++;
         }
       }
     }
@@ -167,7 +172,8 @@ double ComputeExpKernel(const int *cfgA, const int sizeA, const int *cfgB,
     for (tSym = 0; tSym <= tRSym; tSym++) {
       for (i = startIdA; i < shiftSys; i+=translationSys) {
         for (a = startIdB; a < shiftTrn; a+=translationTrn) {
-          kernel += exp(-inSum[tSym*shiftTrn*shiftSys + i*shiftTrn + a]);
+          kernel += exp(-inSum[count]);
+          count++;
         }
       }
     }
@@ -389,9 +395,10 @@ void GPWExpKernelVec(const unsigned long *configsAUp, const unsigned long *confi
 void ComputeInSumExpBasisOpt(double *inSum, const int *plaquetteAIdx, const int sizeA,
                              const int plaquetteSize, const double complex *distWeights,
                              const int *eleNum, const int tRSym) {
-  int i, k, occupationId, id, tSym;
+  int i, k, occupationId, id, tSym,count;
   double innerSum, element;
 
+  count = 0;
   for (tSym = 0; tSym <= tRSym; tSym++) {
     for (i = 0; i < sizeA; i++) {
       innerSum = 1.0;
@@ -405,7 +412,8 @@ void ComputeInSumExpBasisOpt(double *inSum, const int *plaquetteAIdx, const int 
         element = creal(distWeights[k*4+id]);
         innerSum *= element;
       }
-      inSum[tSym * sizeA + i] = innerSum;
+      inSum[count] = innerSum;
+      count++;
     }
   }
 }
@@ -456,12 +464,14 @@ void UpdateInSumExpBasisOpt(double *inSumNew, const int *cfgOldReduced, const in
 
 double ComputeExpKernelBasisOpt(const int size, const int tRSym,
                                 const double *inSum) {
-  int i, tSym;
+  int i, tSym, count;
   double kernel = 0.0;
 
+  count = 0;
   for (tSym = 0; tSym <= tRSym; tSym++) {
     for (i = 0; i < size; i++) {
-      kernel -= inSum[tSym * size + i];
+      kernel -= inSum[count];
+      count++;
     }
   }
   return kernel;

@@ -34,8 +34,8 @@ void ComputeInSumExp(double *inSum, const int *plaquetteAIdx, const int *cfgA,
   }
 
   iPlaqSize = 0;
-  count = 0;
 
+  count = 0;
   for (tSym = 0; tSym <= tRSym; tSym++) {
     for (i = startIdA; i < shiftSys; i+=translationSys) {
       aPlaqSize = 0;
@@ -90,6 +90,7 @@ void UpdateInSumExp(double *inSumNew, const int *cfgAOldReduced, const int *cfgA
   countAId = siteA;
   countBId = siteB;
 
+  count = 0;
   for (tSym = 0; tSym <= tRSym; tSym++) {
     for (i = startIdA; i < shiftSys; i+=translationSys) {
       countA = plaqHashSz[countAId];

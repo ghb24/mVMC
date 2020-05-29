@@ -562,7 +562,6 @@ double ComputeKernel(const int *cfgA, const int sizeA, const int *cfgB,
   }
 
   count = 0;
-
   if (power < 0.0) {
     for (tSym = 0; tSym <= tRSym; tSym++) {
       for (i = startIdA; i < shiftSys; i+=translationSys) {

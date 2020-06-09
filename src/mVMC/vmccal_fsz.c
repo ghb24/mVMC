@@ -107,7 +107,7 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
       ip = CalculateIP_fcmp(PfM,qpStart,qpEnd,MPI_COMM_SELF);
     }
     else {
-      ip = ComputeRefState(eleIdx, eleNum, workspaceRefState);
+      ip = ComputeRefState_fsz(eleIdx, eleNum, eleSpn, workspaceRefState);
     }
     ip *= RBMVal(eleNum);
 

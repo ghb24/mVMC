@@ -100,7 +100,7 @@ double complex GreenFunc1_fsz(const int ri, const int rj, const int s, const dou
   }
   else {
     workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
-    z *= ComputeRefState(eleIdx, eleNum, workspaceRefState);
+    z *= ComputeRefState_fsz(eleIdx, eleNum, eleSpn, workspaceRefState);
     free(workspaceRefState);
   }
 
@@ -160,7 +160,7 @@ double complex GreenFunc1_fsz2(const int ri, const int rj, const int s,const int
   }
   else {
     workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
-    z *= ComputeRefState(eleIdx, eleNum, workspaceRefState);
+    z *= ComputeRefState_fsz(eleIdx, eleNum, eleSpn, workspaceRefState);
     free(workspaceRefState);
   }
 
@@ -294,7 +294,7 @@ double complex GreenFunc2_fsz(const int ri, const int rj, const int rk, const in
   }
   else {
     workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
-    z *= ComputeRefState(eleIdx, eleNum, workspaceRefState);
+    z *= ComputeRefState_fsz(eleIdx, eleNum, eleSpn, workspaceRefState);
     free(workspaceRefState);
   }
 
@@ -466,7 +466,7 @@ double complex GreenFunc2_fsz2(const int ri, const int rj, const int rk, const i
   }
   else {
     workspaceRefState = (int*)malloc(sizeof(int)*2*Nsite2);
-    z *= ComputeRefState(eleIdx, eleNum, workspaceRefState);
+    z *= ComputeRefState_fsz(eleIdx, eleNum, eleSpn, workspaceRefState);
     free(workspaceRefState);
   }
 

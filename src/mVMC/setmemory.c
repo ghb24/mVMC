@@ -238,9 +238,9 @@ void SetMemoryDef() {
     GPWTRSym[i] = 1;
   }
   /* intitialise shift flag with default value (translational symmetry in
-     kernel for both lattices = 3) */
+     kernel only for test lattice = 1) */
   for (i = 0; i < NGPWTrnLat; i++) {
-    GPWShift[i] = 3;
+    GPWShift[i] = 1;
   }
 
   GPWDistWeightIdx = (int**)malloc(sizeof(int*)*NGPWIdx);

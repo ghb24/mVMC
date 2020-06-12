@@ -33,16 +33,16 @@ void ComputeInSumExp(double *inSum, const int *plaquetteAIdx, const int *cfgA,
     }
   }
 
-  iPlaqSize = 0;
 
   count = 0;
   for (tSym = 0; tSym <= tRSym; tSym++) {
+    iPlaqSize = 0;
     for (i = startIdA; i < shiftSys; i+=translationSys) {
       aPlaqSize = 0;
       for (a = startIdB; a < shiftTrn; a+=translationTrn) {
         innerSum = 0.0;
         for (k = 0; k < plaquetteSize; k++) {
-          if (!delta(cfgA, sizeA, cfgB, sizeB, plaquetteAIdx[iPlaqSize+k], plaquetteBIdx[aPlaqSize+k], tSym)) {
+          if (!delta(cfgA, sizeA, cfgB, sizeB, plaquetteAIdx[i*plaquetteSize+k], plaquetteBIdx[a*plaquetteSize+k], tSym)) {
             element = creal(distWeights[distWeightIdx[sizeB*k + a]]);
             innerSum += element*element;
           }
@@ -64,7 +64,7 @@ void UpdateInSumExp(double *inSumNew, const int *cfgAOldReduced, const int *cfgA
                     const int *distWeightIdx, const int shift, const int startIdA,
                     const int startIdB,int **plaqHash, int *plaqHashSz, const int siteA,
                     const int siteB, const int tRSym) {
-  int i, a, k, countA, countB, id, countAId, countBId, tSym, count;
+  int i, a, k, countA, countB, id, tSym, count;
   const int *hashListA, *hashListB;
   double element;
 
@@ -87,16 +87,13 @@ void UpdateInSumExp(double *inSumNew, const int *cfgAOldReduced, const int *cfgA
     }
   }
 
-  countAId = siteA;
-  countBId = siteB;
-
   count = 0;
   for (tSym = 0; tSym <= tRSym; tSym++) {
     for (i = startIdA; i < shiftSys; i+=translationSys) {
-      countA = plaqHashSz[countAId];
-      countB = plaqHashSz[countBId];
-      hashListA = plaqHash[countAId];
-      hashListB = plaqHash[countBId];
+      countA = plaqHashSz[sizeA*i + siteA];
+      countB = plaqHashSz[sizeA*i + siteB];
+      hashListA = plaqHash[sizeA*i + siteA];
+      hashListB = plaqHash[sizeA*i + siteB];
 
       for (a = startIdB; a < shiftTrn; a+=translationTrn) {
         for (k = 0; k < countA; k++) {
@@ -125,8 +122,6 @@ void UpdateInSumExp(double *inSumNew, const int *cfgAOldReduced, const int *cfgA
         }
         count++;
       }
-      countAId += sizeA;
-      countBId += sizeA;
     }
   }
 }
@@ -192,7 +187,6 @@ double GPWExpKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
   int i;
 
   double *innerSum = workspace;
-  double *innerSumFlipped = innerSum + sizeA*sizeB;
 
   double complex *distWeightsCompl = (double complex*) malloc(sizeof(double complex) *
                                                               numDistWeights);
@@ -202,7 +196,7 @@ double GPWExpKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
 
   ComputeInSumExp(innerSum, plaquetteAIdx, cfgA, sizeA, plaquetteBIdx,
                   cfgB, sizeB, plaquetteSize, distWeightsCompl,
-                  distWeightIdx, tRSym, shift, startIdA, startIdB);
+                  distWeightIdx, shift, startIdA, startIdB, tRSym);
 
   free(distWeightsCompl);
 
@@ -396,7 +390,7 @@ void GPWExpKernelVec(const unsigned long *configsAUp, const unsigned long *confi
 void ComputeInSumExpBasisOpt(double *inSum, const int *plaquetteAIdx, const int sizeA,
                              const int plaquetteSize, const double complex *distWeights,
                              const int *eleNum, const int tRSym) {
-  int i, k, occupationId, id, tSym,count;
+  int i, k, id, tSym,count;
   double innerSum, element;
 
   count = 0;
@@ -423,7 +417,7 @@ void UpdateInSumExpBasisOpt(double *inSumNew, const int *cfgOldReduced, const in
                             const int *plaquetteAIdx, const int sizeA, const int plaquetteSize,
                             const double complex *distWeights, int **plaqHash, const int ri,
                             const int rj, const int tRSym) {
-  int i, a, k, occupationIdOld, occupationIdNew, tSym;
+  int i, k, occupationIdOld, occupationIdNew, tSym;
   double elementOld, elementNew;
 
   for (tSym = 0; tSym <= tRSym; tSym++) {

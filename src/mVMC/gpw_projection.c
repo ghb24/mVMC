@@ -111,8 +111,8 @@ void CalculateGPWKern(double *eleGPWKern, double *eleGPWInSum, const int *eleNum
       ComputeInSumExp(eleGPWInSum+offset, GPWSysPlaquetteIdx[latId],
                       eleNum, Nsite, GPWTrnPlaquetteIdx[latId],
                       GPWTrnCfg[i], GPWTrnSize[latId], GPWPlaquetteSizes[latId],
-                      GPWDistWeights, GPWDistWeightIdx[i], GPWTRSym[latId],
-                      GPWShift[latId], 0, 0);
+                      GPWDistWeights, GPWDistWeightIdx[i],
+                      GPWShift[latId], 0, 0, GPWTRSym[latId]);
       if (GPWKernelFunc[latId] == -1) {
         eleGPWKern[i] = ComputeExpKernel(eleNum, Nsite, GPWTrnCfg[i], GPWTrnSize[latId],
                                          GPWTRSym[latId], GPWShift[latId], 0, 0,
@@ -221,7 +221,6 @@ void UpdateGPWKern(const int ri, const int rj, const int *cfgOldReduced,
                   GPWTrnCfg[i], GPWTrnSize[latId], GPWPlaquetteSizes[latId],
                   GPWDistList[latId], GPWShift[latId], 0, 0, GPWDistWeightPower[latId],
                   GPWSysPlaqHash[latId], GPWSysPlaqHashSz[latId], ri, rj, GPWTRSym[latId]);
-
       eleGPWKernNew[i] = ComputeKernel(eleNum, Nsite, GPWTrnCfg[i], GPWTrnSize[latId],
                                        GPWPower[latId], GPWThetaVar[latId],
                                        GPWNorm[latId], GPWTRSym[latId],

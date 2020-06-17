@@ -375,7 +375,7 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
                       }
                     }
                   }
-                  distWeightDeriv[GPWDistWeightIdx[i][trnSize*k + j]] -= 2.0 *GPWVar[i] * creal(GPWDistWeights[GPWDistWeightIdx[i][trnSize*k + j]]) * sumTargetLat;
+                  distWeightDeriv[GPWDistWeightIdx[i][trnSize*k + j]] -= GPWVar[i] * sumTargetLat;
                 }
               }
             }

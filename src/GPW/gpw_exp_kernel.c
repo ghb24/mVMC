@@ -44,7 +44,7 @@ void ComputeInSumExp(double *inSum, const int *plaquetteAIdx, const int *cfgA,
         for (k = 0; k < plaquetteSize; k++) {
           if (!delta(cfgA, sizeA, cfgB, sizeB, plaquetteAIdx[i*plaquetteSize+k], plaquetteBIdx[a*plaquetteSize+k], tSym)) {
             element = creal(distWeights[distWeightIdx[sizeB*k + a]]);
-            innerSum += element*element;
+            innerSum += element;
           }
         }
         inSum[count] = innerSum;
@@ -100,11 +100,11 @@ void UpdateInSumExp(double *inSumNew, const int *cfgAOldReduced, const int *cfgA
           id = hashListA[k];
           if (delta(cfgANew, sizeA, cfgB, sizeB, siteA, plaquetteBIdx[a*plaquetteSize+id], tSym)) {
             element = creal(distWeights[distWeightIdx[sizeB*id + a]]);
-            inSumNew[count] -= element*element;
+            inSumNew[count] -= element;
           }
           if (delta(cfgAOldReduced, 2, cfgB, sizeB, 0, plaquetteBIdx[a*plaquetteSize+id], tSym)) {
             element = creal(distWeights[distWeightIdx[sizeB*id + a]]);
-            inSumNew[count] += element*element;
+            inSumNew[count] += element;
           }
         }
         if (siteA != siteB) {
@@ -112,11 +112,11 @@ void UpdateInSumExp(double *inSumNew, const int *cfgAOldReduced, const int *cfgA
             id = hashListB[k];
             if (delta(cfgANew, sizeA, cfgB, sizeB, siteB, plaquetteBIdx[a*plaquetteSize+id], tSym)) {
               element = creal(distWeights[distWeightIdx[sizeB*id + a]]);
-              inSumNew[count] -= element*element;
+              inSumNew[count] -= element;
             }
             if (delta(cfgAOldReduced, 2, cfgB, sizeB, 1, plaquetteBIdx[a*plaquetteSize+id], tSym)) {
               element = creal(distWeights[distWeightIdx[sizeB*id + a]]);
-              inSumNew[count] += element*element;
+              inSumNew[count] += element;
             }
           }
         }

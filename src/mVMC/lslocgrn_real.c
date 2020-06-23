@@ -748,7 +748,7 @@ double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
   RequestWorkSpaceInt(NProj);      /* for GreenFunc2 */
   RequestWorkSpaceDouble(NQPFull+2*Nsize+NGPWIdx+GPWTrnCfgSz*Nsite); /* for GreenFunc2 */
   RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj+8);
-  RequestWorkSpaceThreadDouble(NQPFull+3*Nsize+NGPWIdx+GPWTrnCfgSz*Nsite);
+  RequestWorkSpaceThreadDouble(NQPFull+4*Nsize+NGPWIdx+GPWTrnCfgSz*Nsite);
 
   bufferInt = GetWorkSpaceInt(NProj);
   buffer = GetWorkSpaceDouble(NQPFull+2*Nsize);

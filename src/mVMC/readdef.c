@@ -2433,29 +2433,12 @@ int GetInfoRBM(FILE *fp, int **weightsIdx, int *ArrayOpt, int iComplxFlag,
   int fidx = _fidx;
   int nSite2 = 2 * Nsite;
 
-  if (NArrayHidden > 0) {
-    while (fscanf(fp, "%d %d %d ", &i, &j, &k) != EOF) {
-      if (CheckSite(i, Nsite) != 0) {
-        fprintf(stderr, "Error: Site index is incorrect. \n");
-        info = 1;
-        break;
+  for (i = 0; i < Nsite; i++) {
+    for (j = 0; j < 2; j++) {
+      for (k = 0; k < NArrayHidden; k++) {
+        weightsIdx[i + Nsite*j][k] = idx0;
+        idx0++;
       }
-
-      if (CheckSite(j, 2) != 0) {
-        fprintf(stderr, "Error: Spin index is incorrect. \n");
-        info = 1;
-        break;
-      }
-
-      if (CheckSite(k, NArrayHidden) != 0) {
-        fprintf(stderr, "Error: Hidden layer index is incorrect. \n");
-        info = 1;
-        break;
-      }
-
-      fscanf(fp, "%d\n", &(weightsIdx[i + Nsite*j][k]));
-      idx0++;
-      if (idx0 == nSite2*NArrayHidden) break;
     }
   }
   idx1 = GetInfoOpt(fp, ArrayOpt, iComplxFlag, iOptCount, fidx);

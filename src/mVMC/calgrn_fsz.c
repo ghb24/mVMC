@@ -42,7 +42,7 @@ void CalculateGreenFunc_fsz(const double w, const double complex ip, int *eleIdx
   double complex *myBuffer;
 
   RequestWorkSpaceThreadInt(Nsize+Nsize+Nsite2+NProj);
-  RequestWorkSpaceThreadDouble(NGPWIdx+GPWTrnCfgSz*Nsite);
+  RequestWorkSpaceThreadDouble(NGPWIdx+GPWInSumSize);
   RequestWorkSpaceThreadComplex(NQPFull+2*Nsize);
   /* GreenFunc1: NQPFull, GreenFunc2: NQPFull+2*Nsize */
 

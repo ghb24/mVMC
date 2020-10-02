@@ -72,7 +72,7 @@ double complex CalculateHamiltonian(const double complex ip, int *eleIdx, const 
   double complex myEnergy;
 
   RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj);
-  RequestWorkSpaceThreadDouble(NGPWIdx+GPWTrnCfgSz*Nsite);
+  RequestWorkSpaceThreadDouble(NGPWIdx+GPWInSumSize);
   RequestWorkSpaceThreadComplex(NQPFull+2*Nsize);
   /* GreenFunc1: NQPFull, GreenFunc2: NQPFull+2*Nsize */
 
@@ -272,7 +272,7 @@ double complex CalculateHamiltonian1(const double complex ip, int *eleIdx, const
   double complex myEnergy;
 
   RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj);
-  RequestWorkSpaceThreadDouble(NGPWIdx+GPWTrnCfgSz*Nsite);
+  RequestWorkSpaceThreadDouble(NGPWIdx+GPWInSumSize);
   RequestWorkSpaceThreadComplex(NQPFull);
   /* GreenFunc1: NQPFull */
 
@@ -333,7 +333,7 @@ double complex CalculateHamiltonian2(const double complex ip, int *eleIdx, const
   double complex myEnergy;
 
   RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj);
-  RequestWorkSpaceThreadDouble(NGPWIdx+GPWTrnCfgSz*Nsite);
+  RequestWorkSpaceThreadDouble(NGPWIdx+GPWInSumSize);
   RequestWorkSpaceThreadComplex(NQPFull+2*Nsize);
   /* GreenFunc2: NQPFull+2*Nsize */
 

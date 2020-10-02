@@ -284,7 +284,7 @@ double complex calHCA1(const int ri, const int rj, const int s,
   int prevConfigReduced[4];
 
   RequestWorkSpaceInt(NProj);
-  RequestWorkSpaceDouble(NGPWIdx+GPWTrnCfgSz*Nsite);
+  RequestWorkSpaceDouble(NGPWIdx+GPWInSumSize);
   RequestWorkSpaceComplex(NQPFull*(Nsize*Nsize+1));
 
   projCntNew = GetWorkSpaceInt(NProj);
@@ -374,10 +374,10 @@ double complex calHCA2(const int ri, const int rj, const int s,
   double complex v=0.0;
 
   RequestWorkSpaceInt(NProj);      /* for GreenFunc1 */
-  RequestWorkSpaceDouble(NGPWIdx+GPWTrnCfgSz*Nsite);      /* for GreenFunc1 */
+  RequestWorkSpaceDouble(NGPWIdx+GPWInSumSize);      /* for GreenFunc1 */
   RequestWorkSpaceComplex(NQPFull); /* for GreenFunc1 */
   RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj+6);
-  RequestWorkSpaceThreadDouble(NGPWIdx+GPWTrnCfgSz*Nsite);
+  RequestWorkSpaceThreadDouble(NGPWIdx+GPWInSumSize);
   RequestWorkSpaceThreadComplex(NQPFull+3*Nsize);
 
   bufferInt = GetWorkSpaceInt(NProj);
@@ -653,7 +653,7 @@ double complex calHCACA1(const int ri, const int rj, const int rk, const int rl,
   int prevConfigReduced[4];
 
   RequestWorkSpaceInt(NProj);
-  RequestWorkSpaceDouble(NGPWIdx+2*GPWTrnCfgSz*Nsite);
+  RequestWorkSpaceDouble(NGPWIdx+2*GPWInSumSize);
   RequestWorkSpaceComplex(NQPFull*(Nsize*Nsize+1));
 
   projCntNew = GetWorkSpaceInt(NProj);
@@ -768,10 +768,10 @@ double complex calHCACA2(const int ri, const int rj, const int rk, const int rl,
   double complex v=0.0;
 
   RequestWorkSpaceInt(NProj);      /* for GreenFunc2 */
-  RequestWorkSpaceDouble(NGPWIdx+GPWTrnCfgSz*Nsite);      /* for GreenFunc2 */
+  RequestWorkSpaceDouble(NGPWIdx+GPWInSumSize);      /* for GreenFunc2 */
   RequestWorkSpaceComplex(NQPFull+2*Nsize); /* for GreenFunc2 */
   RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj+8);
-  RequestWorkSpaceThreadDouble(NGPWIdx+GPWTrnCfgSz*Nsite);
+  RequestWorkSpaceThreadDouble(NGPWIdx+GPWInSumSize);
   RequestWorkSpaceThreadComplex(NQPFull+3*Nsize);
 
   bufferInt = GetWorkSpaceInt(NProj);

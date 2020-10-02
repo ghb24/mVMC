@@ -465,7 +465,7 @@ double ComputeExpKernelBasisOpt(const int size, const int tRSym,
   count = 0;
   for (tSym = 0; tSym <= tRSym; tSym++) {
     for (i = 0; i < size; i++) {
-      kernel -= inSum[count];
+      kernel += inSum[count];
       count++;
     }
   }

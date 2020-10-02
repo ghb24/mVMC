@@ -55,7 +55,7 @@ double CalculateHamiltonian_real(const double ip, int *eleIdx, const int *eleCfg
   double  myEnergy;
 
   RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj);
-  RequestWorkSpaceThreadDouble(NQPFull+2*Nsize+NGPWIdx+GPWTrnCfgSz*Nsite);
+  RequestWorkSpaceThreadDouble(NQPFull+2*Nsize+NGPWIdx+GPWInSumSize);
   /* GreenFunc1: NQPFull, GreenFunc2: NQPFull+2*Nsize */
 
   #pragma omp parallel default(none) \

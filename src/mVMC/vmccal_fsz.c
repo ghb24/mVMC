@@ -321,17 +321,21 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
 
       offset += nGPWDistWeights;
 
-      if (GPWLinModFlag >= 0) {
+      if (GPWExpansionOrder >= 0) {
         expansionargument = GPWExpansionargument(eleGPWKern);
         prefactor = 0.0;
         factorial = 1;
-        for (j = 0; j < GPWLinModFlag; j++) {
+        for (j = 0; j < GPWExpansionOrder; j++) {
           prefactor += cpow(expansionargument, j)/factorial;
           factorial *= (j+1);
         }
+
+        prefactor /= GPWVal(eleGPWKern);
+
+        #pragma omp parallel for default(shared) private(i)
         for (i = 0; i < (nGPWDistWeights + nGPWTrnLat + nGPWIdx); i++) {
-          srOptO[(nProj+1+i)*2] *= prefactor/GPWVal(eleGPWKern);
-          srOptO[(nProj+1+i)*2 + 1] *= prefactor/GPWVal(eleGPWKern);
+          srOptO[(nProj+1+i)*2] *= prefactor;
+          srOptO[(nProj+1+i)*2 + 1] *= prefactor;
         }
       }
 

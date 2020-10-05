@@ -82,7 +82,7 @@ enum ParamIdxInt{
   IdxNExchange, IdxNGutz, IdxNJast,
   IdxNDH2, IdxNDH4, IdxNGPW, IdxNGPWTrnLat,
   IdxTrnLatNbSz, IdxTrnCfgSz, IdxDistWeightsSz,
-  IdxLinModFlag, IdxGPWShiftFlag, IdxNGPWDistWeights,
+  IdxExpansionOrder, IdxGPWShiftFlag, IdxNGPWDistWeights,
   IdxDim,
   IdxNRBMVisible, IdxNRBMHidden,
   IdxNOrbit, IdxNOrbitGeneral, IdxUseOrb,

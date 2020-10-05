@@ -145,7 +145,7 @@ char *ReadBuffIntCmpFlg(FILE *fp, int *iNbuf, int *iComplexFlag) {
 }
 
 char *ReadBuffGPWInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, int *iLatNbSzBuf,
-                      int *iTrnCfgSzBuf, int *iDistWeightsSzBuf, int *iLinModFlag, int *iGPWShiftFlag,
+                      int *iTrnCfgSzBuf, int *iDistWeightsSzBuf, int *iExpansionOrder, int *iGPWShiftFlag,
                       int *iNGPWDistWeights) {
   char *cerr;
   char ctmp[D_FileNameMax];
@@ -162,7 +162,7 @@ char *ReadBuffGPWInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, in
   *iLatNbSzBuf = 0;
   *iTrnCfgSzBuf = 0;
   *iDistWeightsSzBuf = 0;
-  *iLinModFlag = 0;
+  *iExpansionOrder = -1;
   *iGPWShiftFlag = 0;
   *iNGPWDistWeights = 0;
 
@@ -188,8 +188,8 @@ char *ReadBuffGPWInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, in
     fgets(ctmp, sizeof(ctmp) / sizeof(char), fp);
     sscanf(ctmp, "%s %d\n", ctmp2, &readVal);
 
-    if (CheckWords(ctmp2, "LinModel") == 0) {
-      *iLinModFlag = readVal;
+    if (CheckWords(ctmp2, "ExpansionOrder") == 0) {
+      *iExpansionOrder = readVal;
       IgnoreAddLineGPWDef++;
     }
 
@@ -589,7 +589,7 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
           case KWGPW:
             cerr = ReadBuffGPWInfo(fp, &bufInt[IdxNGPW], &iComplexFlgGPW, &bufInt[IdxNGPWTrnLat],
                                    &bufInt[IdxTrnLatNbSz], &bufInt[IdxTrnCfgSz],
-                                   &bufInt[IdxDistWeightsSz], &bufInt[IdxLinModFlag],
+                                   &bufInt[IdxDistWeightsSz], &bufInt[IdxExpansionOrder],
                                    &bufInt[IdxGPWShiftFlag], &bufInt[IdxNGPWDistWeights]);
             break;
 
@@ -827,7 +827,7 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
   GPWTrnLatNeighboursSz = 2 * Dim * bufInt[IdxTrnLatNbSz];
   GPWTrnCfgSz = 2 * bufInt[IdxTrnCfgSz];
   GPWDistWeightIdxSz = bufInt[IdxDistWeightsSz];
-  GPWLinModFlag = bufInt[IdxLinModFlag];
+  GPWExpansionOrder = bufInt[IdxExpansionOrder];
   GPWShiftFlag = bufInt[IdxGPWShiftFlag];
   NGPWDistWeights = bufInt[IdxNGPWDistWeights];
   RBMNVisibleIdx = bufInt[IdxNRBMVisible];
@@ -1836,7 +1836,7 @@ void SetDefaultValuesModPara(int *bufInt, double *bufDouble) {
   bufInt[IdxTrnLatNbSz] = 0;
   bufInt[IdxTrnCfgSz] = 0;
   bufInt[IdxDistWeightsSz] = 0;
-  bufInt[IdxLinModFlag] = 0;
+  bufInt[IdxExpansionOrder] = -1;
   bufInt[IdxGPWShiftFlag] = 0;
   bufInt[IdxNGPWDistWeights] = 0;
   bufInt[IdxDim] = 1;

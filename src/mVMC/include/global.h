@@ -141,7 +141,7 @@ int GPWTrnLatNeighboursSz; /* total size of the training lattice neighbours arra
 int GPWTrnCfgSz; /* total size of the training configurations array (sum_(all training configs) 2*latSize) */
 int GPWInSumSize; /* total size of the local kernel array */
 int GPWDistWeightIdxSz; /* total size of the GPWDistWeightIdx array (sum_(all training configs) latSize^2) */
-int GPWLinModFlag; /* 1: linear model, 0: correction to log */
+int GPWExpansionOrder; /* 1: linear model, -1: correction to log */
 int *GPWTrnSize; /* [NGPWTrnLat] Lattice sizes of training configurations*/
 int *GPWTrnLat; /* [NGPWIdx] Training lattice reference for each training configuration */
 int *GPWTrnNeighboursFlat; /* [GPWTrnLatNeighboursSz] flat array of all the neighbours in the training system required for GPW */

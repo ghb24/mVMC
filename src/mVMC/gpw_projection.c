@@ -11,7 +11,7 @@ inline double complex LogGPWVal(const double *eleGPWKern) {
   int idx;
   double complex z=0.0+0.0*I;
 
-  if (GPWLinModFlag == -1) {
+  if (GPWExpansionOrder == -1) {
     #pragma omp parallel for default(shared) private(idx) reduction(+:z)
     for(idx=0;idx<NGPWIdx;idx++) {
       z += GPWVar[idx] * eleGPWKern[idx];
@@ -44,12 +44,12 @@ inline double complex GPWVal(const double *eleGPWKern) {
 
   expansionargument = GPWExpansionargument(eleGPWKern);
 
-  if (GPWLinModFlag == -1) {
+  if (GPWExpansionOrder == -1) {
     return cexp(expansionargument);
   }
 
   else {
-    for(i = 0; i <= GPWLinModFlag; i++) {
+    for(i = 0; i <= GPWExpansionOrder; i++) {
       z += cpow(expansionargument, i)/factorial;
       factorial *= (i+1);
     }
@@ -61,7 +61,7 @@ inline double complex LogGPWRatio(const double *eleGPWKernNew, const double *ele
   int idx;
   double complex z=0.0+0.0*I;
 
-  if (GPWLinModFlag == -1) {
+  if (GPWExpansionOrder == -1) {
     #pragma omp parallel for default(shared) private(idx) reduction(+:z)
     for(idx=0;idx<NGPWIdx;idx++) {
       z += GPWVar[idx] * (eleGPWKernNew[idx]-eleGPWKernOld[idx]);
@@ -76,7 +76,7 @@ inline double complex LogGPWRatio(const double *eleGPWKernNew, const double *ele
 }
 
 inline double complex GPWRatio(const double *eleGPWKernNew, const double *eleGPWKernOld) {
-  if (GPWLinModFlag == -1) {
+  if (GPWExpansionOrder == -1) {
     return cexp(LogGPWRatio(eleGPWKernNew, eleGPWKernOld));
   }
 

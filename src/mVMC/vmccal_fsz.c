@@ -286,7 +286,7 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
                     else {
                       occId = eleNum[sysPlaquetteIdx[l*plaqSize+k]] + 2 * eleNum[sysPlaquetteIdx[l*plaqSize+k]+Nsite];
                     }
-                    distWeightDeriv[basisOptOffset + 4*k + occId] -= GPWVar[i] * inSum[tSym * Nsite + l] / creal(GPWDistWeights[basisOptOffset + 4*k + occId]);
+                    distWeightDeriv[basisOptOffset + 4*k + occId] += GPWVar[i] * inSum[tSym * Nsite + l] / creal(GPWDistWeights[basisOptOffset + 4*k + occId]);
                   }
                 }
               }

@@ -285,7 +285,7 @@ void VMCMainCal_fsz(MPI_Comm comm, MPI_Comm commSampler) {
 
             if(kernFunc == -3) {
               for (tSym = 0; tSym <= GPWTRSym[latId]; tSym++) {
-                for (l = 0; l < Nsite; l++) {
+                for (l = 0; l < shiftSys; l++) {
                   for (k = 0; k < plaqSize; k++) {
                     if (tSym) {
                       occId = (1-eleNum[sysPlaquetteIdx[l*plaqSize+k]]) + 2 * (1-eleNum[sysPlaquetteIdx[l*plaqSize+k]+Nsite]);

@@ -389,13 +389,18 @@ void GPWExpKernelVec(const unsigned long *configsAUp, const unsigned long *confi
 
 void ComputeInSumExpBasisOpt(double *inSum, const int *plaquetteAIdx, const int sizeA,
                              const int plaquetteSize, const double complex *distWeights,
-                             const int *eleNum, const int tRSym) {
+                             const int *eleNum, const int tRSym, const int shift) {
   int i, k, id, tSym,count;
   double innerSum, element;
+  int shiftSys = 1;
+
+  if (abs(shift) & 1) {
+    shiftSys = sizeA;
+  }
 
   count = 0;
   for (tSym = 0; tSym <= tRSym; tSym++) {
-    for (i = 0; i < sizeA; i++) {
+    for (i = 0; i < shiftSys; i++) {
       innerSum = 1.0;
       for (k = 0; k < plaquetteSize; k++) {
         if (tSym) {
@@ -416,9 +421,14 @@ void ComputeInSumExpBasisOpt(double *inSum, const int *plaquetteAIdx, const int 
 void UpdateInSumExpBasisOpt(double *inSumNew, const int *cfgOldReduced, const int *eleNum,
                             const int *plaquetteAIdx, const int sizeA, const int plaquetteSize,
                             const double complex *distWeights, int **plaqHash, const int ri,
-                            const int rj, const int tRSym) {
+                            const int rj, const int tRSym, const int shift) {
   int i, k, occupationIdOld, occupationIdNew, tSym;
   double elementOld, elementNew;
+  int shiftSys = 1;
+
+  if (abs(shift) & 1) {
+    shiftSys = sizeA;
+  }
 
   for (tSym = 0; tSym <= tRSym; tSym++) {
     if (tSym) {
@@ -429,13 +439,13 @@ void UpdateInSumExpBasisOpt(double *inSumNew, const int *cfgOldReduced, const in
       occupationIdOld = cfgOldReduced[0] + 2 * cfgOldReduced[2];
       occupationIdNew = eleNum[ri] + 2 * eleNum[ri+sizeA];
     }
-    for (i = 0; i < sizeA; i++) {
+    for (i = 0; i < shiftSys; i++) {
       k = plaqHash[ri + i *sizeA][0];
       elementOld = creal(distWeights[k*4+occupationIdOld]);
       elementNew = creal(distWeights[k*4+occupationIdNew]);
 
-      inSumNew[tSym * sizeA + i] /= elementOld;
-      inSumNew[tSym * sizeA + i] *= elementNew;
+      inSumNew[tSym * shiftSys + i] /= elementOld;
+      inSumNew[tSym * shiftSys + i] *= elementNew;
     }
     if (ri != rj) {
       if (tSym) {
@@ -446,25 +456,30 @@ void UpdateInSumExpBasisOpt(double *inSumNew, const int *cfgOldReduced, const in
         occupationIdOld = cfgOldReduced[1] + 2 * cfgOldReduced[3];
         occupationIdNew = eleNum[rj] + 2 * eleNum[rj+sizeA];
       }
-      for (i = 0; i < sizeA; i++) {
+      for (i = 0; i < shiftSys; i++) {
         k = plaqHash[rj + i *sizeA][0];
         elementOld = creal(distWeights[k*4+occupationIdOld]);
         elementNew = creal(distWeights[k*4+occupationIdNew]);
-        inSumNew[tSym * sizeA + i] /= elementOld;
-        inSumNew[tSym * sizeA + i] *= elementNew;
+        inSumNew[tSym * shiftSys + i] /= elementOld;
+        inSumNew[tSym * shiftSys + i] *= elementNew;
       }
     }
   }
 }
 
 double ComputeExpKernelBasisOpt(const int size, const int tRSym,
-                                const double *inSum) {
+                                const double *inSum, const int shift) {
   int i, tSym, count;
   double kernel = 0.0;
+  int shiftSys = 1;
+
+  if (abs(shift) & 1) {
+    shiftSys = size;
+  }
 
   count = 0;
   for (tSym = 0; tSym <= tRSym; tSym++) {
-    for (i = 0; i < size; i++) {
+    for (i = 0; i < shiftSys; i++) {
       kernel += inSum[count];
       count++;
     }

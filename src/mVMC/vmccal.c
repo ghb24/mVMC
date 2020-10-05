@@ -87,6 +87,10 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
   int i,info,tmp_i,j,offset,idx,f,targetBasis,k,l,opt;
   int *workspaceRefState;
 
+  double complex expansionargument;
+  double complex prefactor;
+  int factorial;
+
   /* optimazation for Kei */
   const int nProj=NProj;
   const int nGPWIdx=NGPWIdx;
@@ -230,13 +234,6 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
         srOptO[(offset+i)*2]     = eleGPWKern[i];    // even real
         srOptO[(offset+i)*2+1]   = eleGPWKern[i]*I;  // odd  comp
       }
-      if (GPWLinModFlag) {
-        #pragma omp parallel for default(shared) private(i)
-        for(i=0;i<nGPWIdx;i++){
-          srOptO[(offset+i)*2] = srOptO[(offset+i)*2]/GPWVal(eleGPWKern);    // even real
-          srOptO[(offset+i)*2+1] = srOptO[(offset+i)*2+1]/GPWVal(eleGPWKern);    // odd comp
-        }
-      }
       offset += nGPWIdx;
 
       /* this is not ideal but an easy way to make use of threads
@@ -270,10 +267,6 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
         }
         srOptO[(offset+i)*2]     = derivative;    // even real
         srOptO[(offset+i)*2+1]   = derivative*I;  // odd  comp
-        if (GPWLinModFlag) {
-          srOptO[(offset+i)*2] = srOptO[(offset+i)*2]/GPWVal(eleGPWKern);    // even real
-          srOptO[(offset+i)*2+1] = srOptO[(offset+i)*2+1]/GPWVal(eleGPWKern);    // odd comp
-        }
         offset++;
       }
 
@@ -356,7 +349,7 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
                     else {
                       occId = eleNum[sysPlaquetteIdx[l*plaqSize+k]] + 2 * eleNum[sysPlaquetteIdx[l*plaqSize+k]+Nsite];
                     }
-                    distWeightDeriv[basisOptOffset + 4*k + occId] += GPWVar[i] * inSum[tSym * Nsite + l] / creal(GPWDistWeights[basisOptOffset + 4*k + occId]);
+                    distWeightDeriv[basisOptOffset + 4*k + occId] -= GPWVar[i] * inSum[tSym * Nsite + l] / creal(GPWDistWeights[basisOptOffset + 4*k + occId]);
                   }
                 }
               }
@@ -387,14 +380,23 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
           }
           free(distWeightDeriv);
         }
+      }
 
-        for (i = 0; i < nGPWDistWeights; i++) {
-          if (GPWLinModFlag) {
-            srOptO[(offset+i)*2] /= GPWVal(eleGPWKern);
-          }
+      offset += nGPWDistWeights;
+
+      if (GPWLinModFlag >= 0) {
+        expansionargument = GPWExpansionargument(eleGPWKern);
+        prefactor = 0.0;
+        factorial = 1;
+        for (j = 0; j < GPWLinModFlag; j++) {
+          prefactor += cpow(expansionargument, j)/factorial;
+          factorial *= (j+1);
+        }
+        for (i = 0; i < (nGPWDistWeights + nGPWTrnLat + nGPWIdx); i++) {
+          srOptO[(nProj+1+i)*2] *= prefactor/GPWVal(eleGPWKern);
+          srOptO[(nProj+1+i)*2 + 1] *= prefactor/GPWVal(eleGPWKern);
         }
       }
-      offset += nGPWDistWeights;
 
       #pragma omp parallel for default(shared) private(f, i)
       for(f = 0; f < nRBMVis; f++) {

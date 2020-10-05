@@ -64,7 +64,7 @@ double CalculateHamiltonian_real(const double ip, int *eleIdx, const int *eleCfg
     NCoulombInter, CoulombInter, ParaCoulombInter, NHundCoupling, HundCoupling, ParaHundCoupling,    \
     NTransfer, Transfer, ParaTransfer, NPairHopping, PairHopping, ParaPairHopping,    \
     NExchangeCoupling, ExchangeCoupling, ParaExchangeCoupling, NInterAll, InterAll, ParaInterAll, n0, n1)\
-    shared(eleCfg, eleProjCnt, eleGPWKern, eleGPWInSum, eleIdx, eleNum) reduction(+:e)
+    shared(ip, eleCfg, eleProjCnt, eleGPWKern, eleGPWInSum, eleIdx, eleNum) reduction(+:e)
   {
     myEleIdx = GetWorkSpaceThreadInt(Nsize);
     myEleNum = GetWorkSpaceThreadInt(Nsite2);

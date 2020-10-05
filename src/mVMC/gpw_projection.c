@@ -11,34 +11,49 @@ inline double complex LogGPWVal(const double *eleGPWKern) {
   int idx;
   double complex z=0.0+0.0*I;
 
-  #pragma omp parallel for default(shared) private(idx) reduction(+:z)
-  for(idx=0;idx<NGPWIdx;idx++) {
-    z += GPWVar[idx] * eleGPWKern[idx];
-  }
+  if (GPWLinModFlag == -1) {
+    #pragma omp parallel for default(shared) private(idx) reduction(+:z)
+    for(idx=0;idx<NGPWIdx;idx++) {
+      z += GPWVar[idx] * eleGPWKern[idx];
+    }
 
-  if (!GPWLinModFlag) {
     return z;
   }
   else {
-    return clog(z + 1.0);
+    return clog(GPWVal(eleGPWKern));
   }
 }
 
-inline double complex GPWVal(const double *eleGPWKern) {
+inline double complex GPWExpansionargument(const double *eleGPWKern) {
   int idx;
-  double complex z=0.0+0.0*I;
+  double complex expansionargument=0.0+0.0*I;
 
-  #pragma omp parallel for default(shared) private(idx) reduction(+:z)
+  #pragma omp parallel for default(shared) private(idx) reduction(+:expansionargument)
   for(idx=0;idx<NGPWIdx;idx++) {
-    z += GPWVar[idx] * eleGPWKern[idx];
+    expansionargument += GPWVar[idx] * eleGPWKern[idx];
   }
 
+  return expansionargument;
+}
 
-  if (!GPWLinModFlag) {
-    return cexp(z);
+inline double complex GPWVal(const double *eleGPWKern) {
+  int i;
+  double complex expansionargument;
+  double complex z=0.0+0.0*I;
+  int factorial = 1;
+
+  expansionargument = GPWExpansionargument(eleGPWKern);
+
+  if (GPWLinModFlag == -1) {
+    return cexp(expansionargument);
   }
+
   else {
-    return (z + 1.0);
+    for(i = 0; i <= GPWLinModFlag; i++) {
+      z += cpow(expansionargument, i)/factorial;
+      factorial *= (i+1);
+    }
+    return z;
   }
 }
 
@@ -46,7 +61,7 @@ inline double complex LogGPWRatio(const double *eleGPWKernNew, const double *ele
   int idx;
   double complex z=0.0+0.0*I;
 
-  if (!GPWLinModFlag) {
+  if (GPWLinModFlag == -1) {
     #pragma omp parallel for default(shared) private(idx) reduction(+:z)
     for(idx=0;idx<NGPWIdx;idx++) {
       z += GPWVar[idx] * (eleGPWKernNew[idx]-eleGPWKernOld[idx]);
@@ -61,7 +76,7 @@ inline double complex LogGPWRatio(const double *eleGPWKernNew, const double *ele
 }
 
 inline double complex GPWRatio(const double *eleGPWKernNew, const double *eleGPWKernOld) {
-  if (!GPWLinModFlag) {
+  if (GPWLinModFlag == -1) {
     return cexp(LogGPWRatio(eleGPWKernNew, eleGPWKernOld));
   }
 

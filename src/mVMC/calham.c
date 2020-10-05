@@ -87,7 +87,7 @@ double complex CalculateHamiltonian(const double complex ip, int *eleIdx, const 
                NCoulombInter, CoulombInter, ParaCoulombInter, NHundCoupling, HundCoupling, ParaHundCoupling, \
                NTransfer, Transfer, ParaTransfer, NPairHopping, PairHopping, ParaPairHopping, \
                NExchangeCoupling, ExchangeCoupling, ParaExchangeCoupling, NInterAll, InterAll, ParaInterAll, n0, n1) \
-  shared(eleCfg, eleProjCnt, eleGPWKern, eleGPWInSum, eleIdx, eleNum) reduction(+:e)
+  shared(ip, eleCfg, eleProjCnt, eleGPWKern, eleGPWInSum, eleIdx, eleNum) reduction(+:e)
   {
     myEleIdx = GetWorkSpaceThreadInt(Nsize);
     myEleNum = GetWorkSpaceThreadInt(Nsite2);

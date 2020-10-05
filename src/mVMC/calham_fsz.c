@@ -88,7 +88,7 @@ double complex CalculateHamiltonian_fsz(const double complex ip, int *eleIdx, co
                NCoulombInter, CoulombInter, ParaCoulombInter, NHundCoupling, HundCoupling, ParaHundCoupling, \
                NTransfer, Transfer, ParaTransfer, NPairHopping, PairHopping, ParaPairHopping, \
                NExchangeCoupling, ExchangeCoupling, ParaExchangeCoupling, NInterAll, InterAll, ParaInterAll, n0, n1) \
-  shared(ip, eleCfg, eleProjCnt, eleGPWKern, eleGPWInSum, eleIdx, eleNum,eleSpn) reduction(+:e)
+  shared(eleCfg, eleProjCnt, eleGPWKern, eleGPWInSum, eleIdx, eleNum,eleSpn) reduction(+:e)
   {
     myEleIdx = GetWorkSpaceThreadInt(Nsize);
     myEleSpn = GetWorkSpaceThreadInt(Nsize);

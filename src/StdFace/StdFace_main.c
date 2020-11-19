@@ -936,6 +936,7 @@ static void StdFace_ResetVals(struct StdIntList *StdI) {
   StdI->NStore = StdI->NaN_i;
   StdI->NSRCG = StdI->NaN_i;
   StdI->RedCutMode = StdI->NaN_i;
+  StdI->AlternativeBasisOrder = StdI->NaN_i;
   StdI->ComplexType = StdI->NaN_i;
   for (i = 0; i < 3; i++)
     for (j = 0; j < 3; j++)
@@ -1309,6 +1310,7 @@ static void PrintModPara(struct StdIntList *StdI)
   fprintf(fp, "NStore         %d\n", StdI->NStore);
   fprintf(fp, "NSRCG          %d\n", StdI->NSRCG);
   fprintf(fp, "RedCutMode          %d\n", StdI->RedCutMode);
+  fprintf(fp, "AlternativeBasisOrder  %d\n", StdI->AlternativeBasisOrder);
 #endif
 
   fflush(fp);
@@ -1724,6 +1726,7 @@ static void CheckModPara(struct StdIntList *StdI)
   StdFace_PrintVal_i("NStore", &StdI->NStore, 1);
   StdFace_PrintVal_i("NSRCG", &StdI->NSRCG, 0);
   StdFace_PrintVal_i("RedCutMode", &StdI->RedCutMode, 0);
+  StdFace_PrintVal_i("AlternativeBasisOrder", &StdI->AlternativeBasisOrder, 0);
 
   StdFace_PrintVal_d("DSROptRedCut", &StdI->DSROptRedCut, 0.001);
   StdFace_PrintVal_d("DSROptStaDel", &StdI->DSROptStaDel, 0.02);
@@ -2437,6 +2440,7 @@ void StdFace_main(
     else if (strcmp(keyword, "nstore") == 0) StoreWithCheckDup_i(keyword, value, &StdI->NStore);
     else if (strcmp(keyword, "nsrcg") == 0) StoreWithCheckDup_i(keyword, value, &StdI->NSRCG);
     else if (strcmp(keyword, "redcutmode") == 0) StoreWithCheckDup_i(keyword, value, &StdI->RedCutMode);
+    else if (strcmp(keyword, "alternativebasisorder") == 0) StoreWithCheckDup_i(keyword, value, &StdI->AlternativeBasisOrder);
     else if (strcmp(keyword, "nvmcinterval") == 0) StoreWithCheckDup_i(keyword, value, &StdI->NVMCInterval);
     else if (strcmp(keyword, "nvmcsample") == 0) StoreWithCheckDup_i(keyword, value, &StdI->NVMCSample);
     else if (strcmp(keyword, "nvmcwarmup") == 0) StoreWithCheckDup_i(keyword, value, &StdI->NVMCWarmUp);

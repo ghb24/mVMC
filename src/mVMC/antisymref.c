@@ -42,23 +42,46 @@ int ComputeRefState(const int *eleIdx, const int *eleNum, int *workspace) {
   }
 
   pos = 0;
-  for(i = 0; i < Nsite2; i++) {
-    if (masterCandidate[i]) {
-      master[pos] = i;
-      pos++;
+  if (AlternativeBasisOrdering) {
+    for(i = 0; i < Nsite; i++) {
+      for (j = 0; j < 2; j ++) {
+        if (masterCandidate[i + j * Nsite]) {
+          master[pos] = 2 * i + j;
+          pos++;
+        }
+        eleCfg[i + j * Nsite] = -1;
+      }
     }
-    eleCfg[i] = -1;
+  }
+  else {
+    for(i = 0; i < Nsite2; i++) {
+      if (masterCandidate[i]) {
+        master[pos] = i;
+        pos++;
+      }
+      eleCfg[i] = -1;
+    }
   }
 
   for (i = 0; i < Ne; i++) {
-    eleCfg[QPTrans[translationId][eleIdx[i]] + trId * Nsite] = i;
+    if (AlternativeBasisOrdering) {
+      eleCfg[2 * QPTrans[translationId][eleIdx[i]] + trId] = i;
+    }
+    else {
+      eleCfg[QPTrans[translationId][eleIdx[i]] + trId * Nsite] = i;
+    }
     if (APFlag) {
       sign *= QPTransSgn[translationId][eleIdx[i]];
     }
   }
 
   for (i = Ne; i < Nsize; i++) {
-    eleCfg[QPTrans[translationId][eleIdx[i]] + (1 - trId) * Nsite] = i;
+    if (AlternativeBasisOrdering) {
+      eleCfg[2 * QPTrans[translationId][eleIdx[i]] + (1 - trId)] = i;
+    }
+    else {
+      eleCfg[QPTrans[translationId][eleIdx[i]] + (1 - trId) * Nsite] = i;
+    }
     if (APFlag) {
       sign *= QPTransSgn[translationId][eleIdx[i]];
     }
@@ -146,24 +169,47 @@ int ComputeRefState_fsz(const int *eleIdx, const int *eleNum, const int *eleSpn,
   }
 
   pos = 0;
-  for(i = 0; i < Nsite2; i++) {
-    if (masterCandidate[i]) {
-      master[pos] = i;
-      pos++;
+  if (AlternativeBasisOrdering) {
+    for(i = 0; i < Nsite; i++) {
+      for (j = 0; j < 2; j ++) {
+        if (masterCandidate[i + j * Nsite]) {
+          master[pos] = 2 * i + j;
+          pos++;
+        }
+        eleCfg[i + j * Nsite] = -1;
+      }
     }
-    eleCfg[i] = -1;
+  }
+  else {
+    for(i = 0; i < Nsite2; i++) {
+      if (masterCandidate[i]) {
+        master[pos] = i;
+        pos++;
+      }
+      eleCfg[i] = -1;
+    }
   }
 
   for (i = 0; i < Nsize; i++) {
     spin = eleSpn[i];
     if (spin) {
-      eleCfg[QPTrans[translationId][eleIdx[i]] + (1 - trId) * Nsite] = i;
+      if (AlternativeBasisOrdering) {
+      eleCfg[2 * QPTrans[translationId][eleIdx[i]] + (1 - trId)] = i;
+      }
+      else {
+        eleCfg[QPTrans[translationId][eleIdx[i]] + (1 - trId) * Nsite] = i;
+      }
       if (trId) {
         sign *= -1;
       }
     }
     else {
-      eleCfg[QPTrans[translationId][eleIdx[i]] + trId * Nsite] = i;
+      if (AlternativeBasisOrdering) {
+        eleCfg[2 * QPTrans[translationId][eleIdx[i]] + trId] = i;
+      }
+      else {
+        eleCfg[QPTrans[translationId][eleIdx[i]] + trId * Nsite] = i;
+      }
     }
     if (APFlag) {
       sign *= QPTransSgn[translationId][eleIdx[i]];

@@ -850,6 +850,7 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
   DSROptCGTol = bufDouble[IdxSROptCGTol];
   TwoSz = bufInt[Idx2Sz];
   RedCutMode = bufInt[IdxRedCutMode];
+  AlternativeBasisOrdering = bufInt[IdxAltBasisOrder];
 
   if (NMPTrans < 0) {
     APFlag = 1; /* anti-periodic boundary */
@@ -1857,6 +1858,7 @@ void SetDefaultValuesModPara(int *bufInt, double *bufDouble) {
   bufInt[Idx2Sz] = -1;// -1: sz is not fixed :fsz
   bufInt[IdxNCond] = -1;
   bufInt[IdxRedCutMode] = 0;
+  bufInt[IdxAltBasisOrder] = 0;
 
   bufDouble[IdxSROptRedCut] = 0.001;
   bufDouble[IdxSROptStaDel] = 0.02;
@@ -1981,6 +1983,8 @@ int GetInfoFromModPara(int *bufInt, double *bufDouble) {
               NSRCG = (int) dtmp;
             } else if (CheckWords(ctmp, "RedCutMode") == 0) {
               bufInt[IdxRedCutMode] = (int) dtmp;
+            } else if (CheckWords(ctmp, "AlternativeBasisOrder") == 0) {
+              bufInt[IdxAltBasisOrder] = (int) dtmp;
             } else {
               fprintf(stderr, "  Error: keyword \" %s \" is incorrect. \n", ctmp);
               iret = ReadDefFileError(defname);

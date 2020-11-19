@@ -312,6 +312,7 @@ struct StdIntList {
   int NStore;/**<@brief */
   int NSRCG;/**<@brief */
   int RedCutMode;/**<@brief */
+  int AlternativeBasisOrder;/**<@brief */
   int ComplexType;/**<@brief */
   /*
    Sub-lattice

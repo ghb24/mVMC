@@ -4,16 +4,16 @@
 #include <mpi.h>
 
 void VMCMakeSample(MPI_Comm comm);
-int makeInitialSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                      double *eleGPWInSum, const int qpStart, const int qpEnd,
+int makeInitialSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double complex *eleGPWKern,
+                      double complex *eleGPWInSum, const int qpStart, const int qpEnd,
                       MPI_Comm comm);
 void copyFromBurnSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
-                        double *eleGPWKern, double *eleGPWInSum);
+                        double complex *eleGPWKern, double complex *eleGPWInSum);
 void copyToBurnSample(const int *eleIdx, const int *eleCfg, const int *eleNum,
                       const int *eleProjCnt);
 void saveEleConfig(const int sample, const double complex logIp, const double complex rbmVal, const int *eleIdx,
                    const int *eleCfg, const int *eleNum, const int *eleProjCnt,
-                   const double *eleGPWKern, const double *eleGPWInSum);
+                   const double complex *eleGPWKern, const double complex *eleGPWInSum);
 void sortEleConfig(int *eleIdx, int *eleCfg, const int *eleNum);
 void ReduceCounter(MPI_Comm comm);
 void makeCandidate_hopping(int *mi_, int *ri_, int *rj_, int *s_, int *rejectFlag_,

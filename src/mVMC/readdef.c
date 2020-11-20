@@ -973,8 +973,6 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
 
   int iNOneBodyG;
 
-  int distWeightFlag;
-
   MPI_Comm_rank(comm, &rank);
 
   if (rank == 0) {
@@ -2146,6 +2144,9 @@ int GetInfoOpt(FILE *fp, int *ArrayOpt, int iComplxFlag, int *iTotalOptCount, in
     if(iComplxFlag>0){
       ArrayOpt[2 * fidx + 1] = ArrayOpt[2 * fidx]; //  TBC imaginary
     }
+    else {
+      ArrayOpt[2 * fidx + 1] = 0; //  TBC imaginary
+    }
     fidx++;
     (iLocalOptCount)++;
     (*iTotalOptCount)++;
@@ -2292,7 +2293,8 @@ int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int
       trnSize[i] = trnSz;
       mapping[i] = tmp;
 
-      optTheta[i] = 0;
+      optTheta[2*i] = 0;
+      optTheta[2*i + 1] = 0;
       (*iOptCount)++;
 
       // read kernel paramters
@@ -2310,7 +2312,7 @@ int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int
         } else if (CheckWords(ctmp2, "Theta") == 0) {
           theta[i] = dtmp;
         } else if (CheckWords(ctmp2, "OptTheta") == 0) {
-          optTheta[i] = dtmp;
+          optTheta[2 * i] = dtmp;
         } else if (CheckWords(ctmp2, "DistWeightPower") == 0) {
           distWeightPower[i] = dtmp;
         } else if (CheckWords(ctmp2, "TRSym") == 0) {
@@ -2395,6 +2397,12 @@ int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int
     for (k = 0; k < NGPWDistWeights; k++) {
       fscanf(fp, "%d ", &i);
       fscanf(fp, "%d\n", &(optDistWeights[2 * i]));
+      if(iComplxFlag>0){
+        optDistWeights[2 * i + 1] = optDistWeights[2 * i]; //  TBC imaginary
+      }
+      else {
+        optDistWeights[2 * i + 1] = 0;
+      }
       (*iOptCount)++;
     }
 

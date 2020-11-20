@@ -40,30 +40,30 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 #include "projection.h"
 
 double complex calculateHK(const double complex h1, const double complex ip, int *eleIdx, int *eleCfg,
-                   int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                   double *eleGPWInSum);
+                   int *eleNum, int *eleProjCnt, double complex *eleGPWKern,
+                   double complex *eleGPWInSum);
 double complex calculateHW(const double complex h1, const double complex ip, int *eleIdx, int *eleCfg,
-                   int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                   double *eleGPWInSum);
+                   int *eleNum, int *eleProjCnt, double complex *eleGPWKern,
+                   double complex *eleGPWInSum);
 
 double complex calHCA(const int ri, const int rj, const int s,
               const double complex h1, const double complex ip, int *eleIdx, int *eleCfg,
-              int *eleNum, int *eleProjCnt, double *eleGPWKern,
-              double *eleGPWInSum);
+              int *eleNum, int *eleProjCnt, double complex *eleGPWKern,
+              double complex *eleGPWInSum);
 double complex calHCACA(const int ri, const int rj, const int rk, const int rl,
                 const int si,const int sk,
                 const double complex h1, const double complex ip, int *eleIdx, int *eleCfg,
-                int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                double *eleGPWInSum);
+                int *eleNum, int *eleProjCnt, double complex *eleGPWKern,
+                double complex *eleGPWInSum);
 
 double complex checkGF1(const int ri, const int rj, const int s, const double complex ip,
                 int *eleIdx, const int *eleCfg, int *eleNum);
 double complex calHCA1(const int ri, const int rj, const int s,
                const double complex ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
-               double *eleGPWKern, double *eleGPWInSum);
+               double complex *eleGPWKern, double complex *eleGPWInSum);
 double complex calHCA2(const int ri, const int rj, const int s,
                const double complex ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
-               double *eleGPWKern, double *eleGPWInSum);
+               double complex *eleGPWKern, double complex *eleGPWInSum);
 
 
 double complex checkGF2(const int ri, const int rj, const int rk, const int rl,
@@ -72,18 +72,18 @@ double complex checkGF2(const int ri, const int rj, const int rk, const int rl,
 double complex calHCACA1(const int ri, const int rj, const int rk, const int rl,
                  const int si,const int sk,
                  const double complex ip, int *eleIdx, int *eleCfg,
-                 int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                 double *eleGPWInSum);
+                 int *eleNum, int *eleProjCnt, double complex *eleGPWKern,
+                 double complex *eleGPWInSum);
 double complex calHCACA2(const int ri, const int rj, const int rk, const int rl,
                  const int si,const int sk,
                  const double complex ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
-                 double *eleGPWKern, double *eleGPWInSum);
+                 double complex *eleGPWKern, double complex *eleGPWInSum);
 
 void copyMAll(double complex *invM_from, double complex *pfM_from, double complex *invM_to, double complex *pfM_to);
 
 /* Calculate <psi|QQ|x>/<psi|x> */
 void LSLocalQ(const double complex h1, const double complex ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
-              double *eleGPWKern, double *eleGPWInSum, double complex *_LSLQ)
+              double complex *eleGPWKern, double complex *eleGPWInSum, double complex *_LSLQ)
 {
   double complex e0,h2;
 
@@ -108,7 +108,7 @@ void LSLocalQ(const double complex h1, const double complex ip, int *eleIdx, int
 
 /* Calculate <psi|QCisAjs|x>/<psi|x> */
 void LSLocalCisAjs(const double complex h1, const double complex ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
-                   double *eleGPWKern, double *eleGPWInSum) {
+                   double complex *eleGPWKern, double complex *eleGPWInSum) {
   const int nCisAjs=NCisAjs;
   double complex*lsLCisAjs = LSLCisAjs;
   double complex*localCisAjs = LocalCisAjs;
@@ -134,8 +134,8 @@ void LSLocalCisAjs(const double complex h1, const double complex ip, int *eleIdx
 }
 
 double complex calculateHK(const double complex h1, const double complex ip, int *eleIdx, int *eleCfg,
-                   int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                   double *eleGPWInSum) {
+                   int *eleNum, int *eleProjCnt, double complex *eleGPWKern,
+                   double complex *eleGPWInSum) {
   int idx,ri,rj,s;
   double complex val=0.0;
 
@@ -153,8 +153,8 @@ double complex calculateHK(const double complex h1, const double complex ip, int
 }
 
 double complex calculateHW(const double complex h1, const double complex ip, int *eleIdx, int *eleCfg,
-                   int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                   double *eleGPWInSum) {
+                   int *eleNum, int *eleProjCnt, double complex *eleGPWKern,
+                   double complex *eleGPWInSum) {
   int idx,ri,rj,s,rk,rl,t;
   double complex val=0.0,tmp;
 
@@ -200,8 +200,8 @@ double complex calculateHW(const double complex h1, const double complex ip, int
 /* calculate <psi| H C_is A_js |x>/<psi|x> */
 double complex calHCA(const int ri, const int rj, const int s,
               const double complex h1, const double complex ip, int *eleIdx, int *eleCfg,
-              int *eleNum, int *eleProjCnt, double *eleGPWKern,
-              double *eleGPWInSum) {
+              int *eleNum, int *eleProjCnt, double complex *eleGPWKern,
+              double complex *eleGPWInSum) {
   int rsi=ri+s*Nsite;
   int rsj=rj+s*Nsite;
   double complex val;
@@ -268,12 +268,13 @@ double complex checkGF1(const int ri, const int rj, const int s, const double co
 /* calculate <psi| H C_is A_js |x>/<psi|x> = <psi|x'>/<psi|x> * <psi|H|x'>/<psi|x'> */
 double complex calHCA1(const int ri, const int rj, const int s,
                const double complex ip, int *eleIdx, int *eleCfg,
-               int *eleNum, int *eleProjCnt, double *eleGPWKern,
-               double *eleGPWInSum) {
+               int *eleNum, int *eleProjCnt, double complex *eleGPWKern,
+               double complex *eleGPWInSum) {
   complex double *oldInvM; /* [NQPFull*Nsize*Nsize;] */
   complex double *oldPfM;  /* [NQPFull] */
   int *projCntNew;
-  double *eleGPWKernNew, *eleGPWInSumNew;
+  double complex *eleGPWKernNew;
+  double complex *eleGPWInSumNew;
 
   int rsi=ri+s*Nsite;
   int rsj=rj+s*Nsite;
@@ -284,12 +285,11 @@ double complex calHCA1(const int ri, const int rj, const int s,
   int prevConfigReduced[4];
 
   RequestWorkSpaceInt(NProj);
-  RequestWorkSpaceDouble(NGPWIdx+GPWInSumSize);
-  RequestWorkSpaceComplex(NQPFull*(Nsize*Nsize+1));
+  RequestWorkSpaceComplex(NQPFull*(Nsize*Nsize+1)+NGPWIdx+GPWInSumSize);
 
   projCntNew = GetWorkSpaceInt(NProj);
-  eleGPWKernNew = GetWorkSpaceDouble(NGPWIdx);
-  eleGPWInSumNew = GetWorkSpaceDouble(GPWInSumSize);
+  eleGPWKernNew = GetWorkSpaceComplex(NGPWIdx);
+  eleGPWInSumNew = GetWorkSpaceComplex(GPWInSumSize);
   oldInvM = GetWorkSpaceComplex(NQPFull*Nsize*Nsize);
   oldPfM  = GetWorkSpaceComplex(NQPFull);
 
@@ -350,8 +350,8 @@ double complex calHCA1(const int ri, const int rj, const int s,
 /* Assuming ri!=rj, eleNum[rsi]=1, eleNum[rsj]=0 */
 double complex calHCA2(const int ri, const int rj, const int s,
                const double complex ip, int *eleIdx, int *eleCfg,
-               int *eleNum, int *eleProjCnt, double *eleGPWKern,
-               double *eleGPWInSum) {
+               int *eleNum, int *eleProjCnt, double complex *eleGPWKern,
+               double complex *eleGPWInSum) {
   const int nsize=Nsize;
   const int nsite2=Nsite2;
 
@@ -364,25 +364,25 @@ double complex calHCA2(const int ri, const int rj, const int s,
   double complex g;
 
   double complex *buffer;
-  double *eleGPWKernNew, *eleGPWInSumNew;
+  double complex *eleGPWKernNew;
+  double complex *eleGPWInSumNew;
   int *bufferInt;
 
   int *myEleIdx, *myEleNum, *myBufferInt, *myRsi, *myRsj;
-  double *myGPWKernNew, *myGPWInSumNew;
+  double complex *myGPWKernNew;
+  double complex *myGPWInSumNew;
   double complex *myBuffer;
   double complex myValue=0;
   double complex v=0.0;
 
   RequestWorkSpaceInt(NProj);      /* for GreenFunc1 */
-  RequestWorkSpaceDouble(NGPWIdx+GPWInSumSize);      /* for GreenFunc1 */
-  RequestWorkSpaceComplex(NQPFull); /* for GreenFunc1 */
+  RequestWorkSpaceComplex(NQPFull+NGPWIdx+GPWInSumSize); /* for GreenFunc1 */
   RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj+6);
-  RequestWorkSpaceThreadDouble(NGPWIdx+GPWInSumSize);
-  RequestWorkSpaceThreadComplex(NQPFull+3*Nsize);
+  RequestWorkSpaceThreadComplex(NQPFull+3*Nsize+NGPWIdx+GPWInSumSize);
 
   bufferInt = GetWorkSpaceInt(NProj);
-  eleGPWKernNew = GetWorkSpaceDouble(NGPWIdx);
-  eleGPWInSumNew = GetWorkSpaceDouble(GPWInSumSize);
+  eleGPWKernNew = GetWorkSpaceComplex(NGPWIdx);
+  eleGPWInSumNew = GetWorkSpaceComplex(GPWInSumSize);
   buffer = GetWorkSpaceComplex(NQPFull);
 
   /* H0 term */
@@ -410,8 +410,8 @@ double complex calHCA2(const int ri, const int rj, const int s,
     myEleIdx = GetWorkSpaceThreadInt(Nsize);
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myBufferInt = GetWorkSpaceThreadInt(NProj);
-    myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
-    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWInSumSize);
+    myGPWKernNew = GetWorkSpaceThreadComplex(NGPWIdx);
+    myGPWInSumNew = GetWorkSpaceThreadComplex(GPWInSumSize);
     myRsi = GetWorkSpaceThreadInt(3);
     myRsj = GetWorkSpaceThreadInt(3);
     myBuffer = GetWorkSpaceThreadComplex(NQPFull+3*Nsize);
@@ -520,8 +520,8 @@ double complex calHCA2(const int ri, const int rj, const int s,
 double complex calHCACA(const int ri, const int rj, const int rk, const int rl,
                 const int si,const int sk,
                 const double complex h1, const double complex ip, int *eleIdx, int *eleCfg,
-                int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                double *eleGPWInSum) {
+                int *eleNum, int *eleProjCnt, double complex *eleGPWKern,
+                double complex *eleGPWInSum) {
   int rsi=ri+si*Nsite;
   int rsj=rj+si*Nsite;
   int rsk=rk+sk*Nsite;
@@ -635,12 +635,14 @@ double complex checkGF2(const int ri, const int rj, const int rk, const int rl,
 double complex calHCACA1(const int ri, const int rj, const int rk, const int rl,
                  const int si,const int sk,
                  const double complex ip, int *eleIdx, int *eleCfg,
-                 int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                 double *eleGPWInSum) {
+                 int *eleNum, int *eleProjCnt, double complex *eleGPWKern,
+                 double complex *eleGPWInSum) {
   double complex *oldInvM; /* [NQPFull*Nsize*Nsize;] */
   double complex *oldPfM;  /* [NQPFull] */
   int *projCntNew;
-  double *eleGPWKernNew, *eleGPWInSumNew, *eleGPWInSumTmp;
+  double complex *eleGPWKernNew;
+  double complex *eleGPWInSumNew;
+  double complex *eleGPWInSumTmp;
 
   int rsi=ri+si*Nsite;
   int rsj=rj+si*Nsite;
@@ -653,13 +655,12 @@ double complex calHCACA1(const int ri, const int rj, const int rk, const int rl,
   int prevConfigReduced[4];
 
   RequestWorkSpaceInt(NProj);
-  RequestWorkSpaceDouble(NGPWIdx+2*GPWInSumSize);
-  RequestWorkSpaceComplex(NQPFull*(Nsize*Nsize+1));
+  RequestWorkSpaceComplex(NQPFull*(Nsize*Nsize+1)+NGPWIdx+GPWInSumSize);
 
   projCntNew = GetWorkSpaceInt(NProj);
-  eleGPWKernNew = GetWorkSpaceDouble(NGPWIdx);
-  eleGPWInSumNew = GetWorkSpaceDouble(GPWInSumSize);
-  eleGPWInSumTmp = GetWorkSpaceDouble(GPWInSumSize);
+  eleGPWKernNew = GetWorkSpaceComplex(NGPWIdx);
+  eleGPWInSumNew = GetWorkSpaceComplex(GPWInSumSize);
+  eleGPWInSumTmp = GetWorkSpaceComplex(GPWInSumSize);
   oldInvM = GetWorkSpaceComplex(NQPFull*Nsize*Nsize);
   oldPfM  = GetWorkSpaceComplex(NQPFull);
 
@@ -743,7 +744,7 @@ double complex calHCACA1(const int ri, const int rj, const int rk, const int rl,
 double complex calHCACA2(const int ri, const int rj, const int rk, const int rl,
                  const int si,const int sk,
                  const double complex ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
-                 double *eleGPWKern, double *eleGPWInSum) {
+                 double complex *eleGPWKern, double complex *eleGPWInSum) {
   const int nsize=Nsize;
   const int nsite2=Nsite2;
 
@@ -759,24 +760,24 @@ double complex calHCACA2(const int ri, const int rj, const int rk, const int rl,
 
   double complex *buffer;
   int *bufferInt;
-  double *eleGPWKernNew, *eleGPWInSumNew;
+  double complex *eleGPWKernNew;
+  double complex *eleGPWInSumNew;
 
   int *myEleIdx, *myEleNum, *myBufferInt, *myRsi, *myRsj;
-  double *myGPWKernNew, *myGPWInSumNew;
+  double complex *myGPWKernNew;
+  double complex *myGPWInSumNew;
   double complex *myBuffer;
   double complex myValue=0.0;
   double complex v=0.0;
 
   RequestWorkSpaceInt(NProj);      /* for GreenFunc2 */
-  RequestWorkSpaceDouble(NGPWIdx+GPWInSumSize);      /* for GreenFunc2 */
-  RequestWorkSpaceComplex(NQPFull+2*Nsize); /* for GreenFunc2 */
+  RequestWorkSpaceComplex(NQPFull+2*Nsize+NGPWIdx+GPWInSumSize); /* for GreenFunc2 */
   RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj+8);
-  RequestWorkSpaceThreadDouble(NGPWIdx+GPWInSumSize);
-  RequestWorkSpaceThreadComplex(NQPFull+3*Nsize);
+  RequestWorkSpaceThreadComplex(NQPFull+3*Nsize+NGPWIdx+GPWInSumSize);
 
   bufferInt = GetWorkSpaceInt(NProj);
-  eleGPWKernNew = GetWorkSpaceDouble(NGPWIdx);
-  eleGPWInSumNew = GetWorkSpaceDouble(GPWInSumSize);
+  eleGPWKernNew = GetWorkSpaceComplex(NGPWIdx);
+  eleGPWInSumNew = GetWorkSpaceComplex(GPWInSumSize);
   buffer = GetWorkSpaceComplex(NQPFull+2*Nsize);
 
   /* H0 term */
@@ -809,8 +810,8 @@ double complex calHCACA2(const int ri, const int rj, const int rk, const int rl,
     myEleIdx = GetWorkSpaceThreadInt(Nsize);
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myBufferInt = GetWorkSpaceThreadInt(NProj);
-    myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
-    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWInSumSize);
+    myGPWKernNew = GetWorkSpaceThreadComplex(NGPWIdx);
+    myGPWInSumNew = GetWorkSpaceThreadComplex(GPWInSumSize);
     myRsi = GetWorkSpaceThreadInt(4);
     myRsj = GetWorkSpaceThreadInt(4);
     myBuffer = GetWorkSpaceThreadComplex(NQPFull+4*Nsize);

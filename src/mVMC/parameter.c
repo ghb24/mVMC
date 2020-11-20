@@ -39,8 +39,8 @@ void InitParameter() {
   for(i=0;i<NProj;i++) Proj[i] = 0.0+0.0*I;
   for(i=0;i<NGPWIdx;i++) GPWVar[i] = 0.0+0.0*I;
   for(i=0;i<NGPWTrnLat;i++) GPWThetaVar[i] = GPWTheta[i];
-  for(i=0;i<NGPWDistWeights;i++) GPWDistWeights[i] = genrand_real1();
   if(AllComplexFlag==0){
+    for(i=0;i<NGPWDistWeights;i++) GPWDistWeights[i] = genrand_real1();
     for(i=0;i<NRBMTotal;i++) RBMVar[i] = 0.01*genrand_real1()-0.005+0.0*I;
     for(i=0;i<NSlater;i++){
       if(OptFlag[2*i+2*NProj+2*NGPWIdx+2*NRBMTotal] > 0){ //TBC
@@ -53,6 +53,8 @@ void InitParameter() {
     }
   }
   else{
+    for(i=0;i<NGPWDistWeights;i++) GPWDistWeights[i] = genrand_real1();
+    for(i=0;i<NGPWDistWeights;i++) GPWDistWeights[i] += genrand_real1()*I;
     for(i=0;i<NRBMTotal;i++) {
       RBMVar[i] = 0.01*genrand_real1()-0.005;
       RBMVar[i] += (0.01*genrand_real1()-0.005)*I;

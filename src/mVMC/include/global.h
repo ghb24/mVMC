@@ -256,8 +256,8 @@ int *EleProjCnt; /* EleProjCnt[sample][proj] */
 int *EleSpn;     /* EleIdx[sample][mi+si*Ne] */ //fsz
 int *EleProjBFCnt; /* EleProjCnt[sample][proj] */
 //[e] MERGE BY TM
-double *EleGPWKern; /* EleGPWKernel[sample][NGPWIdx], stores the kernel for the electron configuration */
-double **EleGPWInSum; /* EleGPWInSum[sample][Trncfgs*Nsite*Nsite+trncfg*Nsite*Nsite + nsite*Nsite + nsite2], stores the calculated inner sum for the kernel evaluation */
+double complex *EleGPWKern; /* EleGPWKernel[sample][NGPWIdx], stores the kernel for the electron configuration */
+double complex **EleGPWInSum; /* EleGPWInSum[sample][Trncfgs*Nsite*Nsite+trncfg*Nsite*Nsite + nsite*Nsite + nsite2], stores the calculated inner sum for the kernel evaluation */
 double *logSqPfFullSlater; /* logSqPfFullSlater[sample] */
 //double complex *SmpSltElmBF; /* logSqPfFullSlater[sample] */
 double *SmpSltElmBF_real; /* logSqPfFullSlater[sample] */
@@ -273,8 +273,8 @@ int *TmpEleProjCnt;
 int *TmpEleSpn;
 int *TmpEleProjBFCnt;
 //[e] MERGE BY TM
-double *TmpEleGPWKern;
-double *TmpEleGPWInSum;
+double complex *TmpEleGPWKern;
+double complex *TmpEleGPWInSum;
 
 int *BurnEleIdx;
 int *BurnEleCfg;

@@ -27,22 +27,22 @@ along with this program. If not, see http://www.gnu.org/licenses/.
  *-------------------------------------------------------------*/
 
 double CalculateSz_fsz(const double complex ip, int *eleIdx, const int *eleCfg,
-                             int *eleNum,const int *eleProjCnt, const double *eleGPWKern,
-                             double *eleGPWInSum, int *eleSpn);
+                             int *eleNum,const int *eleProjCnt, const double complex *eleGPWKern,
+                             double complex *eleGPWInSum, int *eleSpn);
 double complex CalculateHamiltonian_fsz(const double complex ip, int *eleIdx, const int *eleCfg,
-                             int *eleNum,const int *eleProjCnt, const double *eleGPWKern,
-                             double *eleGPWInSum, int *eleSpn);
+                             int *eleNum,const int *eleProjCnt, const double complex *eleGPWKern,
+                             double complex *eleGPWInSum, int *eleSpn);
 double complex CalculateHamiltonian0_fsz(const int *eleNum);
 double complex CalculateHamiltonian1_fsz(const double complex ip, int *eleIdx, const int *eleCfg,
-                             int *eleNum,const int *eleProjCnt, const double *eleGPWKern,
-                             double *eleGPWInSum, int *eleSpn);
+                             int *eleNum,const int *eleProjCnt, const double complex *eleGPWKern,
+                             double complex *eleGPWInSum, int *eleSpn);
 double complex CalculateHamiltonian2_fsz(const double complex ip, int *eleIdx, const int *eleCfg,
-                             int *eleNum, const int *eleProjCnt, const double *eleGPWKern,
-                             double *eleGPWInSum, int *eleSpn);
+                             int *eleNum, const int *eleProjCnt, const double complex *eleGPWKern,
+                             double complex *eleGPWInSum, int *eleSpn);
 
 double CalculateSz_fsz(const double complex ip, int *eleIdx, const int *eleCfg,
-                             int *eleNum, const int *eleProjCnt, const double *eleGPWKern,
-                             double *eleGPWInSum, int *eleSpn) {
+                             int *eleNum, const int *eleProjCnt, const double complex *eleGPWKern,
+                             double complex *eleGPWInSum, int *eleSpn) {
   const int *n0 = eleNum;
   const int *n1 = eleNum + Nsite;
   double  Sz=0.0;
@@ -59,21 +59,21 @@ double CalculateSz_fsz(const double complex ip, int *eleIdx, const int *eleCfg,
 
 
 double complex CalculateHamiltonian_fsz(const double complex ip, int *eleIdx, const int *eleCfg,
-                             int *eleNum, const int *eleProjCnt, const double *eleGPWKern,
-                             double *eleGPWInSum, int *eleSpn) {
+                             int *eleNum, const int *eleProjCnt, const double complex *eleGPWKern,
+                             double complex *eleGPWInSum, int *eleSpn) {
   const int *n0 = eleNum;
   const int *n1 = eleNum + Nsite;
   double complex e=0.0, tmp;
   int idx;
   int ri,rj,s,rk,rl,t,u,v;
   int *myEleIdx, *myEleNum, *myProjCntNew,*myEleSpn;
-  double *myGPWKernNew, *myGPWInSumNew;
+  double complex *myGPWKernNew;
+  double complex *myGPWInSumNew;
   double complex *myBuffer;
   double complex myEnergy;
 
   RequestWorkSpaceThreadInt(Nsize+Nsize+Nsite2+NProj);
-  RequestWorkSpaceThreadDouble(NGPWIdx+GPWInSumSize);
-  RequestWorkSpaceThreadComplex(NQPFull+2*Nsize);
+  RequestWorkSpaceThreadComplex(NQPFull+2*Nsize+NGPWIdx+GPWInSumSize);
   /* GreenFunc1: NQPFull, GreenFunc2: NQPFull+2*Nsize */
 
   /*
@@ -94,8 +94,8 @@ double complex CalculateHamiltonian_fsz(const double complex ip, int *eleIdx, co
     myEleSpn = GetWorkSpaceThreadInt(Nsize);
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myProjCntNew = GetWorkSpaceThreadInt(NProj);
-    myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
-    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWInSumSize);
+    myGPWKernNew = GetWorkSpaceThreadComplex(NGPWIdx);
+    myGPWInSumNew = GetWorkSpaceThreadComplex(GPWInSumSize);
     myBuffer = GetWorkSpaceThreadComplex(NQPFull+2*Nsize);
 
     #pragma loop noalias
@@ -282,19 +282,19 @@ double complex CalculateHamiltonian0_fsz(const int *eleNum) {
 /* which can be calculated by 1-body Green function. */
 /* This function will be used in the Lanczos mode */
 double complex CalculateHamiltonian1_fsz(const double complex ip, int *eleIdx, const int *eleCfg,
-                             int *eleNum, const int *eleProjCnt, const double *eleGPWKern,
-                             double *eleGPWInSum, int *eleSpn) {
+                             int *eleNum, const int *eleProjCnt, const double complex *eleGPWKern,
+                             double complex *eleGPWInSum, int *eleSpn) {
   double complex e=0.0;
   int idx;
   int ri,rj,s;
   int *myEleIdx, *myEleNum, *myProjCntNew,*myEleSpn;
-  double *myGPWKernNew, *myGPWInSumNew;
+  double complex *myGPWKernNew;
+  double complex *myGPWInSumNew;
   double complex *myBuffer;
   double complex myEnergy;
 
   RequestWorkSpaceThreadInt(Nsize+Nsize+Nsite2+NProj);
-  RequestWorkSpaceThreadDouble(NGPWIdx+GPWInSumSize);
-  RequestWorkSpaceThreadComplex(NQPFull);
+  RequestWorkSpaceThreadComplex(NQPFull+NGPWIdx+GPWInSumSize);
   /* GreenFunc1: NQPFull */
 
 #pragma omp parallel default(shared)\
@@ -305,8 +305,8 @@ double complex CalculateHamiltonian1_fsz(const double complex ip, int *eleIdx, c
     myEleSpn = GetWorkSpaceThreadInt(Nsize);
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myProjCntNew = GetWorkSpaceThreadInt(NProj);
-    myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
-    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWInSumSize);
+    myGPWKernNew = GetWorkSpaceThreadComplex(NGPWIdx);
+    myGPWInSumNew = GetWorkSpaceThreadComplex(GPWInSumSize);
     myBuffer = GetWorkSpaceThreadComplex(NQPFull);
 
     #pragma loop noalias
@@ -344,19 +344,19 @@ double complex CalculateHamiltonian1_fsz(const double complex ip, int *eleIdx, c
 /* which can be calculated by 2-body Green function. */
 /* This function will be used in the Lanczos mode */
 double complex CalculateHamiltonian2_fsz(const double complex ip, int *eleIdx, const int *eleCfg,
-                             int *eleNum, const int *eleProjCnt, const double *eleGPWKern,
-                             double *eleGPWInSum, int *eleSpn) {
+                             int *eleNum, const int *eleProjCnt, const double complex *eleGPWKern,
+                             double complex *eleGPWInSum, int *eleSpn) {
   double e=0.0, tmp;
   int idx;
   int ri,rj,s,rk,rl,t;
   int *myEleIdx, *myEleNum, *myProjCntNew,*myEleSpn;
-  double *myGPWKernNew, *myGPWInSumNew;
+  double complex *myGPWKernNew;
+  double complex *myGPWInSumNew;
   double complex *myBuffer;
   double complex myEnergy;
 
   RequestWorkSpaceThreadInt(Nsize+Nsize+Nsite2+NProj);
-  RequestWorkSpaceThreadDouble(NGPWIdx+GPWInSumSize);
-  RequestWorkSpaceThreadComplex(NQPFull+2*Nsize);
+  RequestWorkSpaceThreadComplex(NQPFull+2*Nsize+NGPWIdx+GPWInSumSize);
   /* GreenFunc2: NQPFull+2*Nsize */
 
 #pragma omp parallel default(shared)\
@@ -367,8 +367,8 @@ double complex CalculateHamiltonian2_fsz(const double complex ip, int *eleIdx, c
     myEleSpn = GetWorkSpaceThreadInt(Nsize);
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myProjCntNew = GetWorkSpaceThreadInt(NProj);
-    myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
-    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWInSumSize);
+    myGPWKernNew = GetWorkSpaceThreadComplex(NGPWIdx);
+    myGPWInSumNew = GetWorkSpaceThreadComplex(GPWInSumSize);
     myBuffer = GetWorkSpaceThreadComplex(NQPFull+2*Nsize);
 
     #pragma loop noalias

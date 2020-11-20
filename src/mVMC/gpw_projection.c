@@ -7,7 +7,7 @@ TODO: Add License + Description*/
 #include <omp.h>
 
 
-inline double complex LogGPWVal(const double *eleGPWKern) {
+inline double complex LogGPWVal(const double complex *eleGPWKern) {
   int idx;
   double complex z=0.0+0.0*I;
 
@@ -24,7 +24,7 @@ inline double complex LogGPWVal(const double *eleGPWKern) {
   }
 }
 
-inline double complex GPWExpansionargument(const double *eleGPWKern) {
+inline double complex GPWExpansionargument(const double complex *eleGPWKern) {
   int idx;
   double complex expansionargument=0.0+0.0*I;
 
@@ -36,7 +36,7 @@ inline double complex GPWExpansionargument(const double *eleGPWKern) {
   return expansionargument;
 }
 
-inline double complex GPWVal(const double *eleGPWKern) {
+inline double complex GPWVal(const double complex *eleGPWKern) {
   int i;
   double complex expansionargument;
   double complex z=0.0+0.0*I;
@@ -57,7 +57,7 @@ inline double complex GPWVal(const double *eleGPWKern) {
   }
 }
 
-inline double complex LogGPWRatio(const double *eleGPWKernNew, const double *eleGPWKernOld) {
+inline double complex LogGPWRatio(const double complex *eleGPWKernNew, const double complex *eleGPWKernOld) {
   int idx;
   double complex z=0.0+0.0*I;
 
@@ -75,7 +75,7 @@ inline double complex LogGPWRatio(const double *eleGPWKernNew, const double *ele
 
 }
 
-inline double complex GPWRatio(const double *eleGPWKernNew, const double *eleGPWKernOld) {
+inline double complex GPWRatio(const double complex *eleGPWKernNew, const double complex *eleGPWKernOld) {
   if (GPWExpansionOrder == -1) {
     return cexp(LogGPWRatio(eleGPWKernNew, eleGPWKernOld));
   }
@@ -85,7 +85,7 @@ inline double complex GPWRatio(const double *eleGPWKernNew, const double *eleGPW
   }
 }
 
-void CalculateGPWKern(double *eleGPWKern, double *eleGPWInSum, const int *eleNum) {
+void CalculateGPWKern(double complex *eleGPWKern, double complex *eleGPWInSum, const int *eleNum) {
   const int nGPWIdx=NGPWIdx;
   int i;
 
@@ -166,16 +166,17 @@ void CalculateGPWKern(double *eleGPWKern, double *eleGPWInSum, const int *eleNum
 }
 
 void UpdateGPWKern(const int ri, const int rj, const int *cfgOldReduced,
-                   double *eleGPWKernNew, double *eleGPWInSumNew,
-                   const double *eleGPWKernOld, const double *eleGPWInSumOld,
+                   double complex *eleGPWKernNew, double complex *eleGPWInSumNew,
+                   const double complex *eleGPWKernOld, const double complex *eleGPWInSumOld,
                    const int *eleNum) {
   const int nGPWIdx=NGPWIdx;
   int i;
-  memcpy(eleGPWInSumNew, eleGPWInSumOld, sizeof(double)*GPWInSumSize);
 
-  #pragma omp parallel for default(shared) private(i)
+  memcpy(eleGPWInSumNew, eleGPWInSumOld, sizeof(double complex)*GPWInSumSize);
+
+ // #pragma omp parallel for default(shared) private(i)
   for(i=0;i<nGPWIdx;i++) {
-    int j, distWeightFlag, inSumSize;
+    int j, inSumSize;
     int latId = GPWTrnLat[i];
     int offset = 0;
     int offsetDistWeights = 0;

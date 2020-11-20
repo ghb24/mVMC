@@ -47,8 +47,8 @@ void VMCMakeSample_real(MPI_Comm comm) {
 
   double logIpOld, logIpNew; /* logarithm of inner product <phi|L|x> */ // is this ok ? TBC
   int projCntNew[NProj];
-  double eleGPWKernNew[NGPWIdx];
-  double *eleGPWInSumNew;
+  double complex eleGPWKernNew[NGPWIdx];
+  double complex *eleGPWInSumNew;
   double complex rbmValOld, rbmValNew; /* value of the RBM projector */
   double pfMNew_real[NQPFull];
   double x, w; // TBC x will be complex number
@@ -61,7 +61,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
   MPI_Comm_size(comm, &size);
   MPI_Comm_rank(comm, &rank);
 
-  eleGPWInSumNew = (double*)malloc(GPWInSumSize*sizeof(double));
+  eleGPWInSumNew = (double complex*)malloc(GPWInSumSize*sizeof(double complex));
 
   SplitLoop(&qpStart, &qpEnd, NQPFull, rank, size);
 
@@ -165,7 +165,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
 
           for (i = 0; i < NProj; i++) TmpEleProjCnt[i] = projCntNew[i];
           for (i = 0; i < NGPWIdx; i++) TmpEleGPWKern[i] = eleGPWKernNew[i];
-          memcpy(TmpEleGPWInSum, eleGPWInSumNew, sizeof(double)*GPWInSumSize);
+          memcpy(TmpEleGPWInSum, eleGPWInSumNew, sizeof(double complex)*GPWInSumSize);
           logIpOld = logIpNew;
           rbmValOld = rbmValNew;
           nAccept++;
@@ -242,7 +242,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
 
           for (i = 0; i < NProj; i++) TmpEleProjCnt[i] = projCntNew[i];
           for (i = 0; i < NGPWIdx; i++) TmpEleGPWKern[i] = eleGPWKernNew[i];
-          memcpy(TmpEleGPWInSum, eleGPWInSumNew, sizeof(double)*GPWInSumSize);
+          memcpy(TmpEleGPWInSum, eleGPWInSumNew, sizeof(double complex)*GPWInSumSize);
           logIpOld = logIpNew;
           rbmValOld = rbmValNew;
           nAccept++;
@@ -286,8 +286,8 @@ void VMCMakeSample_real(MPI_Comm comm) {
   return;
 }
 
-int makeInitialSample_real(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                           double *eleGPWInSum, const int qpStart, const int qpEnd,
+int makeInitialSample_real(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double complex *eleGPWKern,
+                           double complex *eleGPWInSum, const int qpStart, const int qpEnd,
                            MPI_Comm comm) {
   const int nsize = Nsize;
   const int nsite2 = Nsite2;

@@ -48,8 +48,8 @@ void VMCMakeSample(MPI_Comm comm) {
 
   double complex logIpOld,logIpNew; /* logarithm of inner product <phi|L|x> */ // is this ok ? TBC
   int projCntNew[NProj];
-  double eleGPWKernNew[NGPWIdx];
-  double *eleGPWInSumNew;
+  double complex eleGPWKernNew[NGPWIdx];
+  double complex *eleGPWInSumNew;
   double complex rbmValOld, rbmValNew; /* value of the RBM projector */
   double complex pfMNew[NQPFull];
   double complex  x;
@@ -64,7 +64,7 @@ void VMCMakeSample(MPI_Comm comm) {
   MPI_Comm_size(comm,&size);
   MPI_Comm_rank(comm,&rank);
 
-  eleGPWInSumNew = (double*)malloc(GPWInSumSize*sizeof(double));
+  eleGPWInSumNew = (double complex*)malloc(GPWInSumSize*sizeof(double complex));
 
   SplitLoop(&qpStart,&qpEnd,NQPFull,rank,size);
 
@@ -167,7 +167,7 @@ void VMCMakeSample(MPI_Comm comm) {
 
           for(i=0;i<NProj;i++) TmpEleProjCnt[i] = projCntNew[i];
           for(i=0;i<NGPWIdx;i++) TmpEleGPWKern[i] = eleGPWKernNew[i];
-          memcpy(TmpEleGPWInSum, eleGPWInSumNew, sizeof(double)*GPWInSumSize);
+          memcpy(TmpEleGPWInSum, eleGPWInSumNew, sizeof(double complex)*GPWInSumSize);
           logIpOld = logIpNew;
           rbmValOld = rbmValNew;
           nAccept++;
@@ -245,7 +245,7 @@ void VMCMakeSample(MPI_Comm comm) {
 
           for(i=0;i<NProj;i++) TmpEleProjCnt[i] = projCntNew[i];
           for(i=0;i<NGPWIdx;i++) TmpEleGPWKern[i] = eleGPWKernNew[i];
-          memcpy(TmpEleGPWInSum, eleGPWInSumNew, sizeof(double)*GPWInSumSize);
+          memcpy(TmpEleGPWInSum, eleGPWInSumNew, sizeof(double complex)*GPWInSumSize);
           logIpOld = logIpNew;
           rbmValOld = rbmValNew;
           nAccept++;
@@ -289,8 +289,8 @@ void VMCMakeSample(MPI_Comm comm) {
   return;
 }
 
-int makeInitialSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                      double *eleGPWInSum, const int qpStart, const int qpEnd, MPI_Comm comm) {
+int makeInitialSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, double complex *eleGPWKern,
+                      double complex *eleGPWInSum, const int qpStart, const int qpEnd, MPI_Comm comm) {
   const int nsize = Nsize;
   const int nsite2 = Nsite2;
   int flag=1,flagRdc,loop=0;
@@ -365,7 +365,7 @@ int makeInitialSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt, do
 }
 
 void copyFromBurnSample(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
-                        double *eleGPWKern, double *eleGPWInSum) {
+                        double complex *eleGPWKern, double complex *eleGPWInSum) {
   int i,n;
   const int *burnEleIdx = BurnEleIdx;
 
@@ -390,7 +390,7 @@ void copyToBurnSample(const int *eleIdx, const int *eleCfg, const int *eleNum,
 
 void saveEleConfig(const int sample, const double complex logIp, const double complex rbmVal, const int *eleIdx,
                    const int *eleCfg, const int *eleNum, const int *eleProjCnt,
-                   const double *eleGPWKern, const double *eleGPWInSum) {
+                   const double complex *eleGPWKern, const double complex *eleGPWInSum) {
   int i,offset;
   double complex x;
   const int nsize=Nsize;
@@ -412,7 +412,7 @@ void saveEleConfig(const int sample, const double complex logIp, const double co
   offset = sample*nGPWIdx;
   #pragma loop noalias
   for(i=0;i<nGPWIdx;i++) EleGPWKern[offset+i] = eleGPWKern[i];
-  memcpy(EleGPWInSum[sample], eleGPWInSum, sizeof(double)*GPWInSumSize);
+  memcpy(EleGPWInSum[sample], eleGPWInSum, sizeof(double complex)*GPWInSumSize);
 
   x = LogProjVal(eleProjCnt);
   x += LogGPWVal(eleGPWKern);

@@ -1,15 +1,15 @@
 #ifndef _GPW_PROJECTION_
 #define _GPW_PROJECTION_
 
-extern inline double complex LogGPWVal(const double *eleGPWKern);
-extern inline double complex GPWExpansionargument(const double *eleGPWKern);
-extern inline double complex GPWVal(const double *eleGPWKern);
-extern inline double complex LogGPWRatio(const double *eleGPWKernNew, const double *eleGPWKernOld);
-extern inline double complex GPWRatio(const double *eleGPWKernNew, const double *eleGPWKernOld);
-void CalculateGPWKern(double *eleGPWKern, double *eleGPWInSum, const int *eleNum);
+extern inline double complex LogGPWVal(const double complex *eleGPWKern);
+extern inline double complex GPWExpansionargument(const double complex *eleGPWKern);
+extern inline double complex GPWVal(const double complex *eleGPWKern);
+extern inline double complex LogGPWRatio(const double complex *eleGPWKernNew, const double complex *eleGPWKernOld);
+extern inline double complex GPWRatio(const double complex *eleGPWKernNew, const double complex *eleGPWKernOld);
+void CalculateGPWKern(double complex *eleGPWKern, double complex *eleGPWInSum, const int *eleNum);
 
 void UpdateGPWKern(const int ri, const int rj, const int *cfgOldReduced,
-                   double *eleGPWKernNew, double *eleGPWInSumNew,
-                   const double *eleGPWKernOld, const double *eleGPWInSumOld,
+                   double complex *eleGPWKernNew, double complex *eleGPWInSumNew,
+                   const double complex *eleGPWKernOld, const double complex *eleGPWInSumOld,
                    const int *eleNum);
 #endif

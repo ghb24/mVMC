@@ -28,24 +28,24 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 
 double complex GreenFunc1_fsz(const int ri, const int rj, const int s, const double complex ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,int *eleSpn,
-                  int *projCntNew, const double *eleGPWKern,
-                  const double *eleGPWInSum, double *eleGPWKernNew,
-                  double *eleGPWInSumNew,
+                  int *projCntNew, const double complex *eleGPWKern,
+                  const double complex *eleGPWInSum, double complex *eleGPWKernNew,
+                  double complex *eleGPWInSumNew,
                   double complex *buffer);
 
 double complex GreenFunc1_fsz2(const int ri, const int rj, const int s,const int t, const double complex ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,int *eleSpn,
-                  int *projCntNew, const double *eleGPWKern,
-                  const double *eleGPWInSum, double *eleGPWKernNew,
-                  double *eleGPWInSumNew,
+                  int *projCntNew, const double complex *eleGPWKern,
+                  const double complex *eleGPWInSum, double complex *eleGPWKernNew,
+                  double complex *eleGPWInSumNew,
                   double complex *buffer);
 
 double complex GreenFunc2_fsz(const int ri, const int rj, const int rk, const int rl,
                   const int s, const int t, const double complex  ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,int *eleSpn,
-                  int *projCntNew, const double *eleGPWKern,
-                  const double *eleGPWInSum, double *eleGPWKernNew,
-                  double *eleGPWInSumNew,
+                  int *projCntNew, const double complex *eleGPWKern,
+                  const double complex *eleGPWInSum, double complex *eleGPWKernNew,
+                  double complex *eleGPWInSumNew,
                   double complex *buffer);
 /*
 double complex GreenFuncN(const int n, int *rsi, int *rsj, const double complex  ip,
@@ -58,9 +58,9 @@ double complex calculateNewPfMN_child(const int qpidx, const int n, const int *m
 /* buffer size = NQPFull */
 double complex GreenFunc1_fsz(const int ri, const int rj, const int s, const double complex  ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,int *eleSpn,
-                  int *projCntNew, const double *eleGPWKern,
-                  const double *eleGPWInSum, double *eleGPWKernNew,
-                  double *eleGPWInSumNew,
+                  int *projCntNew, const double complex *eleGPWKern,
+                  const double complex *eleGPWInSum, double complex *eleGPWKernNew,
+                  double complex *eleGPWInSumNew,
                   double complex *buffer) {
   double complex z;
   int mj,msj,rsi,rsj;
@@ -117,9 +117,9 @@ double complex GreenFunc1_fsz(const int ri, const int rj, const int s, const dou
 /* buffer size = NQPFull */
 double complex GreenFunc1_fsz2(const int ri, const int rj, const int s,const int t, const double complex  ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,int *eleSpn,
-                  int *projCntNew, const double *eleGPWKern,
-                  const double *eleGPWInSum, double *eleGPWKernNew,
-                  double *eleGPWInSumNew,
+                  int *projCntNew, const double complex *eleGPWKern,
+                  const double complex *eleGPWInSum, double complex *eleGPWKernNew,
+                  double complex *eleGPWInSumNew,
                   double complex *buffer) {
   double complex z;
   int mj,rsi,rtj;//msj
@@ -179,9 +179,9 @@ double complex GreenFunc1_fsz2(const int ri, const int rj, const int s,const int
 double complex GreenFunc2_fsz(const int ri, const int rj, const int rk, const int rl,
                   const int s, const int t, const double complex ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,int *eleSpn,
-                  int *projCntNew, const double *eleGPWKern,
-                  const double *eleGPWInSum, double *eleGPWKernNew,
-                  double *eleGPWInSumNew,
+                  int *projCntNew, const double complex *eleGPWKern,
+                  const double complex *eleGPWInSum, double complex *eleGPWKernNew,
+                  double complex *eleGPWInSumNew,
                   double complex *buffer) {
   double complex z;
   int *workspaceRefState;
@@ -190,7 +190,7 @@ double complex GreenFunc2_fsz(const int ri, const int rj, const int rk, const in
   double complex *pfMNew = buffer; /* [NQPFull] */
   double complex *bufV   = buffer+NQPFull; /* 2*Nsize */
 
-  double *eleGPWInSumTmp;
+  double complex *eleGPWInSumTmp;
   int prevConfigReduced[4];
 
   rsi = ri + s*Nsite;
@@ -249,7 +249,7 @@ double complex GreenFunc2_fsz(const int ri, const int rj, const int rk, const in
 
   if(eleNum[rsi]==1 || eleNum[rsj]==0 || eleNum[rtk]==1 || eleNum[rtl]==0) return 0.0;
 
-  eleGPWInSumTmp = (double*)malloc(sizeof(double)*GPWInSumSize);
+  eleGPWInSumTmp = (double complex*)malloc(sizeof(double complex)*GPWInSumSize);
 
   prevConfigReduced[0] = eleNum[rl];
   prevConfigReduced[1] = eleNum[rk];
@@ -318,9 +318,9 @@ double complex GreenFunc2_fsz(const int ri, const int rj, const int rk, const in
 double complex GreenFunc2_fsz2(const int ri, const int rj, const int rk, const int rl,
                   const int s, const int t,const int u,const int v, const double complex ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,int *eleSpn,
-                  int *projCntNew, const double *eleGPWKern,
-                  const double *eleGPWInSum, double *eleGPWKernNew,
-                  double *eleGPWInSumNew,
+                  int *projCntNew, const double complex *eleGPWKern,
+                  const double complex *eleGPWInSum, double complex *eleGPWKernNew,
+                  double complex *eleGPWInSumNew,
                   double complex *buffer) {
   double complex z;
   int *workspaceRefState;
@@ -331,7 +331,7 @@ double complex GreenFunc2_fsz2(const int ri, const int rj, const int rk, const i
   double complex *pfMNew = buffer; /* [NQPFull] */
   double complex *bufV   = buffer+NQPFull; /* 2*Nsize */
 
-  double *eleGPWInSumTmp;
+  double complex *eleGPWInSumTmp;
   int prevConfigReduced[4];
 
   XI = ri + s*Nsite;
@@ -421,7 +421,7 @@ double complex GreenFunc2_fsz2(const int ri, const int rj, const int rk, const i
   // from here, no pair exists
   if(eleNum[XI]==1 || eleNum[XJ]==0 || eleNum[XK]==1 || eleNum[XL]==0) return 0.0;
 
-  eleGPWInSumTmp = (double*)malloc(sizeof(double)*GPWInSumSize);
+  eleGPWInSumTmp = (double complex*)malloc(sizeof(double complex)*GPWInSumSize);
 
   mj = eleCfg[XJ]; // electron exists
   ml = eleCfg[XL]; // electron exists

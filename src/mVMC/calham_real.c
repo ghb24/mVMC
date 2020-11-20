@@ -42,20 +42,22 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 /// \param eleGPWKern
 /// \return myEnergy
 double CalculateHamiltonian_real(const double ip, int *eleIdx, const int *eleCfg,
-                             int *eleNum, const int *eleProjCnt, const double *eleGPWKern,
-                             double *eleGPWInSum) {
+                             int *eleNum, const int *eleProjCnt, const double complex *eleGPWKern,
+                             double complex *eleGPWInSum) {
   const int *n0 = eleNum;
   const int *n1 = eleNum + Nsite;
   double e=0.0, tmp;
   int idx;
   int ri,rj,s,rk,rl,t;
   int *myEleIdx, *myEleNum, *myProjCntNew;
-  double *myGPWKernNew, *myGPWInSumNew;
+  double complex *myGPWKernNew;
+  double complex *myGPWInSumNew;
   double  *myBuffer;
   double  myEnergy;
 
   RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj);
-  RequestWorkSpaceThreadDouble(NQPFull+2*Nsize+NGPWIdx+GPWInSumSize);
+  RequestWorkSpaceThreadDouble(NQPFull+2*Nsize);
+  RequestWorkSpaceThreadComplex(NGPWIdx+GPWInSumSize);
   /* GreenFunc1: NQPFull, GreenFunc2: NQPFull+2*Nsize */
 
   #pragma omp parallel default(none) \
@@ -69,8 +71,8 @@ double CalculateHamiltonian_real(const double ip, int *eleIdx, const int *eleCfg
     myEleIdx = GetWorkSpaceThreadInt(Nsize);
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myProjCntNew = GetWorkSpaceThreadInt(NProj);
-    myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
-    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWInSumSize);
+    myGPWKernNew = GetWorkSpaceThreadComplex(NGPWIdx);
+    myGPWInSumNew = GetWorkSpaceThreadComplex(GPWInSumSize);
     myBuffer = GetWorkSpaceThreadDouble(NQPFull+2*Nsize);
 
     #pragma loop noalias
@@ -211,6 +213,7 @@ double CalculateHamiltonian_real(const double ip, int *eleIdx, const int *eleCfg
 #endif
   ReleaseWorkSpaceThreadInt();
   ReleaseWorkSpaceThreadDouble();
+  ReleaseWorkSpaceThreadComplex();
 #ifdef _DEBUG
 #pragma omp master
   printf("    Debug: HamRealFinish\n", NInterAll);
@@ -231,7 +234,7 @@ double CalculateHamiltonianBF_real(const double ip, int *eleIdx, const int *eleC
   double *myBuffer;
   double myEnergy;
 
-  double *eleGPWKern, *myGPWKernNew, *eleGPWInSum, *myGPWInSumNew; // Dummy variables, backflow is not supported.
+  double complex *eleGPWKern, *myGPWKernNew, *eleGPWInSum, *myGPWInSumNew; // Dummy variables, backflow is not supported.
 
   RequestWorkSpaceThreadInt(Nsize+2*Nsite2+NProj+16*Nsite*Nrange);
   RequestWorkSpaceThreadDouble(NQPFull+2*Nsize+NQPFull*Nsite2*Nsite2);

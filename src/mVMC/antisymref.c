@@ -2,7 +2,7 @@
 #include "./include/global.h"
 
 int ComputeRefState(const int *eleIdx, const int *eleNum, int *workspace) {
-  int i, j, k, pos, totalCount, cycleLength, posNew, minIdx, totalCycle, evenCycles, translationId, trId;
+  int i, j, k, pos, totalCount, cycleLength, posNew, minIdx, evenCycles, translationId, trId;
   int *master = workspace;
   int *masterCandidate = master + Nsite2;
   int *eleCfg = master + Nsite2;
@@ -129,7 +129,7 @@ int UpdateRefState(const int *eleIdx, const int *eleNum, int *workspace) {
 }
 
 int ComputeRefState_fsz(const int *eleIdx, const int *eleNum, const int *eleSpn, int *workspace) {
-  int i, j, k, pos, totalCount, cycleLength, posNew, minIdx, totalCycle, evenCycles, translationId, trId, spin;
+  int i, j, k, pos, totalCount, cycleLength, posNew, minIdx, evenCycles, translationId, trId, spin;
   int *master = workspace;
   int *masterCandidate = master + Nsite2;
   int *eleCfg = master + Nsite2;

@@ -43,9 +43,9 @@ double calculateNewPfMN_real_child(const int qpidx, const int n, const int *msa,
 /* buffer size = NQPFull */
 double  GreenFunc1_real(const int ri, const int rj, const int s, const double ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,
-                  int *projCntNew, const double *eleGPWKern,
-                  const double *eleGPWInSum, double *eleGPWKernNew,
-                  double *eleGPWInSumNew,
+                  int *projCntNew, const double complex *eleGPWKern,
+                  const double complex *eleGPWInSum, double complex *eleGPWKernNew,
+                  double complex *eleGPWInSumNew,
                   double *buffer) {
   double  z;
   int mj,msj,rsi,rsj;
@@ -103,9 +103,9 @@ double  GreenFunc1_real(const int ri, const int rj, const int s, const double ip
 double GreenFunc2_real(const int ri, const int rj, const int rk, const int rl,
                   const int s, const int t, const double ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,
-                  int *projCntNew, const double *eleGPWKern,
-                  const double *eleGPWInSum, double *eleGPWKernNew,
-                  double *eleGPWInSumNew,
+                  int *projCntNew, const double complex *eleGPWKern,
+                  const double complex *eleGPWInSum, double complex *eleGPWKernNew,
+                  double complex *eleGPWInSumNew,
                   double *buffer) {
   double z;
   int mj,msj,ml,mtl;
@@ -113,7 +113,7 @@ double GreenFunc2_real(const int ri, const int rj, const int rk, const int rl,
   double *pfMNew_real = buffer; /* [NQPFull] */
   double *bufV   = buffer+NQPFull; /* 2*Nsize */
   int *workspaceRefState;
-  double *eleGPWInSumTmp;
+  double complex *eleGPWInSumTmp;
   int prevConfigReduced[4];
 
 
@@ -173,7 +173,7 @@ double GreenFunc2_real(const int ri, const int rj, const int rk, const int rl,
 
   if(eleNum[rsi]==1 || eleNum[rsj]==0 || eleNum[rtk]==1 || eleNum[rtl]==0) return 0.0;
 
-  eleGPWInSumTmp = (double*)malloc(sizeof(double)*GPWInSumSize);
+  eleGPWInSumTmp = (double complex*)malloc(sizeof(double complex)*GPWInSumSize);
 
   prevConfigReduced[0] = eleNum[rl];
   prevConfigReduced[1] = eleNum[rk];
@@ -253,9 +253,9 @@ double GreenFunc2_real(const int ri, const int rj, const int rk, const int rl,
 /// \version 1.0
 double GreenFuncN_real(const int n, int *rsi, int *rsj, const double  ip,
                   int *eleIdx, const int *eleCfg, int *eleNum, const int *eleProjCnt,
-                  const double *eleGPWKern,
-                  const double *eleGPWInSum, double *eleGPWKernNew,
-                  double *eleGPWInSumNew,
+                  const double complex *eleGPWKern,
+                  const double complex *eleGPWInSum, double complex *eleGPWKernNew,
+                  double complex *eleGPWInSumNew,
                   double *buffer, int *bufferInt){
   int ri,rj,rk,rl,si,sj,sk,mj;
   int k,l,m,rsk;

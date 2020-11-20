@@ -30,19 +30,19 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 #define _CALGRN_SRC
 
 void CalculateGreenFunc(const double w, const double complex ip, int *eleIdx, int *eleCfg,
-                        int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                        double *eleGPWInSum) {
+                        int *eleNum, int *eleProjCnt, double complex *eleGPWKern,
+                        double complex *eleGPWInSum) {
 
   int idx,idx0,idx1;
   int ri,rj,s,rk,rl,t;
   double complex tmp;
   int *myEleIdx, *myEleNum, *myProjCntNew;
-  double *myGPWKernNew, *myGPWInSumNew;
+  double complex *myGPWKernNew;
+  double complex *myGPWInSumNew;
   double complex *myBuffer;
 
   RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj);
-  RequestWorkSpaceThreadDouble(NGPWIdx+GPWInSumSize);
-  RequestWorkSpaceThreadComplex(NQPFull+2*Nsize);
+  RequestWorkSpaceThreadComplex(NQPFull+2*Nsize+NGPWIdx+GPWInSumSize);
   /* GreenFunc1: NQPFull, GreenFunc2: NQPFull+2*Nsize */
 
   #pragma omp parallel default(shared)		\
@@ -51,8 +51,8 @@ void CalculateGreenFunc(const double w, const double complex ip, int *eleIdx, in
     myEleIdx = GetWorkSpaceThreadInt(Nsize);
     myEleNum = GetWorkSpaceThreadInt(Nsite2);
     myProjCntNew = GetWorkSpaceThreadInt(NProj);
-    myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
-    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWInSumSize);
+    myGPWKernNew = GetWorkSpaceThreadComplex(NGPWIdx);
+    myGPWInSumNew = GetWorkSpaceThreadComplex(GPWInSumSize);
     myBuffer = GetWorkSpaceThreadComplex(NQPFull+2*Nsize);
 
     #pragma loop noalias
@@ -130,7 +130,7 @@ void CalculateGreenFuncBF(const double w, const double ip, int *eleIdx, int *ele
   double complex* mySltBFTmp;
   double complex* myBuffer;
 
-  double *eleGPWKern, *myGPWKernNew, *eleGPWInSum, *myGPWInSumNew; // Dummy variables, backflow is not supported.
+  double complex *eleGPWKern, *myGPWKernNew, *eleGPWInSum, *myGPWInSumNew; // Dummy variables, backflow is not supported.
 
   RequestWorkSpaceThreadInt(Nsize+2*Nsite2+NProj+16*Nsite*Nrange);
   RequestWorkSpaceThreadComplex(NQPFull+2*Nsize+NQPFull*Nsite2*Nsite2);

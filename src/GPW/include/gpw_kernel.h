@@ -45,7 +45,7 @@ void SetupPlaquetteHash(const int sysSize, const int plaqSize,
 void FreeMemPlaquetteHash(const int sysSize, int **plaqHash, int *plaqHashSz);
 
 // Computes the inner sum for the full kernel
-void ComputeInSum(double *inSum, const int *plaquetteAIdx,
+void ComputeInSum(double complex *inSum, const int *plaquetteAIdx,
                   const int *cfgA, const int sizeA,
                   const int *plaquetteBIdx, const int *cfgB, const int sizeB,
                   const int plaquetteSize, const int *distList,
@@ -53,7 +53,7 @@ void ComputeInSum(double *inSum, const int *plaquetteAIdx,
                   const double distWeightPower, const int tRSym);
 
 // Updates the inner sum for the full kernel
-void UpdateInSum(double *inSumNew, const int *cfgAOldReduced, const int *cfgANew,
+void UpdateInSum(double complex *inSumNew, const int *cfgAOldReduced, const int *cfgANew,
                  const int *plaquetteAIdx, const int sizeA,
                  const int *plaquetteBIdx, const int *cfgB, const int sizeB,
                  const int plaquetteSize, const int *distList,
@@ -67,7 +67,7 @@ double ComputeKernel(const int *cfgA, const int sizeA, const int *cfgB,
                      const int sizeB, const double power,
                      const double theta, const double norm, const int tRSym,
                      const int shift, const int startIdA, const int startIdB,
-                     const double *inSum);
+                     const double complex *inSum);
 
 /* Computes the derivative of the kernel (divided by the wave function amplitude)
 with respect to theta */
@@ -75,19 +75,19 @@ double ComputeKernDeriv(const int *cfgA, const int sizeA, const int *cfgB,
                         const int sizeB, const double power,
                         const double theta, const double norm, const int tRSym,
                         const int shift, const int startIdA, const int startIdB,
-                        const double *inSum);
+                        const double complex *inSum);
 
 // Computes the kn kernel
 double ComputeKernelN(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
                       const int *cfgB, const int *plaquetteBIdx, const int sizeB,
                       const int n, const int tRSym, const int shift,
-                      const int startIdA, const int startIdB, const double *inSum);
+                      const int startIdA, const int startIdB, const double complex *inSum);
 
 // Computes the kn kernel in place
 double GPWKernelN(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
                   const int *cfgB, const int *plaquetteBIdx, const int sizeB,
                   const int dim, const int n, const int tRSym, const int shift,
-                  const int startIdA, const int startIdB, double *workspace);
+                  const int startIdA, const int startIdB, double complex *workspace);
 
 /* computes the kernel matrix (k(n) kernel) for two lists of configurations
 (in bitstring representation) */
@@ -116,7 +116,7 @@ double GPWKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
                  const double power, const double theta, const double distWeightPower,
                  const int tRSym, const int shift, const int startIdA,
                  const int startIdB, const int plaquetteSize, const int *distList,
-                 double *workspace);
+                 double complex *workspace);
 
 /* computes the kernel matrix (complete kernel) for two lists of configurations
 (in bitstring representation) */

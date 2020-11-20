@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <complex.h>
 #include "gpw_kernel.h"
 
 double GPWKernel1(const int *configA, const int sizeA, const int *configB,
@@ -424,14 +425,14 @@ void FreeMemPlaquetteHash(const int sysSize, int **plaqHash, int *plaqHashSz) {
   free(plaqHash);
 }
 
-void ComputeInSum(double *inSum, const int *plaquetteAIdx,
+void ComputeInSum(double complex *inSum, const int *plaquetteAIdx,
                   const int *cfgA, const int sizeA,
                   const int *plaquetteBIdx, const int *cfgB, const int sizeB,
                   const int plaquetteSize, const int *distList,
                   const int shift, const int startIdA, const int startIdB,
                   const double distWeightPower, const int tRSym) {
   int i, a, k, tSym, count;
-  double innerSum;
+  double complex innerSum;
 
   int shiftSys = 1 + startIdA;
   int shiftTrn = 1 + startIdB;
@@ -469,7 +470,7 @@ void ComputeInSum(double *inSum, const int *plaquetteAIdx,
   }
 }
 
-void UpdateInSum(double *inSumNew, const int *cfgAOldReduced, const int *cfgANew,
+void UpdateInSum(double complex *inSumNew, const int *cfgAOldReduced, const int *cfgANew,
                  const int *plaquetteAIdx, const int sizeA,
                  const int *plaquetteBIdx, const int *cfgB, const int sizeB,
                  const int plaquetteSize, const int *distList,
@@ -538,7 +539,7 @@ double ComputeKernel(const int *cfgA, const int sizeA, const int *cfgB,
                      const int sizeB, const double power,
                      const double theta, const double norm, const int tRSym,
                      const int shift, const int startIdA, const int startIdB,
-                     const double *inSum) {
+                     const double complex *inSum) {
   int i, a, tSym, count;
   int shiftSys = 1 + startIdA;
   int shiftTrn = 1 + startIdB;
@@ -567,7 +568,7 @@ double ComputeKernel(const int *cfgA, const int sizeA, const int *cfgB,
       for (i = startIdA; i < shiftSys; i+=translationSys) {
         for (a = startIdB; a < shiftTrn; a+=translationTrn) {
           if (delta(cfgA, sizeA, cfgB, sizeB, i, a, tSym)) {
-            kernel += exp(-1.0/theta * (norm - inSum[count]));
+            kernel += exp(-1.0/theta * (norm - creal(inSum[count])));
           }
           count++;
         }
@@ -579,7 +580,7 @@ double ComputeKernel(const int *cfgA, const int sizeA, const int *cfgB,
       for (i = startIdA; i < shiftSys; i+=translationSys) {
         for (a = startIdB; a < shiftTrn; a+=translationTrn) {
           if (delta(cfgA, sizeA, cfgB, sizeB, i, a, tSym)) {
-            kernel += pow(((theta + inSum[count]/power)/scaledNorm), power);
+            kernel += pow(((theta + creal(inSum[count])/power)/scaledNorm), power);
           }
           count++;
         }
@@ -594,7 +595,7 @@ double ComputeKernDeriv(const int *cfgA, const int sizeA, const int *cfgB,
                         const int sizeB, const double power,
                         const double theta, const double norm, const int tRSym,
                         const int shift, const int startIdA, const int startIdB,
-                        const double *inSum) {
+                        const double complex *inSum) {
   int i, a, tSym, count;
   int shiftSys = 1 + startIdA;
   int shiftTrn = 1 + startIdB;
@@ -624,7 +625,7 @@ double ComputeKernDeriv(const int *cfgA, const int sizeA, const int *cfgB,
       for (i = startIdA; i < shiftSys; i+=translationSys) {
         for (a = startIdB; a < shiftTrn; a+=translationTrn) {
           if (delta(cfgA, sizeA, cfgB, sizeB, i, a, tSym)) {
-            kernDeriv += exp(-1.0/theta * (norm - inSum[count])) * (norm-inSum[count]);
+            kernDeriv += exp(-1.0/theta * (norm - creal(inSum[count]))) * (norm-creal(inSum[count]));
           }
           count++;
         }
@@ -637,7 +638,7 @@ double ComputeKernDeriv(const int *cfgA, const int sizeA, const int *cfgB,
       for (i = startIdA; i < shiftSys; i+=translationSys) {
         for (a = startIdB; a < shiftTrn; a+=translationTrn) {
           if (delta(cfgA, sizeA, cfgB, sizeB, i, a, tSym)) {
-            kernDeriv += pow(((theta + (inSum[count]/power))/scaledNorm), power-1) * ((norm - inSum[count])/power);
+            kernDeriv += pow(((theta + (creal(inSum[count])/power))/scaledNorm), power-1) * ((norm - creal(inSum[count]))/power);
           }
           count++;
         }
@@ -652,7 +653,7 @@ double ComputeKernDeriv(const int *cfgA, const int sizeA, const int *cfgB,
 double ComputeKernelN(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
                       const int *cfgB, const int *plaquetteBIdx, const int sizeB,
                       const int n, const int tRSym, const int shift,
-                      const int startIdA, const int startIdB, const double *inSum) {
+                      const int startIdA, const int startIdB, const double complex *inSum) {
   if (n == 1) {
    return GPWKernel1(cfgA, sizeA, cfgB, sizeB, tRSym, shift, startIdA, startIdB);
   }
@@ -712,12 +713,12 @@ double ComputeKernelN(const int *cfgA, const int *plaquetteAIdx, const int sizeA
 double GPWKernelN(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
                   const int *cfgB, const int *plaquetteBIdx, const int sizeB,
                   const int dim, const int n, const int tRSym, const int shift,
-                  const int startIdA, const int startIdB, double *workspace) {
+                  const int startIdA, const int startIdB, double complex *workspace) {
   if (n == 1) {
    return GPWKernel1(cfgA, sizeA, cfgB, sizeB, tRSym, shift, startIdA, startIdB);
   }
   else {
-    double *inSum = workspace;
+    double complex *inSum = workspace;
     return ComputeKernelN(cfgA, plaquetteAIdx, sizeA, cfgB, plaquetteBIdx,
                           sizeB, n, tRSym, shift, startIdA, startIdB, inSum);
   }
@@ -776,7 +777,7 @@ void GPWKernelNMat(const unsigned long *configsAUp,
 
     #pragma omp parallel default(shared) private(i, j)
     {
-      double *workspace = (double*)malloc(sizeof(double)*(workspaceSize));
+      double complex *workspace = (double complex*)malloc(sizeof(double complex)*(workspaceSize));
 
       #pragma omp for
       for (i = 0; i < numA; i++) {
@@ -799,7 +800,7 @@ void GPWKernelNMat(const unsigned long *configsAUp,
   else {
     #pragma omp parallel default(shared) private(i, j)
     {
-      double *workspace = (double*)malloc(sizeof(double)*(workspaceSize));
+      double complex *workspace = (double complex*)malloc(sizeof(double complex)*(workspaceSize));
 
       #pragma omp for
       for (i = 0; i < numA; i++) {
@@ -859,7 +860,7 @@ void GPWKernelNVec(const unsigned long *configsAUp, const unsigned long *configs
 
   #pragma omp parallel default(shared) private(i, j)
   {
-    double *workspace = (double*)malloc(sizeof(double)*(workspaceSize));
+    double complex *workspace = (double complex*)malloc(sizeof(double complex)*(workspaceSize));
 
     #pragma omp for
     for (i = 0; i < numA; i++) {
@@ -885,10 +886,10 @@ double GPWKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
                  const double power, const double theta, const double distWeightPower,
                  const int tRSym, const int shift, const int startIdA,
                  const int startIdB, const int plaquetteSize, const int *distList,
-                 double *workspace) {
-  int i, distWeightFlag;
+                 double complex *workspace) {
+  int i;
 
-  double *innerSum = workspace;
+  double complex *innerSum = workspace;
 
   double norm = 0.0;
 
@@ -960,7 +961,7 @@ void GPWKernelMat(const unsigned long *configsAUp,
 
     #pragma omp parallel default(shared) private(i, j)
     {
-      double *workspace = (double*)malloc(sizeof(double)*(workspaceSize));
+      double complex *workspace = (double complex*)malloc(sizeof(double complex)*(workspaceSize));
       #pragma omp for
       for (i = 0; i < numA; i++) {
         for (j = 0; j < numB; j++) {
@@ -983,7 +984,7 @@ void GPWKernelMat(const unsigned long *configsAUp,
   else {
     #pragma omp parallel default(shared) private(i, j)
     {
-      double *workspace = (double*)malloc(sizeof(double)*(workspaceSize));
+      double complex *workspace = (double complex*)malloc(sizeof(double complex)*(workspaceSize));
 
       #pragma omp for
       for (i = 0; i < numA; i++) {
@@ -1050,7 +1051,7 @@ void GPWKernelVec(const unsigned long *configsAUp,
 
   #pragma omp parallel default(shared) private(i, j)
   {
-    double *workspace = (double*)malloc(sizeof(double)*(workspaceSize));
+    double complex *workspace = (double complex*)malloc(sizeof(double complex)*(workspaceSize));
 
     #pragma omp for
     for (i = 0; i < numA; i++) {

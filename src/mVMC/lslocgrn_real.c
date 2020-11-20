@@ -43,8 +43,8 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 
 /* Calculate <psi|QQ|x>/<psi|x> */
 void LSLocalQ_real(const double h1, const double ip, int *eleIdx, int *eleCfg, int *eleNum,
-                   int *eleProjCnt, double *eleGPWKern,
-                   double *eleGPWInSum, double *_LSLQ_real)
+                   int *eleProjCnt, double complex *eleGPWKern,
+                   double complex *eleGPWInSum, double *_LSLQ_real)
 {
   double e0,h2;
 
@@ -77,8 +77,8 @@ void LSLocalQ_real(const double h1, const double ip, int *eleIdx, int *eleCfg, i
 /// \return val
 /// \version 1.0
 double calculateHK_real(const double h1, const double ip, int *eleIdx, int *eleCfg,
-                           int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                           double *eleGPWInSum) {
+                           int *eleNum, int *eleProjCnt, double complex *eleGPWKern,
+                           double complex *eleGPWInSum) {
   int idx,ri,rj,s;
   double val=0.0;
 
@@ -109,8 +109,8 @@ double calculateHK_real(const double h1, const double ip, int *eleIdx, int *eleC
 /// \version 1.0
 double calHCA_real(const int ri, const int rj, const int s,
                       const double h1, const double ip, int *eleIdx, int *eleCfg,
-                      int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                      double *eleGPWInSum) {
+                      int *eleNum, int *eleProjCnt, double complex *eleGPWKern,
+                      double complex *eleGPWInSum) {
   int rsi=ri+s*Nsite;
   int rsj=rj+s*Nsite;
   double val;
@@ -196,12 +196,13 @@ double checkGF1_real(const int ri, const int rj, const int s, const double ip,
 /// \version 1.0
 double calHCA1_real(const int ri, const int rj, const int s,
                const double ip, int *eleIdx, int *eleCfg,
-               int *eleNum, int *eleProjCnt, double *eleGPWKern,
-               double *eleGPWInSum) {
+               int *eleNum, int *eleProjCnt, double complex *eleGPWKern,
+               double complex *eleGPWInSum) {
   double *oldInvM; /* [NQPFull*Nsize*Nsize;] */
   double *oldPfM;  /* [NQPFull] */
   int *projCntNew;
-  double *eleGPWKernNew, *eleGPWInSumNew;
+  double complex *eleGPWKernNew;
+  double complex *eleGPWInSumNew;
 
   int rsi=ri+s*Nsite;
   int rsj=rj+s*Nsite;
@@ -211,11 +212,12 @@ double calHCA1_real(const int ri, const int rj, const int s,
   int prevConfigReduced[4];
 
   RequestWorkSpaceInt(NProj);
-  RequestWorkSpaceDouble(NQPFull*(Nsize*Nsize+1)+NGPWIdx+GPWInSumSize);
+  RequestWorkSpaceDouble(NQPFull*(Nsize*Nsize+1));
+  RequestWorkSpaceComplex(NGPWIdx+GPWInSumSize);
 
   projCntNew = GetWorkSpaceInt(NProj);
-  eleGPWKernNew = GetWorkSpaceDouble(NGPWIdx);
-  eleGPWInSumNew = GetWorkSpaceDouble(GPWInSumSize);
+  eleGPWKernNew = GetWorkSpaceComplex(NGPWIdx);
+  eleGPWInSumNew = GetWorkSpaceComplex(GPWInSumSize);
   oldInvM = GetWorkSpaceDouble(NQPFull*Nsize*Nsize);
   oldPfM  = GetWorkSpaceDouble(NQPFull);
 
@@ -269,6 +271,7 @@ double calHCA1_real(const int ri, const int rj, const int s,
 
   ReleaseWorkSpaceInt();
   ReleaseWorkSpaceDouble();
+  ReleaseWorkSpaceComplex();
   return e*z*ipNew/ip;
 }
 
@@ -276,8 +279,8 @@ double calHCA1_real(const int ri, const int rj, const int s,
 /* Assuming ri!=rj, eleNum[rsi]=1, eleNum[rsj]=0 */
 double calHCA2_real(const int ri, const int rj, const int s,
                        const double ip, int *eleIdx, int *eleCfg,
-                       int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                       double *eleGPWInSum) {
+                       int *eleNum, int *eleProjCnt, double complex *eleGPWKern,
+                       double complex *eleGPWInSum) {
   const int nsize=Nsize;
   const int nsite2=Nsite2;
 
@@ -292,10 +295,13 @@ double calHCA2_real(const int ri, const int rj, const int s,
 
   double *buffer;
   int *bufferInt;
-  double *eleGPWKernNew, *eleGPWInSumNew;
+  double complex *eleGPWKernNew;
+  double complex *eleGPWInSumNew;
 
   int *myEleIdx, *myEleNum, *myBufferInt, *myRsi, *myRsj;
-  double *myBuffer, *myGPWKernNew, *myGPWInSumNew;
+  double *myBuffer;
+  double complex *myGPWKernNew;
+  double complex *myGPWInSumNew;
   //    double complex myValue=0;
   //    double complex v=0.0;
   double myValue=0;
@@ -303,14 +309,16 @@ double calHCA2_real(const int ri, const int rj, const int s,
 
 
   RequestWorkSpaceInt(NProj);     /* for GreenFunc1 */
-  RequestWorkSpaceDouble(NQPFull+NGPWIdx+GPWInSumSize);/* for GreenFunc1 */
+  RequestWorkSpaceDouble(NQPFull);/* for GreenFunc1 */
+  RequestWorkSpaceComplex(NGPWIdx+GPWInSumSize);/* for GreenFunc1 */
   RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj+6);
-  RequestWorkSpaceThreadDouble(NQPFull+3*Nsize+NGPWIdx+GPWInSumSize);
+  RequestWorkSpaceThreadDouble(NQPFull+3*Nsize);
+  RequestWorkSpaceThreadComplex(NGPWIdx+GPWInSumSize);
 
   bufferInt = GetWorkSpaceInt(NProj);
   buffer = GetWorkSpaceDouble(NQPFull);
-  eleGPWKernNew = GetWorkSpaceDouble(NGPWIdx);
-  eleGPWInSumNew = GetWorkSpaceDouble(GPWInSumSize);
+  eleGPWKernNew = GetWorkSpaceComplex(NGPWIdx);
+  eleGPWInSumNew = GetWorkSpaceComplex(GPWInSumSize);
 
   /* H0 term */
   /* <psi|H0 CA|x>/<psi|x> = H0(x') <psi|CA|x>/<psi|x> */
@@ -340,8 +348,8 @@ double calHCA2_real(const int ri, const int rj, const int s,
     myRsi = GetWorkSpaceThreadInt(3);
     myRsj = GetWorkSpaceThreadInt(3);
     myBuffer = GetWorkSpaceThreadDouble(NQPFull+3*Nsize);
-    myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
-    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWInSumSize);
+    myGPWKernNew = GetWorkSpaceThreadComplex(NGPWIdx);
+    myGPWInSumNew = GetWorkSpaceThreadComplex(GPWInSumSize);
 
 #pragma loop noalias
     for(idx=0;idx<nsize;idx++) myEleIdx[idx] = eleIdx[idx];
@@ -433,8 +441,10 @@ double calHCA2_real(const int ri, const int rj, const int s,
 
   ReleaseWorkSpaceInt();
   ReleaseWorkSpaceDouble();
+  ReleaseWorkSpaceComplex();
   ReleaseWorkSpaceThreadInt();
   ReleaseWorkSpaceThreadDouble();
+  ReleaseWorkSpaceThreadComplex();
 
   return val;
 }
@@ -456,8 +466,8 @@ void copyMAll_real(double *invM_from, double *pfM_from, double *invM_to, double 
 }
 
 double calculateHW_real(const double h1, const double ip, int *eleIdx, int *eleCfg,
-                           int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                           double *eleGPWInSum) {
+                           int *eleNum, int *eleProjCnt, double complex *eleGPWKern,
+                           double complex *eleGPWInSum) {
   int idx,ri,rj,s,rk,rl,t;
   double val=0.0,tmp;
 
@@ -504,8 +514,8 @@ double calculateHW_real(const double h1, const double ip, int *eleIdx, int *eleC
 double calHCACA_real(const int ri, const int rj, const int rk, const int rl,
                         const int si,const int sk,
                         const double h1, const double ip, int *eleIdx, int *eleCfg,
-                        int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                        double *eleGPWInSum) {
+                        int *eleNum, int *eleProjCnt, double complex *eleGPWKern,
+                        double complex *eleGPWInSum) {
   int rsi=ri+si*Nsite;
   int rsj=rj+si*Nsite;
   int rsk=rk+sk*Nsite;
@@ -618,12 +628,14 @@ double checkGF2_real(const int ri, const int rj, const int rk, const int rl,
 double calHCACA1_real(const int ri, const int rj, const int rk, const int rl,
                  const int si,const int sk,
                  const double ip, int *eleIdx, int *eleCfg,
-                 int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                 double *eleGPWInSum) {
+                 int *eleNum, int *eleProjCnt, double complex *eleGPWKern,
+                 double complex *eleGPWInSum) {
   double *oldInvM; /* [NQPFull*Nsize*Nsize;] */
   double *oldPfM;  /* [NQPFull] */
   int *projCntNew;
-  double *eleGPWKernNew, *eleGPWInSumNew, *eleGPWInSumTmp;
+  double complex *eleGPWKernNew;
+  double complex *eleGPWInSumNew;
+  double complex *eleGPWInSumTmp;
 
   int rsi=ri+si*Nsite;
   int rsj=rj+si*Nsite;
@@ -639,9 +651,9 @@ double calHCACA1_real(const int ri, const int rj, const int rk, const int rl,
   RequestWorkSpaceDouble(NQPFull*(Nsize*Nsize+1)+NGPWIdx+2*GPWInSumSize);
 
   projCntNew = GetWorkSpaceInt(NProj);
-  eleGPWKernNew = GetWorkSpaceDouble(NGPWIdx);
-  eleGPWInSumNew = GetWorkSpaceDouble(GPWInSumSize);
-  eleGPWInSumTmp = GetWorkSpaceDouble(GPWInSumSize);
+  eleGPWKernNew = GetWorkSpaceComplex(NGPWIdx);
+  eleGPWInSumNew = GetWorkSpaceComplex(GPWInSumSize);
+  eleGPWInSumTmp = GetWorkSpaceComplex(GPWInSumSize);
   oldInvM = GetWorkSpaceDouble(NQPFull*Nsize*Nsize);
   oldPfM  = GetWorkSpaceDouble(NQPFull);
 
@@ -714,6 +726,7 @@ double calHCACA1_real(const int ri, const int rj, const int rk, const int rl,
 
   ReleaseWorkSpaceInt();
   ReleaseWorkSpaceDouble();
+  ReleaseWorkSpaceComplex();
 
   return e*z*ipNew/ip;
 }
@@ -723,7 +736,7 @@ double calHCACA1_real(const int ri, const int rj, const int rk, const int rl,
 double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
                          const int si,const int sk,
                          const double ip, int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,
-                         double *eleGPWKern, double *eleGPWInSum) {
+                         double complex *eleGPWKern, double complex *eleGPWInSum) {
   const int nsize=Nsize;
   const int nsite2=Nsite2;
 
@@ -737,23 +750,29 @@ double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
 
   double g;
 
-  double *buffer, *eleGPWKernNew, *eleGPWInSumNew;
+  double *buffer;
+  double complex *eleGPWKernNew;
+  double complex *eleGPWInSumNew;
   int *bufferInt;
 
   int *myEleIdx, *myEleNum, *myBufferInt, *myRsi, *myRsj;
-  double *myBuffer, *myGPWKernNew, *myGPWInSumNew;
+  double *myBuffer;
+  double complex *myGPWKernNew;
+  double complex *myGPWInSumNew;
   double myValue=0.0;
   double v=0.0;
 
   RequestWorkSpaceInt(NProj);      /* for GreenFunc2 */
-  RequestWorkSpaceDouble(NQPFull+2*Nsize+NGPWIdx+GPWInSumSize); /* for GreenFunc2 */
+  RequestWorkSpaceDouble(NQPFull+2*Nsize); /* for GreenFunc2 */
+  RequestWorkSpaceComplex(NGPWIdx+GPWInSumSize); /* for GreenFunc2 */
   RequestWorkSpaceThreadInt(Nsize+Nsite2+NProj+8);
-  RequestWorkSpaceThreadDouble(NQPFull+4*Nsize+NGPWIdx+GPWInSumSize);
+  RequestWorkSpaceThreadDouble(NQPFull+4*Nsize);
+  RequestWorkSpaceThreadComplex(NGPWIdx+GPWInSumSize);
 
   bufferInt = GetWorkSpaceInt(NProj);
   buffer = GetWorkSpaceDouble(NQPFull+2*Nsize);
-  eleGPWKernNew = GetWorkSpaceDouble(NGPWIdx);
-  eleGPWInSumNew = GetWorkSpaceDouble(GPWInSumSize);
+  eleGPWKernNew = GetWorkSpaceComplex(NGPWIdx);
+  eleGPWInSumNew = GetWorkSpaceComplex(GPWInSumSize);
 
 
   /* H0 term */
@@ -788,8 +807,8 @@ double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
     myRsi = GetWorkSpaceThreadInt(4);
     myRsj = GetWorkSpaceThreadInt(4);
     myBuffer = GetWorkSpaceThreadDouble(NQPFull+4*Nsize);
-    myGPWKernNew = GetWorkSpaceThreadDouble(NGPWIdx);
-    myGPWInSumNew = GetWorkSpaceThreadDouble(GPWInSumSize);
+    myGPWKernNew = GetWorkSpaceThreadComplex(NGPWIdx);
+    myGPWInSumNew = GetWorkSpaceThreadComplex(GPWInSumSize);
 
 #pragma loop noalias
     for(idx=0;idx<nsize;idx++) myEleIdx[idx] = eleIdx[idx];
@@ -899,8 +918,10 @@ double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
 
   ReleaseWorkSpaceInt();
   ReleaseWorkSpaceDouble();
+  ReleaseWorkSpaceComplex();
   ReleaseWorkSpaceThreadInt();
   ReleaseWorkSpaceThreadDouble();
+  ReleaseWorkSpaceThreadComplex();
 
   return val;
 }
@@ -908,8 +929,8 @@ double calHCACA2_real(const int ri, const int rj, const int rk, const int rl,
 
 /* Calculate <psi|QCisAjs|x>/<psi|x> */
 void LSLocalCisAjs_real(const double h1, const double ip, int *eleIdx, int *eleCfg,
-                        int *eleNum, int *eleProjCnt, double *eleGPWKern,
-                        double *eleGPWInSum) {
+                        int *eleNum, int *eleProjCnt, double complex *eleGPWKern,
+                        double complex *eleGPWInSum) {
   const int nCisAjs=NCisAjs;
   double *lsLCisAjs_real = LSLCisAjs_real;
   double complex*localCisAjs = LocalCisAjs;

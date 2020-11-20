@@ -6,14 +6,14 @@
 #include "complex.h"
 
 // Computes the inner sum for the exponential kernel
-void ComputeInSumExp(double *inSum, const int *plaquetteAIdx, const int *cfgA,
+void ComputeInSumExp(double complex *inSum, const int *plaquetteAIdx, const int *cfgA,
                      const int sizeA, const int *plaquetteBIdx, const int *cfgB,
                      const int sizeB, const int plaquetteSize, const double complex *distWeights,
                      const int *distWeightIdx, const int shift, const int startIdA, const int startIdB,
                      const int tRSym);
 
 // Updates the inner sum for the exponential kernel
-void UpdateInSumExp(double *inSumNew, const int *cfgAOldReduced, const int *cfgANew,
+void UpdateInSumExp(double complex *inSumNew, const int *cfgAOldReduced, const int *cfgANew,
                     const int *plaquetteAIdx, const int sizeA,
                     const int *plaquetteBIdx, const int *cfgB, const int sizeB,
                     const int plaquetteSize,
@@ -27,16 +27,16 @@ void UpdateInSumExp(double *inSumNew, const int *cfgAOldReduced, const int *cfgA
 double ComputeExpKernel(const int *cfgA, const int sizeA, const int *cfgB,
                         const int sizeB, const int tRSym,
                         const int shift, const int startIdA, const int startIdB,
-                        const double *inSum, const int centralDelta);
+                        const double complex *inSum, const int centralDelta);
 
 // Computes the exponential kernel in place
 double GPWExpKernel(const int *cfgA, const int *plaquetteAIdx, const int sizeA,
                     const int *cfgB, const int *plaquetteBIdx, const int sizeB,
                     const int tRSym, const int shift, const int startIdA,
                     const int startIdB, const int plaquetteSize,
-                    const double *distWeights, const int numDistWeights,
+                    const double complex *distWeights, const int numDistWeights,
                     const int *distWeightIdx, const int centralDelta,
-                    double *workspace);
+                    double complex *workspace);
 
 /* computes the kernel matrix (exponential kernel) for two lists of configurations
 (in bitstring representation) */
@@ -65,17 +65,17 @@ void GPWExpKernelVec(const unsigned long *configsAUp,
                      double *kernelVec);
 
 // Computes the inner sum for the exponential kernel with optimised basis
-void ComputeInSumExpBasisOpt(double *inSum, const int *plaquetteAIdx, const int sizeA,
+void ComputeInSumExpBasisOpt(double complex *inSum, const int *plaquetteAIdx, const int sizeA,
                              const int plaquetteSize, const double complex *distWeights,
                              const int *eleNum, const int tRSym, const int shift);
 
 // Updates the inner sum for the exponential kernel with optimised basis
-void UpdateInSumExpBasisOpt(double *inSumNew, const int *cfgOldReduced, const int *eleNum,
+void UpdateInSumExpBasisOpt(double complex *inSumNew, const int *cfgOldReduced, const int *eleNum,
                             const int *plaquetteAIdx, const int sizeA, const int plaquetteSize,
                             const double complex *distWeights, int **plaqHash, const int ri,
                             const int rj, const int tRSym, const int shift);
 
 // Computes the exponential kernel with optimised basis
-double ComputeExpKernelBasisOpt(const int size, const int tRSym,
-                                const double *inSum, const int shift);
+double complex ComputeExpKernelBasisOpt(const int size, const int tRSym,
+                                        const double complex *inSum, const int shift);
 #endif // _GPW_EXP_KERN_INCLUDE_FILES

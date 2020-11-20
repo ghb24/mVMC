@@ -53,7 +53,7 @@ int RedCutMode; /* cutting mode for redundant directions: 0 -> diagonal of S, 1 
 
 int AlternativeBasisOrdering; /* defines the definition of the basis for antisymmetric uniform reference state,
                                  0: Standard ordering (all spin up elecs, all spin down elecs)
-                                 1: Alternative ordering (spin up site 0, spin down site 0, ...) */
+                                 1: Alternative ordering used in vGPS deterministic opt (spin down site 0, spin up site 0, ...) */
 
 int NDataIdxStart; /* starting value of the file index */
 int NDataQtySmp; /* the number of output files */

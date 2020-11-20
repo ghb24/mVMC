@@ -45,11 +45,13 @@ int ComputeRefState(const int *eleIdx, const int *eleNum, int *workspace) {
   if (AlternativeBasisOrdering) {
     for(i = 0; i < Nsite; i++) {
       for (j = 0; j < 2; j ++) {
-        if (masterCandidate[i + j * Nsite]) {
-          master[pos] = 2 * i + j;
+        if (masterCandidate[i + (1-j) * Nsite]) {
+          master[pos] = 2 * i + j; /* here we use our strange convention that
+                                    we want down, up ordering to be consistent with
+                                    the notation */
           pos++;
         }
-        eleCfg[i + j * Nsite] = -1;
+        eleCfg[i + (1-j) * Nsite] = -1;
       }
     }
   }
@@ -65,7 +67,7 @@ int ComputeRefState(const int *eleIdx, const int *eleNum, int *workspace) {
 
   for (i = 0; i < Ne; i++) {
     if (AlternativeBasisOrdering) {
-      eleCfg[2 * QPTrans[translationId][eleIdx[i]] + trId] = i;
+      eleCfg[2 * QPTrans[translationId][eleIdx[i]] + (1-trId)] = i;
     }
     else {
       eleCfg[QPTrans[translationId][eleIdx[i]] + trId * Nsite] = i;
@@ -77,7 +79,7 @@ int ComputeRefState(const int *eleIdx, const int *eleNum, int *workspace) {
 
   for (i = Ne; i < Nsize; i++) {
     if (AlternativeBasisOrdering) {
-      eleCfg[2 * QPTrans[translationId][eleIdx[i]] + (1 - trId)] = i;
+      eleCfg[2 * QPTrans[translationId][eleIdx[i]] + trId] = i;
     }
     else {
       eleCfg[QPTrans[translationId][eleIdx[i]] + (1 - trId) * Nsite] = i;
@@ -172,11 +174,13 @@ int ComputeRefState_fsz(const int *eleIdx, const int *eleNum, const int *eleSpn,
   if (AlternativeBasisOrdering) {
     for(i = 0; i < Nsite; i++) {
       for (j = 0; j < 2; j ++) {
-        if (masterCandidate[i + j * Nsite]) {
-          master[pos] = 2 * i + j;
+        if (masterCandidate[i + (1-j) * Nsite]) {
+          master[pos] = 2 * i + j; /* here we use our strange convention that
+                                     we want down, up ordering to be consistent with
+                                     the notation */
           pos++;
         }
-        eleCfg[i + j * Nsite] = -1;
+        eleCfg[i + (1-j) * Nsite] = -1;
       }
     }
   }
@@ -194,7 +198,7 @@ int ComputeRefState_fsz(const int *eleIdx, const int *eleNum, const int *eleSpn,
     spin = eleSpn[i];
     if (spin) {
       if (AlternativeBasisOrdering) {
-      eleCfg[2 * QPTrans[translationId][eleIdx[i]] + (1 - trId)] = i;
+        eleCfg[2 * QPTrans[translationId][eleIdx[i]] + trId] = i;
       }
       else {
         eleCfg[QPTrans[translationId][eleIdx[i]] + (1 - trId) * Nsite] = i;
@@ -205,7 +209,7 @@ int ComputeRefState_fsz(const int *eleIdx, const int *eleNum, const int *eleSpn,
     }
     else {
       if (AlternativeBasisOrdering) {
-        eleCfg[2 * QPTrans[translationId][eleIdx[i]] + trId] = i;
+        eleCfg[2 * QPTrans[translationId][eleIdx[i]] + (1-trId)] = i;
       }
       else {
         eleCfg[QPTrans[translationId][eleIdx[i]] + trId * Nsite] = i;

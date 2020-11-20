@@ -161,8 +161,10 @@ void VMCMakeSample(MPI_Comm comm) {
         if(pow(cabs(w),2) > genrand_real2()) { /* accept */
           // UpdateMAll will change SlaterElm, InvM (including PfM)
           StartTimer(63);
-          UpdateMAll(mi,s,TmpEleIdx,qpStart,qpEnd);
-          //UpdateMAll(mi,s,TmpEleIdx,qpStart,qpEnd);
+          if (UseOrbital) {
+            UpdateMAll(mi,s,TmpEleIdx,qpStart,qpEnd);
+            //UpdateMAll(mi,s,TmpEleIdx,qpStart,qpEnd);
+          }
           StopTimer(63);
 
           for(i=0;i<NProj;i++) TmpEleProjCnt[i] = projCntNew[i];

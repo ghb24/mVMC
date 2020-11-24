@@ -9,119 +9,161 @@ int ComputeRefState(const int *eleIdx, const int *eleNum, int *workspace) {
   int trSym = 0;
   int sign = 1;
 
-  if (NGPWIdx > 0) {
-    if(GPWTRSym[0] == 1) {
-      trSym = 1;
+  if (AlternativeBasisOrdering == 2) {
+     //Marshall sign rule
+    for (i = 0; i < Nsite; i++) {
+      master[i] = -1;
     }
-  }
 
-  #pragma omp parallel for default(shared) private(i)
-  for(i = 0; i < Nsite2; i++) {
-    masterCandidate[i] = -1;
-  }
+    master[0] = 0;
+    totalCount = 1;
 
-  for (i = 0; i < NMPTrans; i++) {
-    for (j = 0; j <= trSym; j++) {
-      #pragma omp parallel for default(shared) private(k)
-      for (k = 0; k < Nsite; k++) {
-        master[QPTrans[i][k] + j * Nsite] = eleNum[k];
-        master[QPTrans[i][k] + (1-j) * Nsite] = eleNum[k+Nsite];
-      }
-      pos = 0;
-      while (master[pos] == masterCandidate[pos]) {
-        pos++;
-      }
+    while(totalCount < Nsite) {
+      for(j = 0; j < NCoulombInter; j++) {
+        pos = CoulombInter[j][0];
+        posNew = CoulombInter[j][1];
 
-      // accept config
-      if (master[pos] > masterCandidate[pos]) {
-        memcpy(masterCandidate, master, sizeof(int)*Nsite2);
-        translationId = i;
-        trId = j;
+        if (master[pos] != -1 && master[posNew] == -1) {
+          master[posNew] = 1 - master[pos];
+          totalCount ++;
+        }
+
+        if (master[posNew] != -1 && master[pos] == -1) {
+          master[pos] = 1 - master[posNew];
+          totalCount ++;
+        }
       }
     }
-  }
 
-  pos = 0;
-  if (AlternativeBasisOrdering) {
-    for(i = 0; i < Nsite; i++) {
-      for (j = 0; j < 2; j ++) {
-        if (masterCandidate[i + (1-j) * Nsite]) {
-          master[pos] = 2 * i + j; /* here we use our strange convention that
-                                    we want down, up ordering to be consistent with
-                                    the notation */
+    totalCount = 0;
+    for (i = 0; i < Nsite; i++) {
+      if (master[i] == 0) {
+        totalCount += eleNum[i];
+      }
+    }
+
+    if (totalCount%2 == 0) {
+      return 1;
+    }
+    else {
+      return -1;
+    }
+  }
+  else {
+    if (NGPWIdx > 0) {
+      if(GPWTRSym[0] == 1) {
+        trSym = 1;
+      }
+    }
+
+    #pragma omp parallel for default(shared) private(i)
+    for(i = 0; i < Nsite2; i++) {
+      masterCandidate[i] = -1;
+    }
+
+    for (i = 0; i < NMPTrans; i++) {
+      for (j = 0; j <= trSym; j++) {
+        #pragma omp parallel for default(shared) private(k)
+        for (k = 0; k < Nsite; k++) {
+          master[QPTrans[i][k] + j * Nsite] = eleNum[k];
+          master[QPTrans[i][k] + (1-j) * Nsite] = eleNum[k+Nsite];
+        }
+        pos = 0;
+        while (master[pos] == masterCandidate[pos]) {
           pos++;
         }
-        eleCfg[i + (1-j) * Nsite] = -1;
+
+        // accept config
+        if (master[pos] > masterCandidate[pos]) {
+          memcpy(masterCandidate, master, sizeof(int)*Nsite2);
+          translationId = i;
+          trId = j;
+        }
       }
     }
-  }
-  else {
-    for(i = 0; i < Nsite2; i++) {
-      if (masterCandidate[i]) {
-        master[pos] = i;
+
+    pos = 0;
+    if (AlternativeBasisOrdering) {
+      for(i = 0; i < Nsite; i++) {
+        for (j = 0; j < 2; j ++) {
+          if (masterCandidate[i + (1-j) * Nsite]) {
+            master[pos] = 2 * i + j; /* here we use our strange convention that
+                                      we want down, up ordering to be consistent with
+                                      the notation */
+            pos++;
+          }
+          eleCfg[i + (1-j) * Nsite] = -1;
+        }
+      }
+    }
+    else {
+      for(i = 0; i < Nsite2; i++) {
+        if (masterCandidate[i]) {
+          master[pos] = i;
+          pos++;
+        }
+        eleCfg[i] = -1;
+      }
+    }
+
+    for (i = 0; i < Ne; i++) {
+      if (AlternativeBasisOrdering) {
+        eleCfg[2 * QPTrans[translationId][eleIdx[i]] + (1-trId)] = i;
+      }
+      else {
+        eleCfg[QPTrans[translationId][eleIdx[i]] + trId * Nsite] = i;
+      }
+      if (APFlag) {
+        sign *= QPTransSgn[translationId][eleIdx[i]];
+      }
+    }
+
+    for (i = Ne; i < Nsize; i++) {
+      if (AlternativeBasisOrdering) {
+        eleCfg[2 * QPTrans[translationId][eleIdx[i]] + trId] = i;
+      }
+      else {
+        eleCfg[QPTrans[translationId][eleIdx[i]] + (1 - trId) * Nsite] = i;
+      }
+      if (APFlag) {
+        sign *= QPTransSgn[translationId][eleIdx[i]];
+      }
+      if (trId) {
+        sign *= -1;
+      }
+    }
+
+    totalCount = 0;
+    minIdx = 0;
+    evenCycles = 0;
+    while (totalCount < Nsize) {
+      pos = minIdx;
+      while (master[pos] == -1) {
         pos++;
+        minIdx++;
       }
-      eleCfg[i] = -1;
-    }
-  }
 
-  for (i = 0; i < Ne; i++) {
-    if (AlternativeBasisOrdering) {
-      eleCfg[2 * QPTrans[translationId][eleIdx[i]] + (1-trId)] = i;
+      cycleLength = 0;
+      while (master[pos] != -1) {
+        totalCount++;
+        cycleLength++;
+        posNew = eleCfg[master[pos]];
+        master[pos] = -1;
+        pos = posNew;
+      }
+
+      if (cycleLength%2 == 0) {
+        evenCycles++;
+      }
+    }
+
+
+    if (evenCycles%2 == 0) {
+      return sign;
     }
     else {
-      eleCfg[QPTrans[translationId][eleIdx[i]] + trId * Nsite] = i;
+      return -sign;
     }
-    if (APFlag) {
-      sign *= QPTransSgn[translationId][eleIdx[i]];
-    }
-  }
-
-  for (i = Ne; i < Nsize; i++) {
-    if (AlternativeBasisOrdering) {
-      eleCfg[2 * QPTrans[translationId][eleIdx[i]] + trId] = i;
-    }
-    else {
-      eleCfg[QPTrans[translationId][eleIdx[i]] + (1 - trId) * Nsite] = i;
-    }
-    if (APFlag) {
-      sign *= QPTransSgn[translationId][eleIdx[i]];
-    }
-    if (trId) {
-      sign *= -1;
-    }
-  }
-
-  totalCount = 0;
-  minIdx = 0;
-  evenCycles = 0;
-  while (totalCount < Nsize) {
-    pos = minIdx;
-    while (master[pos] == -1) {
-      pos++;
-      minIdx++;
-    }
-
-    cycleLength = 0;
-    while (master[pos] != -1) {
-      totalCount++;
-      cycleLength++;
-      posNew = eleCfg[master[pos]];
-      master[pos] = -1;
-      pos = posNew;
-    }
-
-    if (cycleLength%2 == 0) {
-      evenCycles++;
-    }
-  }
-
-
-  if (evenCycles%2 == 0) {
-    return sign;
-  }
-  else {
-    return -sign;
   }
 }
 
@@ -138,118 +180,160 @@ int ComputeRefState_fsz(const int *eleIdx, const int *eleNum, const int *eleSpn,
   int trSym = 0;
   int sign = 1;
 
-  if (NGPWIdx > 0) {
-    if(GPWTRSym[0] == 1) {
-      trSym = 1;
+  if (AlternativeBasisOrdering == 2) {
+     //Marshall sign rule
+    for (i = 0; i < Nsite; i++) {
+      master[i] = -1;
     }
-  }
 
-  #pragma omp parallel for default(shared) private(i)
-  for(i = 0; i < Nsite2; i++) {
-    masterCandidate[i] = -1;
-  }
+    master[0] = 0;
+    totalCount = 1;
 
-  for (i = 0; i < NMPTrans; i++) {
-    for (j = 0; j <= trSym; j++) {
-      #pragma omp parallel for default(shared) private(k)
-      for (k = 0; k < Nsite; k++) {
-        master[QPTrans[i][k] + j * Nsite] = eleNum[k];
-        master[QPTrans[i][k] + (1-j) * Nsite] = eleNum[k+Nsite];
-      }
-      pos = 0;
-      while (master[pos] == masterCandidate[pos]) {
-        pos++;
-      }
+    while(totalCount < Nsite) {
+      for(j = 0; j < NCoulombInter; j++) {
+        pos = CoulombInter[j][0];
+        posNew = CoulombInter[j][1];
 
-      // accept config
-      if (master[pos] > masterCandidate[pos]) {
-        memcpy(masterCandidate, master, sizeof(int)*Nsite2);
-        translationId = i;
-        trId = j;
-      }
-    }
-  }
-
-  pos = 0;
-  if (AlternativeBasisOrdering) {
-    for(i = 0; i < Nsite; i++) {
-      for (j = 0; j < 2; j ++) {
-        if (masterCandidate[i + (1-j) * Nsite]) {
-          master[pos] = 2 * i + j; /* here we use our strange convention that
-                                     we want down, up ordering to be consistent with
-                                     the notation */
-          pos++;
+        if (master[pos] != -1 && master[posNew] == -1) {
+          master[posNew] = 1 - master[pos];
+          totalCount ++;
         }
-        eleCfg[i + (1-j) * Nsite] = -1;
+
+        if (master[posNew] != -1 && master[pos] == -1) {
+          master[pos] = 1 - master[posNew];
+          totalCount ++;
+        }
       }
+    }
+
+    totalCount = 0;
+    for (i = 0; i < Nsite; i++) {
+      if (master[i] == 0) {
+        totalCount += eleNum[i];
+      }
+    }
+
+    if (totalCount%2 == 0) {
+      return 1;
+    }
+    else {
+      return -1;
     }
   }
   else {
-    for(i = 0; i < Nsite2; i++) {
-      if (masterCandidate[i]) {
-        master[pos] = i;
-        pos++;
+    if (NGPWIdx > 0) {
+      if(GPWTRSym[0] == 1) {
+        trSym = 1;
       }
-      eleCfg[i] = -1;
     }
-  }
 
-  for (i = 0; i < Nsize; i++) {
-    spin = eleSpn[i];
-    if (spin) {
-      if (AlternativeBasisOrdering) {
-        eleCfg[2 * QPTrans[translationId][eleIdx[i]] + trId] = i;
+    #pragma omp parallel for default(shared) private(i)
+    for(i = 0; i < Nsite2; i++) {
+      masterCandidate[i] = -1;
+    }
+
+    for (i = 0; i < NMPTrans; i++) {
+      for (j = 0; j <= trSym; j++) {
+        #pragma omp parallel for default(shared) private(k)
+        for (k = 0; k < Nsite; k++) {
+          master[QPTrans[i][k] + j * Nsite] = eleNum[k];
+          master[QPTrans[i][k] + (1-j) * Nsite] = eleNum[k+Nsite];
+        }
+        pos = 0;
+        while (master[pos] == masterCandidate[pos]) {
+          pos++;
+        }
+
+        // accept config
+        if (master[pos] > masterCandidate[pos]) {
+          memcpy(masterCandidate, master, sizeof(int)*Nsite2);
+          translationId = i;
+          trId = j;
+        }
       }
-      else {
-        eleCfg[QPTrans[translationId][eleIdx[i]] + (1 - trId) * Nsite] = i;
-      }
-      if (trId) {
-        sign *= -1;
+    }
+
+    pos = 0;
+    if (AlternativeBasisOrdering) {
+      for(i = 0; i < Nsite; i++) {
+        for (j = 0; j < 2; j ++) {
+          if (masterCandidate[i + (1-j) * Nsite]) {
+            master[pos] = 2 * i + j; /* here we use our strange convention that
+                                      we want down, up ordering to be consistent with
+                                      the notation */
+            pos++;
+          }
+          eleCfg[i + (1-j) * Nsite] = -1;
+        }
       }
     }
     else {
-      if (AlternativeBasisOrdering) {
-        eleCfg[2 * QPTrans[translationId][eleIdx[i]] + (1-trId)] = i;
+      for(i = 0; i < Nsite2; i++) {
+        if (masterCandidate[i]) {
+          master[pos] = i;
+          pos++;
+        }
+        eleCfg[i] = -1;
+      }
+    }
+
+    for (i = 0; i < Nsize; i++) {
+      spin = eleSpn[i];
+      if (spin) {
+        if (AlternativeBasisOrdering) {
+          eleCfg[2 * QPTrans[translationId][eleIdx[i]] + trId] = i;
+        }
+        else {
+          eleCfg[QPTrans[translationId][eleIdx[i]] + (1 - trId) * Nsite] = i;
+        }
+        if (trId) {
+          sign *= -1;
+        }
       }
       else {
-        eleCfg[QPTrans[translationId][eleIdx[i]] + trId * Nsite] = i;
+        if (AlternativeBasisOrdering) {
+          eleCfg[2 * QPTrans[translationId][eleIdx[i]] + (1-trId)] = i;
+        }
+        else {
+          eleCfg[QPTrans[translationId][eleIdx[i]] + trId * Nsite] = i;
+        }
+      }
+      if (APFlag) {
+        sign *= QPTransSgn[translationId][eleIdx[i]];
       }
     }
-    if (APFlag) {
-      sign *= QPTransSgn[translationId][eleIdx[i]];
+
+    totalCount = 0;
+    minIdx = 0;
+    evenCycles = 0;
+    while (totalCount < Nsize) {
+      pos = minIdx;
+      while (master[pos] == -1) {
+        pos++;
+        minIdx++;
+      }
+
+      cycleLength = 0;
+      while (master[pos] != -1) {
+        totalCount++;
+        cycleLength++;
+        posNew = eleCfg[master[pos]];
+        master[pos] = -1;
+        pos = posNew;
+      }
+
+      if (cycleLength%2 == 0) {
+        evenCycles++;
+      }
     }
-  }
 
-  totalCount = 0;
-  minIdx = 0;
-  evenCycles = 0;
-  while (totalCount < Nsize) {
-    pos = minIdx;
-    while (master[pos] == -1) {
-      pos++;
-      minIdx++;
+
+    if (evenCycles%2 == 0) {
+      return sign;
     }
-
-    cycleLength = 0;
-    while (master[pos] != -1) {
-      totalCount++;
-      cycleLength++;
-      posNew = eleCfg[master[pos]];
-      master[pos] = -1;
-      pos = posNew;
+    else {
+      return -sign;
     }
-
-    if (cycleLength%2 == 0) {
-      evenCycles++;
-    }
-  }
-
-
-  if (evenCycles%2 == 0) {
-    return sign;
-  }
-  else {
-    return -sign;
   }
 }
 

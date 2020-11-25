@@ -56,22 +56,23 @@ int ComputeRefState(const int *eleIdx, const int *eleNum, int *workspace) {
 
     master[0] = 0;
     totalCount = 1;
+    pos = 0;
 
     while(totalCount < Nsite) {
-      for(j = 0; j < NCoulombInter; j++) {
-        pos = CoulombInter[j][0];
-        posNew = CoulombInter[j][1];
+      if (pos == Nsite) {
+        pos = 1;
+      }
+      if (master[pos] != -1) {
+        for (k = 0; k < 2*Dim; k++) {
+          posNew = SysNeighbours[2*Dim*pos + k];
 
-        if (master[pos] != -1 && master[posNew] == -1) {
-          master[posNew] = 1 - master[pos];
-          totalCount ++;
-        }
-
-        if (master[posNew] != -1 && master[pos] == -1) {
-          master[pos] = 1 - master[posNew];
-          totalCount ++;
+          if (master[posNew] == -1) {
+            master[posNew] = 1 - master[pos];
+            totalCount ++;
+          }
         }
       }
+      pos ++;
     }
 
     totalCount = 0;
@@ -238,22 +239,23 @@ int ComputeRefState_fsz(const int *eleIdx, const int *eleNum, const int *eleSpn,
 
     master[0] = 0;
     totalCount = 1;
+    pos = 0;
 
     while(totalCount < Nsite) {
-      for(j = 0; j < NCoulombInter; j++) {
-        pos = CoulombInter[j][0];
-        posNew = CoulombInter[j][1];
+      if (pos == Nsite) {
+        pos = 1;
+      }
+      if (master[pos] != -1) {
+        for (k = 0; k < 2*Dim; k++) {
+          posNew = SysNeighbours[2*Dim*pos + k];
 
-        if (master[pos] != -1 && master[posNew] == -1) {
-          master[posNew] = 1 - master[pos];
-          totalCount ++;
-        }
-
-        if (master[posNew] != -1 && master[pos] == -1) {
-          master[pos] = 1 - master[posNew];
-          totalCount ++;
+          if (master[posNew] == -1) {
+            master[posNew] = 1 - master[pos];
+            totalCount ++;
+          }
         }
       }
+      pos ++;
     }
 
     totalCount = 0;

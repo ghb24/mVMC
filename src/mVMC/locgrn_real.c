@@ -76,7 +76,7 @@ double  GreenFunc1_real(const int ri, const int rj, const int s, const double ip
   z = ProjRatio(projCntNew,eleProjCnt);
   UpdateGPWKern(rj, ri, prevConfigReduced, eleGPWKernNew, eleGPWInSumNew,
                 eleGPWKern, eleGPWInSum, eleNum);
-  z *= GPWRatio(eleGPWKernNew,eleGPWKern);
+  z *= GPWRatio(eleGPWKernNew,eleGPWKern, eleGPWInSumNew, eleGPWInSum);
   z *= RBMVal(eleNum);
 
   if (UseOrbital) {
@@ -206,7 +206,7 @@ double GreenFunc2_real(const int ri, const int rj, const int rk, const int rl,
                 eleGPWKern, eleGPWInSumTmp, eleNum);
 
   z = ProjRatio(projCntNew,eleProjCnt);
-  z *= GPWRatio(eleGPWKernNew,eleGPWKern);
+  z *= GPWRatio(eleGPWKernNew,eleGPWKern, eleGPWInSumNew, eleGPWInSum);
   z *= RBMVal(eleNum);
 
   if (UseOrbital) {
@@ -372,7 +372,7 @@ double GreenFuncN_real(const int n, int *rsi, int *rsj, const double  ip,
   MakeProjCnt(projCntNew,eleNum);
   CalculateGPWKern(eleGPWKernNew, eleGPWInSumNew, eleNum);
   x = ProjRatio(projCntNew,eleProjCnt);
-  x *= GPWRatio(eleGPWKernNew,eleGPWKern);
+  x *= GPWRatio(eleGPWKernNew,eleGPWKern, eleGPWInSumNew, eleGPWInSum);
   x *= RBMVal(eleNum);
 
   if (UseOrbital) {

@@ -28,6 +28,7 @@ along with this program. If not, see http://www.gnu.org/licenses/.
 #ifndef _SRC_VMCCAL
 #define _SRC_VMCCAL
 #include "vmccal.h"
+#include "include/global.h"
 #include "matrix.h"
 #include "calham_real.h"
 #include "calham.h"
@@ -229,24 +230,101 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
       }
       offset = nProj+1;
 
-      #pragma omp parallel for default(shared) private(i)
-      for(i=0;i<nGPWIdx;i++){
-        srOptO[(offset+i)*2]     = eleGPWKern[i];    // even real
-        srOptO[(offset+i)*2+1]   = eleGPWKern[i]*I;  // odd  comp
-      }
-      offset += nGPWIdx;
+      if (!QGPS) {
+        #pragma omp parallel for default(shared) private(i)
+        for(i=0;i<nGPWIdx;i++){
+          srOptO[(offset+i)*2]     = eleGPWKern[i];    // even real
+          srOptO[(offset+i)*2+1]   = eleGPWKern[i]*I;  // odd  comp
+        }
+        offset += nGPWIdx;
 
-      /* this is not ideal but an easy way to make use of threads
-         (usually the number of training lattices will be small) */
-      for (i = 0; i < nGPWTrnLat; i++){
-        derivative = 0.0;
-        if (GPWKernelFunc[i] == 0 && OptFlag[2*(NProj + NGPWIdx + i)]) {
-          #pragma omp parallel for default(shared) private(j, k) reduction(+:derivative)
-          for (j = 0; j < nGPWIdx; j++) {
-            int matOffset, inSumSize;
-            if (i == GPWTrnLat[j]){
+        /* this is not ideal but an easy way to make use of threads
+          (usually the number of training lattices will be small) */
+        for (i = 0; i < nGPWTrnLat; i++){
+          derivative = 0.0;
+          if (GPWKernelFunc[i] == 0 && OptFlag[2*(NProj + NGPWIdx + i)]) {
+            #pragma omp parallel for default(shared) private(j, k) reduction(+:derivative)
+            for (j = 0; j < nGPWIdx; j++) {
+              int matOffset, inSumSize;
+              if (i == GPWTrnLat[j]){
+                matOffset = 0;
+                for (k = 0; k < j; k++) {
+                  inSumSize = 1;
+                  if (abs(GPWShift[GPWTrnLat[k]]) & 1) {
+                    inSumSize *= Nsite;
+                  }
+                  if ((abs(GPWShift[GPWTrnLat[k]]) & 2) >> 1) {
+                    inSumSize *= GPWTrnSize[GPWTrnLat[k]];
+                  }
+                  if (GPWTRSym[GPWTrnLat[k]]) {
+                    inSumSize *= 2;
+                  }
+                  matOffset += inSumSize;
+                }
+                derivative += GPWVar[j] * ComputeKernDeriv(eleNum, Nsite, GPWTrnCfg[j], GPWTrnSize[i], GPWPower[i],
+                                                          GPWThetaVar[i], GPWNorm[i], GPWTRSym[i],
+                                                          GPWShift[i], 0, 0, eleGPWInSum+matOffset);
+              }
+            }
+          }
+          srOptO[(offset+i)*2]     = derivative;    // even real
+          srOptO[(offset+i)*2+1]   = derivative*I;  // odd  comp
+          offset++;
+        }
+
+        opt = 0;
+        for (i = 0; i < nGPWDistWeights; i++) {
+          if (OptFlag[2*(NProj + NGPWIdx + NGPWTrnLat)]) {
+            opt = 1;
+            break;
+          }
+        }
+
+        if (nGPWDistWeights > 0 && opt) {
+          for (i = 0; i < nGPWDistWeights; i++) {
+            srOptO[(offset+i)*2] = 0.0;
+            srOptO[(offset+i)*2+1] = 0.0*I;
+          }
+
+          #pragma omp parallel default(shared) private(i, j, k, l)
+          {
+            int matOffset, latId, trnSize, plaqSize, kernFunc, plaqId, basisOptOffset;
+            int shiftSys, shiftTrn, translationSys, translationTrn, occId, inSumSize, tSym;
+            double complex *inSum;
+            double sumTargetLat;
+            int *sysPlaquetteIdx, *trnPlaquetteIdx;
+            double complex *distWeightDeriv = (double complex*)calloc(nGPWDistWeights, sizeof(double complex));
+
+            #pragma omp for
+            for (i = 0; i < nGPWIdx; i++) {
+              latId = GPWTrnLat[i];
+              trnSize = GPWTrnSize[latId];
+              kernFunc = GPWKernelFunc[latId];
+              plaqSize = GPWPlaquetteSizes[latId];
+              sysPlaquetteIdx = GPWSysPlaquetteIdx[latId];
+              trnPlaquetteIdx = GPWTrnPlaquetteIdx[latId];
+
+              shiftSys = 1;
+              shiftTrn = 1;
+              translationSys = 1;
+              translationTrn = 1;
+
+              if (abs(GPWShift[latId]) & 1) {
+                shiftSys = Nsite;
+                if (GPWShift[latId] < 0) {
+                  translationSys = trnSize;
+                }
+              }
+              if ((abs(GPWShift[latId]) & 2) >> 1) {
+                shiftTrn = trnSize;
+
+                if (GPWShift[latId] < 0) {
+                  translationTrn = Nsite;
+                }
+              }
               matOffset = 0;
-              for (k = 0; k < j; k++) {
+              basisOptOffset = 0;
+              for (k = 0; k < i; k++) {
                 inSumSize = 1;
                 if (abs(GPWShift[GPWTrnLat[k]]) & 1) {
                   inSumSize *= Nsite;
@@ -258,104 +336,11 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
                   inSumSize *= 2;
                 }
                 matOffset += inSumSize;
+                basisOptOffset += 4*GPWPlaquetteSizes[GPWTrnLat[k]];
               }
-              derivative += GPWVar[j] * ComputeKernDeriv(eleNum, Nsite, GPWTrnCfg[j], GPWTrnSize[i], GPWPower[i],
-                                                         GPWThetaVar[i], GPWNorm[i], GPWTRSym[i],
-                                                         GPWShift[i], 0, 0, eleGPWInSum+matOffset);
-            }
-          }
-        }
-        srOptO[(offset+i)*2]     = derivative;    // even real
-        srOptO[(offset+i)*2+1]   = derivative*I;  // odd  comp
-        offset++;
-      }
 
-      opt = 0;
-      for (i = 0; i < nGPWDistWeights; i++) {
-        if (OptFlag[2*(NProj + NGPWIdx + NGPWTrnLat)]) {
-          opt = 1;
-          break;
-        }
-      }
+              inSum = eleGPWInSum+matOffset;
 
-      if (nGPWDistWeights > 0 && opt) {
-        for (i = 0; i < nGPWDistWeights; i++) {
-          srOptO[(offset+i)*2] = 0.0;
-          srOptO[(offset+i)*2+1] = 0.0*I;
-        }
-
-        #pragma omp parallel default(shared) private(i, j, k, l)
-        {
-          int matOffset, latId, trnSize, plaqSize, kernFunc, plaqId, basisOptOffset;
-          int shiftSys, shiftTrn, translationSys, translationTrn, occId, inSumSize, tSym;
-          double complex *inSum;
-          double sumTargetLat;
-          int *sysPlaquetteIdx, *trnPlaquetteIdx;
-          double complex *distWeightDeriv = (double complex*)calloc(nGPWDistWeights, sizeof(double complex));
-
-          #pragma omp for
-          for (i = 0; i < nGPWIdx; i++) {
-            latId = GPWTrnLat[i];
-            trnSize = GPWTrnSize[latId];
-            kernFunc = GPWKernelFunc[latId];
-            plaqSize = GPWPlaquetteSizes[latId];
-            sysPlaquetteIdx = GPWSysPlaquetteIdx[latId];
-            trnPlaquetteIdx = GPWTrnPlaquetteIdx[latId];
-
-            shiftSys = 1;
-            shiftTrn = 1;
-            translationSys = 1;
-            translationTrn = 1;
-
-            if (abs(GPWShift[latId]) & 1) {
-              shiftSys = Nsite;
-              if (GPWShift[latId] < 0) {
-                translationSys = trnSize;
-              }
-            }
-            if ((abs(GPWShift[latId]) & 2) >> 1) {
-              shiftTrn = trnSize;
-
-              if (GPWShift[latId] < 0) {
-                translationTrn = Nsite;
-              }
-            }
-            matOffset = 0;
-            basisOptOffset = 0;
-            for (k = 0; k < i; k++) {
-              inSumSize = 1;
-              if (abs(GPWShift[GPWTrnLat[k]]) & 1) {
-                inSumSize *= Nsite;
-              }
-              if ((abs(GPWShift[GPWTrnLat[k]]) & 2) >> 1) {
-                inSumSize *= GPWTrnSize[GPWTrnLat[k]];
-              }
-              if (GPWTRSym[GPWTrnLat[k]]) {
-                inSumSize *= 2;
-              }
-              matOffset += inSumSize;
-              basisOptOffset += 4*GPWPlaquetteSizes[GPWTrnLat[k]];
-            }
-
-            inSum = eleGPWInSum+matOffset;
-
-            if(kernFunc == -3) {
-              for (tSym = 0; tSym <= GPWTRSym[latId]; tSym++) {
-                for (l = 0; l < shiftSys; l++) {
-                  for (k = 0; k < plaqSize; k++) {
-                    if (tSym) {
-                      occId = (1-eleNum[sysPlaquetteIdx[l*plaqSize+k]]) + 2 * (1-eleNum[sysPlaquetteIdx[l*plaqSize+k]+Nsite]);
-                    }
-                    else {
-                      occId = eleNum[sysPlaquetteIdx[l*plaqSize+k]] + 2 * eleNum[sysPlaquetteIdx[l*plaqSize+k]+Nsite];
-                    }
-                    distWeightDeriv[basisOptOffset + 4*k + occId] += GPWVar[i] * inSum[tSym * Nsite + l] / GPWDistWeights[basisOptOffset + 4*k + occId];
-                  }
-                }
-              }
-            }
-
-            else {
               for (k = 0; k < plaqSize; k++) {
                 for (j = 0; j < shiftTrn; j+=translationTrn) {
                   plaqId = trnPlaquetteIdx[j*plaqSize+k];
@@ -372,37 +357,38 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
                 }
               }
             }
+
+            #pragma omp critical
+            for (i = 0; i < nGPWDistWeights; i++) {
+              srOptO[(offset+i)*2] += distWeightDeriv[i];
+            }
+            free(distWeightDeriv);
+          }
+        }
+
+        offset += nGPWDistWeights;
+
+        if (GPWExpansionOrder >= 0) {
+          expansionargument = GPWExpansionargument(eleGPWKern);
+          prefactor = 0.0;
+          factorial = 1;
+          for (j = 0; j < GPWExpansionOrder; j++) {
+            prefactor += cpow(expansionargument, j)/factorial;
+            factorial *= (j+1);
           }
 
-          #pragma omp critical
-          for (i = 0; i < nGPWDistWeights; i++) {
-            srOptO[(offset+i)*2] += distWeightDeriv[i];
-            if(kernFunc == -3) {
-              srOptO[(offset+i)*2 + 1] += I * distWeightDeriv[i];
-            }
+          prefactor /= GPWVal(eleGPWKern, eleGPWInSum);
+
+          #pragma omp parallel for default(shared) private(i)
+          for (i = 0; i < (nGPWDistWeights + nGPWTrnLat + nGPWIdx); i++) {
+            srOptO[(nProj+1+i)*2] *= prefactor;
+            srOptO[(nProj+1+i)*2 + 1] *= prefactor;
           }
-          free(distWeightDeriv);
         }
       }
-
-      offset += nGPWDistWeights;
-
-      if (GPWExpansionOrder >= 0) {
-        expansionargument = GPWExpansionargument(eleGPWKern);
-        prefactor = 0.0;
-        factorial = 1;
-        for (j = 0; j < GPWExpansionOrder; j++) {
-          prefactor += cpow(expansionargument, j)/factorial;
-          factorial *= (j+1);
-        }
-
-        prefactor /= GPWVal(eleGPWKern);
-
-        #pragma omp parallel for default(shared) private(i)
-        for (i = 0; i < (nGPWDistWeights + nGPWTrnLat + nGPWIdx); i++) {
-          srOptO[(nProj+1+i)*2] *= prefactor;
-          srOptO[(nProj+1+i)*2 + 1] *= prefactor;
-        }
+      else {
+        calculateQGPSderivative(srOptO+2*offset, eleGPWInSum, eleNum);
+        offset += nGPWDistWeights + nGPWTrnLat + nGPWIdx;
       }
 
       #pragma omp parallel for default(shared) private(f, i)
@@ -528,7 +514,7 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
           cfgDown |= (((unsigned long) 1) << i);
         }
       }
-      amp = cexp(LogProjVal(eleProjCnt)+LogGPWVal(eleGPWKern))*ip;
+      amp = cexp(LogProjVal(eleProjCnt)+LogGPWVal(eleGPWKern, eleGPWInSum))*ip;
 
       fprintf(fp,"%lu  %lu  %.10e  %.10e  %.10e  %.10e  %.10e  %.10e\n", cfgUp, cfgDown,
               creal(amp), cimag(amp), creal(ip/RBMVal(eleNum)),

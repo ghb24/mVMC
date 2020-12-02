@@ -90,7 +90,7 @@ double complex GreenFunc1_fsz(const int ri, const int rj, const int s, const dou
   z = ProjRatio(projCntNew,eleProjCnt);
   UpdateGPWKern(rj, ri, prevConfigReduced, eleGPWKernNew, eleGPWInSumNew,
                 eleGPWKern, eleGPWInSum, eleNum);
-  z *= GPWRatio(eleGPWKernNew,eleGPWKern);
+  z *= GPWRatio(eleGPWKernNew,eleGPWKern, eleGPWInSumNew, eleGPWInSum);
   z *= RBMVal(eleNum);
 
   if (UseOrbital) {
@@ -150,7 +150,7 @@ double complex GreenFunc1_fsz2(const int ri, const int rj, const int s,const int
   z = ProjRatio(projCntNew,eleProjCnt);
   UpdateGPWKern(rj, ri, prevConfigReduced, eleGPWKernNew, eleGPWInSumNew,
                 eleGPWKern, eleGPWInSum, eleNum);
-  z *= GPWRatio(eleGPWKernNew, eleGPWKern);
+  z *= GPWRatio(eleGPWKernNew, eleGPWKern, eleGPWInSumNew, eleGPWInSum);
   z *= RBMVal(eleNum);
 
   if (UseOrbital) {
@@ -284,7 +284,7 @@ double complex GreenFunc2_fsz(const int ri, const int rj, const int rk, const in
                 eleGPWKern, eleGPWInSumTmp, eleNum);
 
   z = ProjRatio(projCntNew,eleProjCnt);
-  z *= GPWRatio(eleGPWKernNew,eleGPWKern);
+  z *= GPWRatio(eleGPWKernNew,eleGPWKern, eleGPWInSumNew, eleGPWInSum);
   z *= RBMVal(eleNum);
 
   if (UseOrbital) {
@@ -456,7 +456,7 @@ double complex GreenFunc2_fsz2(const int ri, const int rj, const int rk, const i
                 eleGPWKern, eleGPWInSumTmp, eleNum);
 
   z = ProjRatio(projCntNew,eleProjCnt);
-  z *= GPWRatio(eleGPWKernNew,eleGPWKern);
+  z *= GPWRatio(eleGPWKernNew,eleGPWKern, eleGPWInSumNew, eleGPWInSum);
   z *= RBMVal(eleNum);
 
   if (UseOrbital) {

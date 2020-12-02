@@ -142,7 +142,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
 
         /* Metroplis */
         x = LogProjRatio(projCntNew, TmpEleProjCnt);
-        x += LogGPWRatio(eleGPWKernNew, TmpEleGPWKern);
+        x += LogGPWRatio(eleGPWKernNew, TmpEleGPWKern, eleGPWInSumNew, TmpEleGPWInSum);
         if (UseOrbital) {
           w = exp(2.0 * (x + (logIpNew - logIpOld)));
         }
@@ -223,7 +223,7 @@ void VMCMakeSample_real(MPI_Comm comm) {
 
         /* Metroplis */
         x = LogProjRatio(projCntNew, TmpEleProjCnt);
-        x += LogGPWRatio(eleGPWKernNew, TmpEleGPWKern);
+        x += LogGPWRatio(eleGPWKernNew, TmpEleGPWKern, eleGPWInSumNew, TmpEleGPWInSum);
         if (UseOrbital) {
           w = exp(2.0 * (x + (logIpNew - logIpOld)));
         }

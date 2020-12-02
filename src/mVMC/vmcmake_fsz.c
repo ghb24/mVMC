@@ -26,6 +26,7 @@ along with this program. If not, see http://www.gnu.org/licenses/.
  * by Satoshi Morita
  *-------------------------------------------------------------*/
 
+#include "include/global.h"
 void VMCMakeSample_fsz(MPI_Comm comm);
 int makeInitialSample_fsz(int *eleIdx, int *eleCfg, int *eleNum, int *eleProjCnt,int *eleSpn,
                       double complex *eleGPWKern, double complex *eleGPWInSum,
@@ -203,7 +204,7 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
 
         /* Metroplis */
         x = LogProjRatio(projCntNew,TmpEleProjCnt);
-        x += LogGPWRatio(eleGPWKernNew, TmpEleGPWKern);
+        x += LogGPWRatio(eleGPWKernNew, TmpEleGPWKern, eleGPWInSumNew, TmpEleGPWInSum);
         if (UseOrbital) {
           w = exp(2.0 * (x + creal(logIpNew-logIpOld)));
         }
@@ -284,7 +285,7 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
 
         /* Metroplis */
         x = LogProjRatio(projCntNew,TmpEleProjCnt);
-        x += LogGPWRatio(eleGPWKernNew, TmpEleGPWKern);
+        x += LogGPWRatio(eleGPWKernNew, TmpEleGPWKern, eleGPWInSumNew, TmpEleGPWInSum);
         if (UseOrbital) {
           w = exp(2.0 * (x + creal(logIpNew-logIpOld)));
         }
@@ -354,7 +355,7 @@ void VMCMakeSample_fsz(MPI_Comm comm) {
 
         /* Metroplis */
         x = LogProjRatio(projCntNew,TmpEleProjCnt);
-        x += LogGPWRatio(eleGPWKernNew, TmpEleGPWKern);
+        x += LogGPWRatio(eleGPWKernNew, TmpEleGPWKern, eleGPWInSumNew, TmpEleGPWInSum);
         if (UseOrbital) {
           w = exp(2.0 * (x + creal(logIpNew-logIpOld)));
         }
@@ -581,7 +582,7 @@ void saveEleConfig_fsz(const int sample, const double complex logIp, const doubl
   memcpy(EleGPWInSum[sample], eleGPWInSum, sizeof(double complex)*GPWInSumSize);
 
   x = LogProjVal(eleProjCnt);
-  x += LogGPWVal(eleGPWKern);
+  x += LogGPWVal(eleGPWKern, eleGPWInSum);
   x += clog(rbmVal);
   if (UseOrbital) {
     logSqPfFullSlater[sample] = 2.0*(x+creal(logIp));//TBC

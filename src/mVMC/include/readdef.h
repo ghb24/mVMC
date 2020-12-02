@@ -83,6 +83,7 @@ enum ParamIdxInt{
   IdxNDH2, IdxNDH4, IdxNGPW, IdxNGPWTrnLat,
   IdxTrnLatNbSz, IdxTrnCfgSz, IdxDistWeightsSz,
   IdxExpansionOrder, IdxGPWShiftFlag, IdxNGPWDistWeights,
+  IdxQGPS, IdxQGPSSymMode,
   IdxDim,
   IdxNRBMVisible, IdxNRBMHidden,
   IdxNOrbit, IdxNOrbitGeneral, IdxUseOrb,

@@ -69,7 +69,7 @@ double complex GreenFunc1(const int ri, const int rj, const int s, const double 
   z = ProjRatio(projCntNew,eleProjCnt);
   UpdateGPWKern(rj, ri, prevConfigReduced, eleGPWKernNew, eleGPWInSumNew,
                 eleGPWKern, eleGPWInSum, eleNum);
-  z *= GPWRatio(eleGPWKernNew,eleGPWKern);
+  z *= GPWRatio(eleGPWKernNew,eleGPWKern, eleGPWInSumNew, eleGPWInSum);
   z *= RBMVal(eleNum);
 
   /* calculate Pfaffian */
@@ -200,7 +200,7 @@ double complex GreenFunc2(const int ri, const int rj, const int rk, const int rl
                 eleGPWKern, eleGPWInSumTmp, eleNum);
 
   z = ProjRatio(projCntNew,eleProjCnt);
-  z *= GPWRatio(eleGPWKernNew,eleGPWKern);
+  z *= GPWRatio(eleGPWKernNew,eleGPWKern, eleGPWInSumNew, eleGPWInSum);
   z *= RBMVal(eleNum);
 
   /* calculate Pfaffian */
@@ -353,7 +353,7 @@ double complex GreenFuncN(const int n, int *rsi, int *rsj, const double complex 
   x = ProjRatio(projCntNew,eleProjCnt);
 
   CalculateGPWKern(eleGPWKernNew, eleGPWInSumNew ,eleNum);
-  x *= GPWRatio(eleGPWKernNew,eleGPWKern);
+  x *= GPWRatio(eleGPWKernNew,eleGPWKern, eleGPWInSumNew, eleGPWInSum);
   x *= RBMVal(eleNum);
 
   /* calculateNewPfM */

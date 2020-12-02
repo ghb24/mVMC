@@ -63,19 +63,4 @@ void GPWExpKernelVec(const unsigned long *configsAUp,
                      const int tRSym, const int shift, const int startIdA,
                      const int startIdB, const int centralDelta,
                      double *kernelVec);
-
-// Computes the inner sum for the exponential kernel with optimised basis
-void ComputeInSumExpBasisOpt(double complex *inSum, const int *plaquetteAIdx, const int sizeA,
-                             const int plaquetteSize, const double complex *distWeights,
-                             const int *eleNum, const int tRSym, const int shift);
-
-// Updates the inner sum for the exponential kernel with optimised basis
-void UpdateInSumExpBasisOpt(double complex *inSumNew, const int *cfgOldReduced, const int *eleNum,
-                            const int *plaquetteAIdx, const int sizeA, const int plaquetteSize,
-                            const double complex *distWeights, int **plaqHash, const int ri,
-                            const int rj, const int tRSym, const int shift);
-
-// Computes the exponential kernel with optimised basis
-double complex ComputeExpKernelBasisOpt(const int size, const int tRSym,
-                                        const double complex *inSum, const int shift);
 #endif // _GPW_EXP_KERN_INCLUDE_FILES

@@ -146,7 +146,7 @@ char *ReadBuffIntCmpFlg(FILE *fp, int *iNbuf, int *iComplexFlag) {
 
 char *ReadBuffGPWInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, int *iLatNbSzBuf,
                       int *iTrnCfgSzBuf, int *iDistWeightsSzBuf, int *iExpansionOrder, int *iGPWShiftFlag,
-                      int *iNGPWDistWeights) {
+                      int *iNGPWDistWeights, int *iQGPS, int *iQGPSSymMode) {
   char *cerr;
   char ctmp[D_FileNameMax];
   char ctmp2[D_FileNameMax];
@@ -165,6 +165,8 @@ char *ReadBuffGPWInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, in
   *iExpansionOrder = -1;
   *iGPWShiftFlag = 0;
   *iNGPWDistWeights = 0;
+  *iQGPS = 0;
+  *iQGPSSymMode = 0;
 
   cerr = ReadBuffIntCmpFlg(fp, iNbuf, iComplexFlag);
 
@@ -200,6 +202,16 @@ char *ReadBuffGPWInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, in
 
     else if (CheckWords(ctmp2, "NGPWDistWeights") == 0) {
       *iNGPWDistWeights = readVal;
+      IgnoreAddLineGPWDef++;
+    }
+
+    else if (CheckWords(ctmp2, "QGPS") == 0) {
+      *iQGPS = readVal;
+      IgnoreAddLineGPWDef++;
+    }
+
+    else if (CheckWords(ctmp2, "QGPSSymMode") == 0) {
+      *iQGPSSymMode = readVal;
       IgnoreAddLineGPWDef++;
     }
 
@@ -265,10 +277,10 @@ char *ReadBuffGPWInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, in
       fprintf(stderr, "Error: Lattice reference (in gpwidx.def) not found.\n");
     }
 
-    if (latType[latIdIntern] != -3) {
+    if (!iQGPS) {
       *iTrnCfgSzBuf += latSz[latIdIntern];
     }
-    if (latType[latIdIntern] < 0 && latType[latIdIntern] != -3) {
+    if (latType[latIdIntern] < 0 && !iQGPS) {
       if (latType[latIdIntern] == -1) {
         numDist = abs(cutRad[latIdIntern]);
       }
@@ -276,7 +288,7 @@ char *ReadBuffGPWInfo(FILE *fp, int *iNbuf, int *iComplexFlag, int *iNLatBuf, in
         numDist = abs(cutRad[latIdIntern])-1;
       }
       else {
-        printf("Error Kernel type not known! \n");
+        printf("Error Kernel type not known!\n");
       }
       *iDistWeightsSzBuf += numDist*latSz[latIdIntern];
       for (k = 0; k < latSz[latIdIntern] * numDist; k++) {
@@ -590,7 +602,8 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
             cerr = ReadBuffGPWInfo(fp, &bufInt[IdxNGPW], &iComplexFlgGPW, &bufInt[IdxNGPWTrnLat],
                                    &bufInt[IdxTrnLatNbSz], &bufInt[IdxTrnCfgSz],
                                    &bufInt[IdxDistWeightsSz], &bufInt[IdxExpansionOrder],
-                                   &bufInt[IdxGPWShiftFlag], &bufInt[IdxNGPWDistWeights]);
+                                   &bufInt[IdxGPWShiftFlag], &bufInt[IdxNGPWDistWeights],
+                                   &bufInt[IdxQGPS], &bufInt[IdxQGPSSymMode]);
             break;
 
           case KWTopology:
@@ -830,6 +843,8 @@ int ReadDefFileNInt(char *xNameListFile, MPI_Comm comm) {
   GPWExpansionOrder = bufInt[IdxExpansionOrder];
   GPWShiftFlag = bufInt[IdxGPWShiftFlag];
   NGPWDistWeights = bufInt[IdxNGPWDistWeights];
+  QGPS = bufInt[IdxQGPS];
+  QGPSSymMode = bufInt[IdxQGPSSymMode];
   RBMNVisibleIdx = bufInt[IdxNRBMVisible];
   RBMNHiddenIdx = bufInt[IdxNRBMHidden];
   UseOrbital = bufInt[IdxUseOrb];
@@ -1255,10 +1270,10 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
   j = 0;
   k = 0;
   for (i = 0; i < NGPWIdx; i++) {
-    if (GPWKernelFunc[GPWTrnLat[i]] != -3) {
+    if (!QGPS) {
       GPWTrnCfg[i] = GPWTrnCfgFlat+j;
       j += 2*GPWTrnSize[GPWTrnLat[i]];
-      if (GPWKernelFunc[GPWTrnLat[i]] < 0 && GPWKernelFunc[GPWTrnLat[i]] != -3) {
+      if (GPWKernelFunc[GPWTrnLat[i]] < 0) {
         GPWDistWeightIdx[i] = GPWDistWeightIdx[0] + k;
         if (GPWKernelFunc[GPWTrnLat[i]] == -1) {
           k += GPWTrnSize[GPWTrnLat[i]]*abs(GPWCutRad[GPWTrnLat[i]]);
@@ -1275,7 +1290,7 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
     if (abs(GPWShift[GPWTrnLat[i]]) & 1) {
       inSumSize *= Nsite;
     }
-    if (((abs(GPWShift[GPWTrnLat[i]]) & 2) >> 1) && GPWKernelFunc[GPWTrnLat[i]] != -3) {
+    if (((abs(GPWShift[GPWTrnLat[i]]) & 2) >> 1) && !QGPS) {
       inSumSize *= GPWTrnSize[GPWTrnLat[i]];
     }
     if (GPWTRSym[GPWTrnLat[i]]) {
@@ -1292,11 +1307,11 @@ int ReadDefFileIdxPara(char *xNameListFile, MPI_Comm comm) {
   }
 
   for (i = 0; i < NGPWTrnLat; i++) {
-    if (GPWKernelFunc[i] > 0) {
+    if (GPWKernelFunc[i] > 0 && !QGPS) {
       GPWPlaquetteSizes[i] = SetupPlaquetteIdx(-(GPWKernelFunc[i]), SysNeighbours, Nsite, GPWTrnNeighbours[i], GPWTrnSize[i], Dim,
                                                &(GPWSysPlaquetteIdx[i]), &(GPWTrnPlaquetteIdx[i]), &(GPWDistList[i]), 0);
     }
-    else if ((GPWKernelFunc[i] == -1) || (GPWKernelFunc[i] == -3)) {
+    else if ((GPWKernelFunc[i] == -1) || QGPS) {
       GPWPlaquetteSizes[i] = SetupPlaquetteIdx(GPWCutRad[i], SysNeighbours, Nsite, GPWTrnNeighbours[i], GPWTrnSize[i], Dim,
                                                &(GPWSysPlaquetteIdx[i]), &(GPWTrnPlaquetteIdx[i]), &(GPWDistList[i]), 1);
     }
@@ -1838,6 +1853,8 @@ void SetDefaultValuesModPara(int *bufInt, double *bufDouble) {
   bufInt[IdxExpansionOrder] = -1;
   bufInt[IdxGPWShiftFlag] = 0;
   bufInt[IdxNGPWDistWeights] = 0;
+  bufInt[IdxQGPS] = 0;
+  bufInt[IdxQGPSSymMode] = 0;
   bufInt[IdxDim] = 1;
   bufInt[IdxNRBMVisible] = 0;
   bufInt[IdxNRBMHidden] = 0;
@@ -2363,7 +2380,7 @@ int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int
       trnLattices[j] = latIdIntern;
       trnSz = trnSize[latIdIntern];
 
-      if (kernFunc[latIdIntern] != -3) {
+      if (!QGPS) {
         for (k = 0; k < trnSz; k++) {
           trnCfg[storeId+k] = (trnCfgUp >> k) & 1;
           trnCfg[storeId+k+trnSz] = (trnCfgDown >> k) & 1;
@@ -2371,7 +2388,7 @@ int GetInfoGPW(FILE *fp, int *trnSize, int *trnNeighbours, int *trnLattices, int
         storeId += 2*trnSz;
       }
 
-      if (kernFunc[latIdIntern] < 0 && kernFunc[latIdIntern] != -3) {
+      if (kernFunc[latIdIntern] < 0 && !QGPS) {
         if (kernFunc[latIdIntern] == -1) {
           numDist = abs(cutRad[latIdIntern]);
         }

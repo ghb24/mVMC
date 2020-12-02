@@ -147,7 +147,7 @@ void VMCMakeSample(MPI_Comm comm) {
 
         /* Metroplis */
         x = LogProjRatio(projCntNew,TmpEleProjCnt);
-        x += LogGPWRatio(eleGPWKernNew,TmpEleGPWKern);
+        x += LogGPWRatio(eleGPWKernNew,TmpEleGPWKern, eleGPWInSumNew, TmpEleGPWInSum);
         //printf("x imag is %f \n", cimag(x));
         if (UseOrbital) {
           w = cexp(x+creal(logIpNew-logIpOld));
@@ -228,7 +228,7 @@ void VMCMakeSample(MPI_Comm comm) {
 
         /* Metroplis */
         x = LogProjRatio(projCntNew,TmpEleProjCnt);
-        x += LogGPWRatio(eleGPWKernNew,TmpEleGPWKern);
+        x += LogGPWRatio(eleGPWKernNew,TmpEleGPWKern, eleGPWInSumNew, TmpEleGPWInSum);
         if (UseOrbital) {
           w = cexp(x+creal(logIpNew-logIpOld));
         }
@@ -417,7 +417,7 @@ void saveEleConfig(const int sample, const double complex logIp, const double co
   memcpy(EleGPWInSum[sample], eleGPWInSum, sizeof(double complex)*GPWInSumSize);
 
   x = LogProjVal(eleProjCnt);
-  x += LogGPWVal(eleGPWKern);
+  x += LogGPWVal(eleGPWKern, eleGPWInSum);
   x += clog(rbmVal);
   if (UseOrbital) {
     logSqPfFullSlater[sample] = 2.0*(x+creal(logIp));//TBC

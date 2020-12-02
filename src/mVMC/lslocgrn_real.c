@@ -242,7 +242,7 @@ double calHCA1_real(const int ri, const int rj, const int s,
 
   UpdateGPWKern(rj, ri, prevConfigReduced, eleGPWKernNew, eleGPWInSumNew,
                 eleGPWKern, eleGPWInSum, eleNum);
-  z *= GPWRatio(eleGPWKernNew,eleGPWKern);
+  z *= GPWRatio(eleGPWKernNew,eleGPWKern, eleGPWInSumNew, eleGPWInSum);
 
   if (UseOrbital) {
     UpdateMAll_real(mj,s,eleIdx,0,NQPFull);
@@ -692,7 +692,7 @@ double calHCACA1_real(const int ri, const int rj, const int rk, const int rl,
                 eleGPWKern, eleGPWInSumTmp, eleNum);
 
   z = ProjRatio(projCntNew,eleProjCnt);
-  z *= GPWRatio(eleGPWKernNew,eleGPWKern);
+  z *= GPWRatio(eleGPWKernNew,eleGPWKern, eleGPWInSumNew, eleGPWInSum);
 
   if (UseOrbital) {
     UpdateMAllTwo_real(ml, sk, mj, si, rl, rj, eleIdx, 0, NQPFull);

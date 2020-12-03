@@ -32,6 +32,7 @@ double complex QGPSVal(const double complex *eleGPWInSum) {
   for (tSym = 0; tSym <= GPWTRSym[0]; tSym++) {
     for (i = 0; i < shiftSys; i++) {
       expansionargument = 0.0;
+      #pragma omp parallel for default(shared) private(l) reduction(+:expansionargument)
       for(l=0;l<NGPWIdx;l++) {
         expansionargument += eleGPWInSum[l*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + i];
       }
@@ -69,36 +70,38 @@ double complex QGPSRatio(const double complex *eleGPWInSumNew, const double comp
 }
 
 void CalculateQGPSInsum(double complex *eleGPWInSum, const int *eleNum) {
-  int i, j, tSym, id, k;
   int shiftSys = 1;
-  int count = 0;
 
   int plaquetteSize = GPWPlaquetteSizes[0];
   int *plaquetteAIdx = GPWSysPlaquetteIdx[0];
-
-  double complex innerSum;
-  double complex element;
 
   if (abs(GPWShift[0]) & 1) {
     shiftSys = Nsite;
   }
 
-  for(i=0;i<NGPWIdx;i++) {
-    for (tSym = 0; tSym <= GPWTRSym[0]; tSym++) {
-      for (j = 0; j < shiftSys; j++) {
-        innerSum = 1.0;
-        for (k = 0; k < plaquetteSize; k++) {
-          if (tSym) {
-            id = (1-eleNum[plaquetteAIdx[j*plaquetteSize+k]]) + 2 * (1-eleNum[plaquetteAIdx[j*plaquetteSize+k]+Nsite]);
+  #pragma omp parallel default(shared)
+  {
+    int i, j, tSym, k;
+    double complex innerSum;
+    double complex element;
+    int id;
+    #pragma omp for
+    for(i=0;i<NGPWIdx;i++) {
+      for (tSym = 0; tSym <= GPWTRSym[0]; tSym++) {
+        for (j = 0; j < shiftSys; j++) {
+          innerSum = 1.0;
+          for (k = 0; k < plaquetteSize; k++) {
+            if (tSym) {
+              id = (1-eleNum[plaquetteAIdx[j*plaquetteSize+k]]) + 2 * (1-eleNum[plaquetteAIdx[j*plaquetteSize+k]+Nsite]);
+            }
+            else {
+              id = eleNum[plaquetteAIdx[j*plaquetteSize+k]] + 2 * eleNum[plaquetteAIdx[j*plaquetteSize+k]+Nsite];
+            }
+            element = GPWDistWeights[4*plaquetteSize*i + k*4 + id];
+            innerSum *= element;
           }
-          else {
-            id = eleNum[plaquetteAIdx[j*plaquetteSize+k]] + 2 * eleNum[plaquetteAIdx[j*plaquetteSize+k]+Nsite];
-          }
-          element = GPWDistWeights[4*plaquetteSize*i + k*4 + id];
-          innerSum *= element;
+          eleGPWInSum[i*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + j] = innerSum;
         }
-        eleGPWInSum[count] = innerSum;
-        count++;
       }
     }
   }
@@ -108,7 +111,7 @@ void CalculateQGPSInsum(double complex *eleGPWInSum, const int *eleNum) {
 void UpdateQGPSInSum(const int ri, const int rj, const int *cfgOldReduced,
                      double complex *eleGPWInSumNew, const double complex *eleGPWInSumOld,
                      const int *eleNum) {
-  int i, j, tSym, occupationIdOld, occupationIdNew, k;
+
   int shiftSys = 1;
   int count = 0;
 
@@ -117,8 +120,7 @@ void UpdateQGPSInSum(const int ri, const int rj, const int *cfgOldReduced,
   int *plaquetteAIdx = GPWSysPlaquetteIdx[0];
   int **plaqHash = GPWSysPlaqHash[0];
 
-  double complex elementOld;
-  double complex elementNew;
+
 
   if (abs(GPWShift[0]) & 1) {
     shiftSys = Nsite;
@@ -126,40 +128,46 @@ void UpdateQGPSInSum(const int ri, const int rj, const int *cfgOldReduced,
 
   memcpy(eleGPWInSumNew, eleGPWInSumOld, sizeof(double complex)*GPWInSumSize);
 
- // #pragma omp parallel for default(shared) private(i)
-  for(i=0;i<NGPWIdx;i++) {
-    for (tSym = 0; tSym <= GPWTRSym[0]; tSym++) {
-      if (tSym) {
-        occupationIdOld = (1-cfgOldReduced[0]) + 2 * (1-cfgOldReduced[2]);
-        occupationIdNew = (1-eleNum[ri]) + 2 * (1-eleNum[ri+Nsite]);
-      }
-      else {
-        occupationIdOld = cfgOldReduced[0] + 2 * cfgOldReduced[2];
-        occupationIdNew = eleNum[ri] + 2 * eleNum[ri+Nsite];
-      }
-      for (j = 0; j < shiftSys; j++) {
-        k = plaqHash[ri +j *Nsite][0];
-        elementOld = GPWDistWeights[4*plaquetteSize*i + k*4 + occupationIdOld];
-        elementNew = GPWDistWeights[4*plaquetteSize*i + k*4 + occupationIdNew];
-
-        eleGPWInSumNew[i*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + j] /= elementOld;
-        eleGPWInSumNew[i*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + j] *= elementNew;
-      }
-      if (ri != rj) {
+  #pragma omp parallel default(shared)
+  {
+    int i, j, tSym, occupationIdOld, occupationIdNew, k;
+    double complex elementOld;
+    double complex elementNew;
+    #pragma omp for
+    for(i=0;i<NGPWIdx;i++) {
+      for (tSym = 0; tSym <= GPWTRSym[0]; tSym++) {
         if (tSym) {
-          occupationIdOld = (1-cfgOldReduced[1]) + 2 * (1-cfgOldReduced[3]);
-          occupationIdNew = (1-eleNum[rj]) + 2 * (1-eleNum[rj+Nsite]);
+          occupationIdOld = (1-cfgOldReduced[0]) + 2 * (1-cfgOldReduced[2]);
+          occupationIdNew = (1-eleNum[ri]) + 2 * (1-eleNum[ri+Nsite]);
         }
         else {
-          occupationIdOld = cfgOldReduced[1] + 2 * cfgOldReduced[3];
-          occupationIdNew = eleNum[rj] + 2 * eleNum[rj+Nsite];
+          occupationIdOld = cfgOldReduced[0] + 2 * cfgOldReduced[2];
+          occupationIdNew = eleNum[ri] + 2 * eleNum[ri+Nsite];
         }
         for (j = 0; j < shiftSys; j++) {
-          k = plaqHash[rj + j *Nsite][0];
+          k = plaqHash[ri +j *Nsite][0];
           elementOld = GPWDistWeights[4*plaquetteSize*i + k*4 + occupationIdOld];
           elementNew = GPWDistWeights[4*plaquetteSize*i + k*4 + occupationIdNew];
+
           eleGPWInSumNew[i*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + j] /= elementOld;
           eleGPWInSumNew[i*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + j] *= elementNew;
+        }
+        if (ri != rj) {
+          if (tSym) {
+            occupationIdOld = (1-cfgOldReduced[1]) + 2 * (1-cfgOldReduced[3]);
+            occupationIdNew = (1-eleNum[rj]) + 2 * (1-eleNum[rj+Nsite]);
+          }
+          else {
+            occupationIdOld = cfgOldReduced[1] + 2 * cfgOldReduced[3];
+            occupationIdNew = eleNum[rj] + 2 * eleNum[rj+Nsite];
+          }
+          for (j = 0; j < shiftSys; j++) {
+            k = plaqHash[rj + j *Nsite][0];
+            elementOld = GPWDistWeights[4*plaquetteSize*i + k*4 + occupationIdOld];
+            elementNew = GPWDistWeights[4*plaquetteSize*i + k*4 + occupationIdNew];
+            eleGPWInSumNew[i*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + j] /= elementOld;
+            eleGPWInSumNew[i*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + j] *= elementNew;
+          }
         }
       }
     }
@@ -178,6 +186,7 @@ void calculateQGPSderivative(double complex *derivative, double complex *eleGPWI
   int offset = NGPWIdx + NGPWTrnLat;
   double complex *distWeightDeriv = derivative + 2*(NGPWIdx + NGPWTrnLat);
   
+  #pragma omp parallel for default(shared) private(i)
   for (i = 0; i < NGPWDistWeights; i++) {
     distWeightDeriv[i*2] = 0.0;
   }
@@ -200,6 +209,8 @@ void calculateQGPSderivative(double complex *derivative, double complex *eleGPWI
     for (tSym = 0; tSym <= GPWTRSym[0]; tSym++) {
       for (l = 0; l < shiftSys; l++) {
         expansionargument = 0.0;
+
+        #pragma omp parallel for default(shared) private(i) reduction(+:expansionargument)
         for(i=0;i<NGPWIdx;i++) {
           expansionargument += eleGPWInSum[i*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + l];
         }
@@ -217,6 +228,7 @@ void calculateQGPSderivative(double complex *derivative, double complex *eleGPWI
           }
         }
 
+        #pragma omp parallel for default(shared) private(i, k, occId)
         for (i = 0; i < NGPWIdx; i++) {
           for (k = 0; k < plaqSize; k++) {
             if (tSym) {
@@ -236,12 +248,12 @@ void calculateQGPSderivative(double complex *derivative, double complex *eleGPWI
 
     for (i = 0; i < NGPWDistWeights; i++) {
         distWeightDeriv[i*2] /= prefactor;
-        distWeightDeriv[i*2 + 1] = I*distWeightDeriv[i*2];
     }
   }
   else {
     for (tSym = 0; tSym <= GPWTRSym[0]; tSym++) {
       for (l = 0; l < shiftSys; l++) {
+        #pragma omp parallel for default(shared) private(i, k, occId)
         for (i = 0; i < NGPWIdx; i++) {
           for (k = 0; k < plaqSize; k++) {
             if (tSym) {
@@ -257,12 +269,14 @@ void calculateQGPSderivative(double complex *derivative, double complex *eleGPWI
       }
     }
 
+    #pragma omp parallel for default(shared) private(i)
     for (i = 0; i < NGPWDistWeights; i++) {
       distWeightDeriv[i*2 + 1] = I * distWeightDeriv[i*2];
     }
 
     if (GPWExpansionOrder >= 0) {
       expansionargument = 0.0 + 0.0*I;
+      #pragma omp parallel for default(shared) private(i, tSym, l) reduction(+:expansionargument)
       for(i=0;i<NGPWIdx;i++) {
         for (tSym = 0; tSym <= GPWTRSym[0]; tSym++) {
           for (l = 0; l < shiftSys; l++) {
@@ -270,6 +284,7 @@ void calculateQGPSderivative(double complex *derivative, double complex *eleGPWI
           }
         }
       }
+
       prefactor = 0.0;
       factorial = 1;
       for (i = 0; i < GPWExpansionOrder; i++) {
@@ -282,9 +297,14 @@ void calculateQGPSderivative(double complex *derivative, double complex *eleGPWI
       #pragma omp parallel for default(shared) private(i)
       for (i = 0; i < NGPWDistWeights; i++) {
         distWeightDeriv[i*2] *= prefactor;
-        distWeightDeriv[i*2 + 1] *= prefactor;
       }
     }
   }
+
+  #pragma omp parallel for default(shared) private(i)
+  for (i = 0; i < NGPWDistWeights; i++) {
+    distWeightDeriv[i*2 + 1] = I*distWeightDeriv[i*2];
+  }
+
   return;
 }

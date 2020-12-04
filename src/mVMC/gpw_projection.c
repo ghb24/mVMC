@@ -11,7 +11,7 @@ double complex LogGPWVal(const double complex *eleGPWKern, const double complex 
   int idx;
   double complex z=0.0+0.0*I;
   if (QGPS) {
-    return LogQGPSVal(eleGPWInSum);
+    return LogQGPSVal(eleGPWKern);
   }
   else {
     if (GPWExpansionOrder == -1) {
@@ -47,7 +47,7 @@ double complex GPWVal(const double complex *eleGPWKern, const double complex *el
   int factorial = 1;
 
   if (QGPS) {
-    return QGPSVal(eleGPWInSum);
+    return QGPSVal(eleGPWKern);
   }
   else {
     expansionargument = GPWExpansionargument(eleGPWKern);
@@ -72,7 +72,7 @@ double complex LogGPWRatio(const double complex *eleGPWKernNew, const double com
   double complex z=0.0+0.0*I;
 
   if (QGPS) {
-    return LogQGPSRatio(eleGPWInSumNew, eleGPWInSumOld);
+    return LogQGPSRatio(eleGPWKernNew, eleGPWKernOld);
   }
   else {
     if (GPWExpansionOrder == -1) {
@@ -92,7 +92,7 @@ double complex LogGPWRatio(const double complex *eleGPWKernNew, const double com
 double complex GPWRatio(const double complex *eleGPWKernNew, const double complex *eleGPWKernOld,
                         const double complex *eleGPWInSumNew, const double complex *eleGPWInSumOld) {
   if (QGPS) {
-    return QGPSRatio(eleGPWInSumNew, eleGPWInSumOld);
+    return QGPSRatio(eleGPWKernNew, eleGPWKernOld);
   }
   else {
     if (GPWExpansionOrder == -1) {
@@ -111,7 +111,9 @@ void CalculateGPWKern(double complex *eleGPWKern, double complex *eleGPWInSum, c
 
 
   if (QGPS) {
-    return CalculateQGPSInsum(eleGPWInSum, eleNum);
+    CalculateQGPSInsum(eleGPWInSum, eleNum);
+    ComputeQGPSAmplitude(eleGPWKern, eleGPWInSum);
+    return;
   }
   else {
     #pragma omp parallel for default(shared) private(i)
@@ -192,7 +194,9 @@ void UpdateGPWKern(const int ri, const int rj, const int *cfgOldReduced,
   const int nGPWIdx=NGPWIdx;
   int i;
   if (QGPS) {
-    return UpdateQGPSInSum(ri, rj, cfgOldReduced, eleGPWInSumNew, eleGPWInSumOld, eleNum);
+    UpdateQGPSInSum(ri, rj, cfgOldReduced, eleGPWInSumNew, eleGPWInSumOld, eleNum);
+    ComputeQGPSAmplitude(eleGPWKernNew, eleGPWInSumNew);
+    return;
   }
   else {
     memcpy(eleGPWInSumNew, eleGPWInSumOld, sizeof(double complex)*GPWInSumSize);

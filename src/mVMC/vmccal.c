@@ -387,7 +387,7 @@ void VMCMainCal(MPI_Comm comm, MPI_Comm commSampler) {
         }
       }
       else {
-        calculateQGPSderivative(srOptO+2*offset, eleGPWInSum, eleNum);
+        calculateQGPSderivative(srOptO+2*offset, eleGPWKern, eleGPWInSum, eleNum);
         offset += nGPWDistWeights + nGPWTrnLat + nGPWIdx;
       }
 

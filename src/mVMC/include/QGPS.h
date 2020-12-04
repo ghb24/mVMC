@@ -5,13 +5,15 @@
 
 #include "complex.h"
 
-double complex LogQGPSVal(const double complex *workspace);
+double complex LogQGPSVal(const double complex *QGPSAmplitude);
  
-double complex QGPSVal(const double complex *eleGPWInSum);
+double complex QGPSVal(const double complex *QGPSAmplitude);
  
-double complex LogQGPSRatio(const double complex *eleGPWInSumNew, const double complex *eleGPWInSumOld);
+double complex LogQGPSRatio(const double complex *QGPSAmplitudeNew, const double complex *QGPSAmplitudeOld);
  
-double complex QGPSRatio(const double complex *eleGPWInSumNew, const double complex *eleGPWInSumOld);
+double complex QGPSRatio(const double complex *QGPSAmplitudeNew, const double complex *QGPSAmplitudeOld);
+
+void ComputeQGPSAmplitude(double complex *QGPSAmplitude, const double complex *eleGPWInSum);
 
 void CalculateQGPSInsum(double complex *eleGPWInSum, const int *eleNum);
 
@@ -19,5 +21,6 @@ void UpdateQGPSInSum(const int ri, const int rj, const int *cfgOldReduced,
                      double complex *eleGPWInSumNew, const double complex *eleGPWInSumOld,
                      const int *eleNum);
 
-void calculateQGPSderivative(double complex *derivative, double complex *eleGPWInSum, int *eleNum);
+void calculateQGPSderivative(double complex *derivative, const double complex *QGPSAmplitude,
+                             const double complex *eleGPWInSum, const int *eleNum);
 #endif // QGPS_INCLUDE_FILES

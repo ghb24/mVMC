@@ -7,7 +7,7 @@ TODO: Add License + Description*/
 #include <omp.h>
 
 
-inline double complex LogGPWVal(const double complex *eleGPWKern, const double complex *eleGPWInSum) {
+double complex LogGPWVal(const double complex *eleGPWKern, const double complex *eleGPWInSum) {
   int idx;
   double complex z=0.0+0.0*I;
   if (QGPS) {
@@ -28,7 +28,7 @@ inline double complex LogGPWVal(const double complex *eleGPWKern, const double c
   }
 }
 
-inline double complex GPWExpansionargument(const double complex *eleGPWKern) {
+double complex GPWExpansionargument(const double complex *eleGPWKern) {
   int idx;
   double complex expansionargument=0.0+0.0*I;
 
@@ -40,7 +40,7 @@ inline double complex GPWExpansionargument(const double complex *eleGPWKern) {
   return expansionargument;
 }
 
-inline double complex GPWVal(const double complex *eleGPWKern, const double complex *eleGPWInSum) {
+double complex GPWVal(const double complex *eleGPWKern, const double complex *eleGPWInSum) {
   int i;
   double complex expansionargument;
   double complex z=0.0+0.0*I;
@@ -66,8 +66,8 @@ inline double complex GPWVal(const double complex *eleGPWKern, const double comp
   }
 }
 
-inline double complex LogGPWRatio(const double complex *eleGPWKernNew, const double complex *eleGPWKernOld,
-                                  const double complex *eleGPWInSumNew, const double complex *eleGPWInSumOld) {
+double complex LogGPWRatio(const double complex *eleGPWKernNew, const double complex *eleGPWKernOld,
+                           const double complex *eleGPWInSumNew, const double complex *eleGPWInSumOld) {
   int idx;
   double complex z=0.0+0.0*I;
 
@@ -89,8 +89,8 @@ inline double complex LogGPWRatio(const double complex *eleGPWKernNew, const dou
   }
 }
 
-inline double complex GPWRatio(const double complex *eleGPWKernNew, const double complex *eleGPWKernOld,
-                               const double complex *eleGPWInSumNew, const double complex *eleGPWInSumOld) {
+double complex GPWRatio(const double complex *eleGPWKernNew, const double complex *eleGPWKernOld,
+                        const double complex *eleGPWInSumNew, const double complex *eleGPWInSumOld) {
   if (QGPS) {
     return QGPSRatio(eleGPWInSumNew, eleGPWInSumOld);
   }

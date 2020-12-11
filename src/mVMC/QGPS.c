@@ -3,6 +3,7 @@ TODO: Add License + Description*/
 #include "global.h"
 #include "QGPS.h"
 #include "include/global.h"
+#include <complex.h>
 #include <omp.h>
 
 double complex LogQGPSVal(const double complex *QGPSAmplitude) {
@@ -33,16 +34,26 @@ void ComputeQGPSAmplitude(double complex *QGPSAmplitude, const double complex *e
     shiftSys = Nsite;
   }
 
-  if(QGPSSymMode) {
+  if(QGPSSymMode > 0) {
     value = 0.0;
 
     #pragma omp parallel for default(shared) private(tSym, i, expansionargument, tmpValue, factorial, l) reduction(+:value)
     for (tSym = 0; tSym <= GPWTRSym[0]; tSym++) {
       for (i = 0; i < shiftSys; i++) {
         expansionargument = 0.0;
-        
-        for(l=0;l<NGPWIdx;l++) {
-          expansionargument += eleGPWInSum[l*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + i];
+
+        if (abs(QGPSSymMode) == 1)  {
+          for(l=0;l<NGPWIdx;l++) {
+            expansionargument += eleGPWInSum[l*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + i];
+          }
+        }
+        else {
+          for(l=0;l<NGPWIdx/2;l++) {
+            expansionargument += eleGPWInSum[l*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + i];
+          }
+          for(l=NGPWIdx/2;l<NGPWIdx;l++) {
+            expansionargument += I*eleGPWInSum[l*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + i];
+          }
         }
 
         if (GPWExpansionOrder == -1) {
@@ -70,8 +81,18 @@ void ComputeQGPSAmplitude(double complex *QGPSAmplitude, const double complex *e
       for (i = 0; i < shiftSys; i++) {
         expansionargument = 0.0;
         
-        for(l=0;l<NGPWIdx;l++) {
-          expansionargument += eleGPWInSum[l*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + i];
+        if (abs(QGPSSymMode) == 1)  {
+          for(l=0;l<NGPWIdx;l++) {
+            expansionargument += eleGPWInSum[l*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + i];
+          }
+        }
+        else {
+          for(l=0;l<NGPWIdx/2;l++) {
+            expansionargument += eleGPWInSum[l*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + i];
+          }
+          for(l=NGPWIdx/2;l<NGPWIdx;l++) {
+            expansionargument += I*eleGPWInSum[l*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + i];
+          }
         }
 
         if (GPWExpansionOrder == -1) {
@@ -262,14 +283,27 @@ void calculateQGPSderivative(double complex *derivative, const double complex *Q
     }
   }
 
-  if (QGPSSymMode) {
+  if (QGPSSymMode > 0) {
     for (tSym = 0; tSym <= GPWTRSym[0]; tSym++) {
       for (l = 0; l < shiftSys; l++) {
         expansionargument = 0.0;
 
-        #pragma omp parallel for default(shared) private(i) reduction(+:expansionargument)
-        for(i=0;i<NGPWIdx;i++) {
-          expansionargument += eleGPWInSum[i*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + l];
+        if (abs(QGPSSymMode) == 1)  {
+          #pragma omp parallel for default(shared) private(i) reduction(+:expansionargument)
+          for(i=0;i<NGPWIdx;i++) {
+            expansionargument += eleGPWInSum[i*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + l];
+          }
+        }
+        else {
+          #pragma omp parallel for default(shared) private(i) reduction(+:expansionargument)
+          for(i=0;i<NGPWIdx/2;i++) {
+            expansionargument += eleGPWInSum[i*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + l];
+          }
+
+          #pragma omp parallel for default(shared) private(i) reduction(+:expansionargument)
+          for(i=NGPWIdx/2; i<NGPWIdx;i++) {
+            expansionargument += I*eleGPWInSum[i*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + l];
+          }
         }
 
         if (GPWExpansionOrder == -1) {
@@ -323,7 +357,12 @@ void calculateQGPSderivative(double complex *derivative, const double complex *Q
                 }
               }
             }
-            distWeightDeriv[2*(4*plaqSize*i + 4*k + occId)] += prefactor*innerderiv;
+            if (abs(QGPSSymMode) == 1 || i < NGPWIdx/2)  {
+              distWeightDeriv[2*(4*plaqSize*i + 4*k + occId)] += prefactor*innerderiv;
+            }
+            else {
+              distWeightDeriv[2*(4*plaqSize*i + 4*k + occId)] += I*prefactor*innerderiv;
+            }
           }
         }
       }
@@ -376,7 +415,12 @@ void calculateQGPSderivative(double complex *derivative, const double complex *Q
                 }
               }
             }
-            distWeightDeriv[2*(4*plaqSize*i + 4*k + occId)] += innerderiv;
+            if (abs(QGPSSymMode) == 1 || i < NGPWIdx/2)  {
+              distWeightDeriv[2*(4*plaqSize*i + 4*k + occId)] += innerderiv;
+            }
+            else {
+              distWeightDeriv[2*(4*plaqSize*i + 4*k + occId)] += I*innerderiv;
+            }
           }
         }
       }
@@ -384,11 +428,32 @@ void calculateQGPSderivative(double complex *derivative, const double complex *Q
 
     if (GPWExpansionOrder >= 0) {
       expansionargument = 0.0 + 0.0*I;
-      #pragma omp parallel for default(shared) private(i, tSym, l) reduction(+:expansionargument)
-      for(i=0;i<NGPWIdx;i++) {
-        for (tSym = 0; tSym <= GPWTRSym[0]; tSym++) {
-          for (l = 0; l < shiftSys; l++) {
-            expansionargument += eleGPWInSum[i*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + l];
+      if (abs(QGPSSymMode) == 1)  {
+        #pragma omp parallel for default(shared) private(i, tSym, l) reduction(+:expansionargument)
+        for(i=0;i<NGPWIdx;i++) {
+          for (tSym = 0; tSym <= GPWTRSym[0]; tSym++) {
+            for (l = 0; l < shiftSys; l++) {
+              expansionargument += eleGPWInSum[i*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + l];
+            }
+          }
+        }
+      }
+      else {
+        #pragma omp parallel for default(shared) private(i, tSym, l) reduction(+:expansionargument)
+        for(i=0;i<NGPWIdx/2;i++) {
+          for (tSym = 0; tSym <= GPWTRSym[0]; tSym++) {
+            for (l = 0; l < shiftSys; l++) {
+              expansionargument += eleGPWInSum[i*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + l];
+            }
+          }
+        }
+
+        #pragma omp parallel for default(shared) private(i, tSym, l) reduction(+:expansionargument)
+        for(i=NGPWIdx/2;i<NGPWIdx;i++) {
+          for (tSym = 0; tSym <= GPWTRSym[0]; tSym++) {
+            for (l = 0; l < shiftSys; l++) {
+              expansionargument += I*eleGPWInSum[i*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + l];
+            }
           }
         }
       }
@@ -409,9 +474,11 @@ void calculateQGPSderivative(double complex *derivative, const double complex *Q
     }
   }
 
-  #pragma omp parallel for default(shared) private(i)
-  for (i = 0; i < NGPWDistWeights; i++) {
-    distWeightDeriv[i*2 + 1] = I*distWeightDeriv[i*2];
+  if(abs(QGPSSymMode) == 1) {
+    #pragma omp parallel for default(shared) private(i)
+    for (i = 0; i < NGPWDistWeights; i++) {
+      distWeightDeriv[i*2 + 1] = I*distWeightDeriv[i*2];
+    }
   }
 
   return;

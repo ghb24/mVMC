@@ -142,7 +142,7 @@ int NGPWIdx; /* NGPWIdx = total number of training configurations */
 int NGPWTrnLat; /* NGPWTrnLat = total number of different training lattices */
 int NGPWDistWeights; /* NGPWDistWeights = total number of distance weights for exponential kernel */
 int QGPS; /* 0: std GPS ansatz, 1: QGPS ansatz*/
-int QGPSSymMode; /* 0: product symmetrisation, 1: sum symmetrisation*/
+int QGPSSymMode; /* <0: product symmetrisation, >0: sum symmetrisation (abs()=1: full QGPS, abs()=2: complex imag split)*/
 int GPWTrnLatNeighboursSz; /* total size of the training lattice neighbours array (sum_(all training lattices) 2*Dim*latSize) */
 int GPWTrnCfgSz; /* total size of the training configurations array (sum_(all training configs) 2*latSize) */
 int GPWInSumSize; /* total size of the local kernel array */

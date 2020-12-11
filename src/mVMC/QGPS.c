@@ -25,6 +25,7 @@ double complex QGPSRatio(const double complex *QGPSAmplitudeNew, const double co
 void ComputeQGPSAmplitude(double complex *QGPSAmplitude, const double complex *eleGPWInSum) {
   int i, tSym, l;
   double complex expansionargument;
+  double complex expansionargumentSplit;
   double complex tmpValue;
   double complex value;
   int factorial = 1;
@@ -37,10 +38,11 @@ void ComputeQGPSAmplitude(double complex *QGPSAmplitude, const double complex *e
   if(QGPSSymMode > 0) {
     value = 0.0;
 
-    #pragma omp parallel for default(shared) private(tSym, i, expansionargument, tmpValue, factorial, l) reduction(+:value)
+    #pragma omp parallel for default(shared) private(tSym, i, expansionargument, expansionargumentSplit, tmpValue, factorial, l) reduction(+:value)
     for (tSym = 0; tSym <= GPWTRSym[0]; tSym++) {
       for (i = 0; i < shiftSys; i++) {
         expansionargument = 0.0;
+        expansionargumentSplit = 0.0;
 
         if (abs(QGPSSymMode) == 1)  {
           for(l=0;l<NGPWIdx;l++) {
@@ -52,15 +54,25 @@ void ComputeQGPSAmplitude(double complex *QGPSAmplitude, const double complex *e
             expansionargument += eleGPWInSum[l*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + i];
           }
           for(l=NGPWIdx/2;l<NGPWIdx;l++) {
-            expansionargument += I*eleGPWInSum[l*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + i];
+            expansionargumentSplit += eleGPWInSum[l*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + i];
           }
         }
 
         if (GPWExpansionOrder == -1) {
-          tmpValue = cexp(expansionargument);
+          if (abs(QGPSSymMode) != 3)  {
+            tmpValue = cexp(expansionargument + I*expansionargumentSplit);
+          }
+          else {
+            tmpValue = cexp(expansionargument) * expansionargumentSplit;
+          }
         }
 
         else {
+          if (abs(QGPSSymMode) == 3)  {
+            printf("Error: |QGPSSymMode|=3 together with non exp model will currently not create a linear prefactor.");
+          }
+
+          expansionargument += I*expansionargumentSplit;
           tmpValue = 0.0;
           factorial = 1;
           for(l = 0; l <= GPWExpansionOrder; l++) {
@@ -76,10 +88,11 @@ void ComputeQGPSAmplitude(double complex *QGPSAmplitude, const double complex *e
   else {
     value = 1.0;
 
-    #pragma omp parallel for default(shared) private(tSym, i, expansionargument, tmpValue, factorial, l) reduction(*:value)
+    #pragma omp parallel for default(shared) private(tSym, i, expansionargument, expansionargumentSplit, tmpValue, factorial, l) reduction(*:value)
     for (tSym = 0; tSym <= GPWTRSym[0]; tSym++) {
       for (i = 0; i < shiftSys; i++) {
         expansionargument = 0.0;
+        expansionargumentSplit = 0.0;
         
         if (abs(QGPSSymMode) == 1)  {
           for(l=0;l<NGPWIdx;l++) {
@@ -91,15 +104,24 @@ void ComputeQGPSAmplitude(double complex *QGPSAmplitude, const double complex *e
             expansionargument += eleGPWInSum[l*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + i];
           }
           for(l=NGPWIdx/2;l<NGPWIdx;l++) {
-            expansionargument += I*eleGPWInSum[l*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + i];
+            expansionargumentSplit += eleGPWInSum[l*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + i];
           }
         }
 
         if (GPWExpansionOrder == -1) {
-          tmpValue = cexp(expansionargument);
+          if (abs(QGPSSymMode) != 3)  {
+            tmpValue = cexp(expansionargument + I*expansionargumentSplit);
+          }
+          else {
+            tmpValue = cexp(expansionargument) * expansionargumentSplit;
+          }
         }
 
         else {
+          if (abs(QGPSSymMode) == 3)  {
+            printf("Error: |QGPSSymMode|=3 together with non exp model will currently not create a linear prefactor.");
+          }
+          expansionargument += I*expansionargumentSplit;
           tmpValue = 0.0;
           factorial = 1;
           for(l = 0; l <= GPWExpansionOrder; l++) {
@@ -255,6 +277,7 @@ void calculateQGPSderivative(double complex *derivative, const double complex *Q
                              const double complex *eleGPWInSum, const int *eleNum) {
   int i, j, k, l, occId, tSym, id;
   double complex expansionargument;
+  double complex expansionargumentSplit;
   double complex prefactor;
   double complex innerderiv;
   int factorial;
@@ -287,6 +310,7 @@ void calculateQGPSderivative(double complex *derivative, const double complex *Q
     for (tSym = 0; tSym <= GPWTRSym[0]; tSym++) {
       for (l = 0; l < shiftSys; l++) {
         expansionargument = 0.0;
+        expansionargumentSplit = 0.0;
 
         if (abs(QGPSSymMode) == 1)  {
           #pragma omp parallel for default(shared) private(i) reduction(+:expansionargument)
@@ -300,20 +324,26 @@ void calculateQGPSderivative(double complex *derivative, const double complex *Q
             expansionargument += eleGPWInSum[i*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + l];
           }
 
-          #pragma omp parallel for default(shared) private(i) reduction(+:expansionargument)
+          #pragma omp parallel for default(shared) private(i) reduction(+:expansionargumentSplit)
           for(i=NGPWIdx/2; i<NGPWIdx;i++) {
-            expansionargument += I*eleGPWInSum[i*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + l];
+            expansionargumentSplit += eleGPWInSum[i*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + l];
           }
         }
 
         if (GPWExpansionOrder == -1) {
-          prefactor = cexp(expansionargument);
+          if (abs(QGPSSymMode) != 3)  {
+            prefactor = cexp(expansionargument + I*expansionargumentSplit);
+          }
+          else {
+            prefactor = cexp(expansionargument);
+          }
         }
 
         else {
+          expansionargument += I*expansionargumentSplit;
           prefactor = 0.0;
           factorial = 1;
-          for(l = 0; l <= GPWExpansionOrder; l++) {
+          for(l = 0; l < GPWExpansionOrder; l++) {
             prefactor += cpow(expansionargument, l)/factorial;
             factorial *= (l+1);
           }
@@ -357,7 +387,7 @@ void calculateQGPSderivative(double complex *derivative, const double complex *Q
                 }
               }
             }
-            if (abs(QGPSSymMode) == 1 || i < NGPWIdx/2)  {
+            if (abs(QGPSSymMode) != 2 || i < NGPWIdx/2)  {
               distWeightDeriv[2*(4*plaqSize*i + 4*k + occId)] += prefactor*innerderiv;
             }
             else {
@@ -426,8 +456,9 @@ void calculateQGPSderivative(double complex *derivative, const double complex *Q
       }
     }
 
-    if (GPWExpansionOrder >= 0) {
+    if (GPWExpansionOrder >= 0 || (abs(QGPSSymMode) == 3)) {
       expansionargument = 0.0 + 0.0*I;
+      expansionargumentSplit = 0.0 + 0.0*I;
       if (abs(QGPSSymMode) == 1)  {
         #pragma omp parallel for default(shared) private(i, tSym, l) reduction(+:expansionargument)
         for(i=0;i<NGPWIdx;i++) {
@@ -448,21 +479,27 @@ void calculateQGPSderivative(double complex *derivative, const double complex *Q
           }
         }
 
-        #pragma omp parallel for default(shared) private(i, tSym, l) reduction(+:expansionargument)
+        #pragma omp parallel for default(shared) private(i, tSym, l) reduction(+:expansionargumentSplit)
         for(i=NGPWIdx/2;i<NGPWIdx;i++) {
           for (tSym = 0; tSym <= GPWTRSym[0]; tSym++) {
             for (l = 0; l < shiftSys; l++) {
-              expansionargument += I*eleGPWInSum[i*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + l];
+              expansionargumentSplit += eleGPWInSum[i*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + l];
             }
           }
         }
       }
 
-      prefactor = 0.0;
-      factorial = 1;
-      for (i = 0; i < GPWExpansionOrder; i++) {
-        prefactor += cpow(expansionargument, i)/factorial;
-        factorial *= (i+1);
+      if (GPWExpansionOrder == -1) {
+        prefactor = cexp(expansionargument);
+      }
+      else {
+        expansionargument += I*expansionargumentSplit;
+        prefactor = 0.0;
+        factorial = 1;
+        for (i = 0; i < GPWExpansionOrder; i++) {
+          prefactor += cpow(expansionargument, i)/factorial;
+          factorial *= (i+1);
+        }
       }
 
       prefactor /= QGPSVal(QGPSAmplitude);
@@ -474,7 +511,7 @@ void calculateQGPSderivative(double complex *derivative, const double complex *Q
     }
   }
 
-  if(abs(QGPSSymMode) == 1) {
+  if(abs(QGPSSymMode) != 2) {
     #pragma omp parallel for default(shared) private(i)
     for (i = 0; i < NGPWDistWeights; i++) {
       distWeightDeriv[i*2 + 1] = I*distWeightDeriv[i*2];

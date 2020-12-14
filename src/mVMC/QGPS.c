@@ -343,9 +343,9 @@ void calculateQGPSderivative(double complex *derivative, const double complex *Q
           expansionargument += I*expansionargumentSplit;
           prefactor = 0.0;
           factorial = 1;
-          for(l = 0; l < GPWExpansionOrder; l++) {
-            prefactor += cpow(expansionargument, l)/factorial;
-            factorial *= (l+1);
+          for(k = 0; k < GPWExpansionOrder; k++) {
+            prefactor += cpow(expansionargument, k)/factorial;
+            factorial *= (k+1);
           }
         }
 

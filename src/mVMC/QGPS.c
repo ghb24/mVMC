@@ -388,7 +388,12 @@ void calculateQGPSderivative(double complex *derivative, const double complex *Q
               }
             }
             if (abs(QGPSSymMode) != 2 || i < NGPWIdx/2)  {
-              distWeightDeriv[2*(4*plaqSize*i + 4*k + occId)] += prefactor*innerderiv;
+              if (abs(QGPSSymMode) == 3 && i < NGPWIdx/2) {
+                distWeightDeriv[2*(4*plaqSize*i + 4*k + occId)] += prefactor*expansionargumentSplit*innerderiv;
+              }
+              else {
+                distWeightDeriv[2*(4*plaqSize*i + 4*k + occId)] += prefactor*innerderiv;
+              }
             }
             else {
               distWeightDeriv[2*(4*plaqSize*i + 4*k + occId)] += I*prefactor*innerderiv;
@@ -405,57 +410,6 @@ void calculateQGPSderivative(double complex *derivative, const double complex *Q
     }
   }
   else {
-    for (tSym = 0; tSym <= GPWTRSym[0]; tSym++) {
-      for (l = 0; l < shiftSys; l++) {
-        #pragma omp parallel for default(shared) private(i, j, k, occId, id, innerderiv)
-        for (i = 0; i < NGPWIdx; i++) {
-          for (k = 0; k < plaqSize; k++) {
-            if (tSym) {
-              occId = (1-eleNum[sysPlaquetteIdx[l*plaqSize+k]]);
-              if (LocSpn[sysPlaquetteIdx[l*plaqSize+k]] != 1) {
-                occId += 2 * (1-eleNum[sysPlaquetteIdx[l*plaqSize+k]+Nsite]);
-              }
-            }
-            else {
-              occId = eleNum[sysPlaquetteIdx[l*plaqSize+k]];
-              if (LocSpn[sysPlaquetteIdx[l*plaqSize+k]] != 1) {
-                occId += 2 * eleNum[sysPlaquetteIdx[l*plaqSize+k]+Nsite];
-              }
-            }
-            if (cabs(GPWDistWeights[4*plaqSize*i + 4*k + occId]) > 0.0) {
-              innerderiv = eleGPWInSum[i*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + l] / GPWDistWeights[4*plaqSize*i + 4*k + occId];
-            }
-            else {
-              innerderiv = 1.0;
-              for (j = 0; j < plaqSize; j++) {
-                if (j != k) {
-                  if (tSym) {
-                    id = (1-eleNum[sysPlaquetteIdx[l*plaqSize+j]]);
-                    if(LocSpn[sysPlaquetteIdx[l*plaqSize+j]] != 1) {
-                      id += 2 * (1-eleNum[sysPlaquetteIdx[l*plaqSize+j]+Nsite]);
-                    }
-                  }
-                  else {
-                    id = eleNum[sysPlaquetteIdx[l*plaqSize+j]];
-                    if(LocSpn[sysPlaquetteIdx[l*plaqSize+j]] != 1) {
-                      id += 2 * eleNum[sysPlaquetteIdx[l*plaqSize+j]+Nsite];
-                    }
-                  }
-                  innerderiv *= GPWDistWeights[4*plaqSize*i + j*4 + id];
-                }
-              }
-            }
-            if (abs(QGPSSymMode) == 1 || i < NGPWIdx/2)  {
-              distWeightDeriv[2*(4*plaqSize*i + 4*k + occId)] += innerderiv;
-            }
-            else {
-              distWeightDeriv[2*(4*plaqSize*i + 4*k + occId)] += I*innerderiv;
-            }
-          }
-        }
-      }
-    }
-
     if (GPWExpansionOrder >= 0 || (abs(QGPSSymMode) == 3)) {
       expansionargument = 0.0 + 0.0*I;
       expansionargumentSplit = 0.0 + 0.0*I;
@@ -503,10 +457,65 @@ void calculateQGPSderivative(double complex *derivative, const double complex *Q
       }
 
       prefactor /= QGPSVal(QGPSAmplitude);
+    }
+    else {
+      prefactor = 1.0;
+      expansionargumentSplit = 1.0;
+    }
 
-      #pragma omp parallel for default(shared) private(i)
-      for (i = 0; i < NGPWDistWeights; i++) {
-        distWeightDeriv[i*2] *= prefactor;
+    for (tSym = 0; tSym <= GPWTRSym[0]; tSym++) {
+      for (l = 0; l < shiftSys; l++) {
+        #pragma omp parallel for default(shared) private(i, j, k, occId, id, innerderiv)
+        for (i = 0; i < NGPWIdx; i++) {
+          for (k = 0; k < plaqSize; k++) {
+            if (tSym) {
+              occId = (1-eleNum[sysPlaquetteIdx[l*plaqSize+k]]);
+              if (LocSpn[sysPlaquetteIdx[l*plaqSize+k]] != 1) {
+                occId += 2 * (1-eleNum[sysPlaquetteIdx[l*plaqSize+k]+Nsite]);
+              }
+            }
+            else {
+              occId = eleNum[sysPlaquetteIdx[l*plaqSize+k]];
+              if (LocSpn[sysPlaquetteIdx[l*plaqSize+k]] != 1) {
+                occId += 2 * eleNum[sysPlaquetteIdx[l*plaqSize+k]+Nsite];
+              }
+            }
+            if (cabs(GPWDistWeights[4*plaqSize*i + 4*k + occId]) > 0.0) {
+              innerderiv = eleGPWInSum[i*(GPWTRSym[0]+1)*shiftSys + tSym * shiftSys + l] / GPWDistWeights[4*plaqSize*i + 4*k + occId];
+            }
+            else {
+              innerderiv = 1.0;
+              for (j = 0; j < plaqSize; j++) {
+                if (j != k) {
+                  if (tSym) {
+                    id = (1-eleNum[sysPlaquetteIdx[l*plaqSize+j]]);
+                    if(LocSpn[sysPlaquetteIdx[l*plaqSize+j]] != 1) {
+                      id += 2 * (1-eleNum[sysPlaquetteIdx[l*plaqSize+j]+Nsite]);
+                    }
+                  }
+                  else {
+                    id = eleNum[sysPlaquetteIdx[l*plaqSize+j]];
+                    if(LocSpn[sysPlaquetteIdx[l*plaqSize+j]] != 1) {
+                      id += 2 * eleNum[sysPlaquetteIdx[l*plaqSize+j]+Nsite];
+                    }
+                  }
+                  innerderiv *= GPWDistWeights[4*plaqSize*i + j*4 + id];
+                }
+              }
+            }
+            if (abs(QGPSSymMode) != 2 || i < NGPWIdx/2)  {
+              if (abs(QGPSSymMode) == 3 && i < NGPWIdx/2) {
+                distWeightDeriv[2*(4*plaqSize*i + 4*k + occId)] += prefactor*expansionargumentSplit*innerderiv;
+              }
+              else {
+                distWeightDeriv[2*(4*plaqSize*i + 4*k + occId)] += prefactor*innerderiv;
+              }
+            }
+            else {
+              distWeightDeriv[2*(4*plaqSize*i + 4*k + occId)] += I*prefactor*innerderiv;
+            }
+          }
+        }
       }
     }
   }
